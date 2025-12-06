@@ -8,6 +8,7 @@ import cartRoutes from './routes/cartRoutes';
 import productRoutes from './routes/productRoutes';
 import aiRoutes from './routes/aiRoutes';
 import orderRoutes from './routes/orderRoutes';
+import adminRoutes from './routes/adminRoutes';
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/cart', cartRoutes)
 app.use('/api/orders', orderRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/', (req, res) => {
   res.send('Eyoris Fashion API is running...');

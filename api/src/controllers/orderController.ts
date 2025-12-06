@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { Order } from '../models/Order';
 import { Cart } from '../models/Cart';
+import { User } from '../models/User';
+import { Product } from '../models/Product';
 
 // POST /api/orders
 // ... imports
@@ -45,5 +47,46 @@ export const getUserOrders = async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Failed to retrieve orders' });
+  }
+};
+
+// GET /api/orders/all (Admin)
+export const getAllOrders = async (req: Request, res: Response) => {
+  try {
+    const orders = await Order.find().sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch orders' });
+  }
+};
+
+// GET /api/admin/stats
+export const getDashboardStats = async (req: Request, res: Response) => {
+  try {
+    // 1. Total Revenue
+    const revenueAgg = await Order.aggregate([
+      { $match: { status: 'paid' } },
+      { $group: { _id: null, total: { $sum: '$total_cents' } } }
+    ]);
+    const totalRevenue = revenueAgg[0]?.total || 0;
+
+    // 2. Counts
+    const totalOrders = await Order.countDocuments();
+    const totalProducts = await Product.countDocuments();
+    const totalUsers = await User.countDocuments(); // Assuming you sync Clerk users to Mongo
+
+    // 3. Recent Orders
+    const recentOrders = await Order.find().sort({ createdAt: -1 }).limit(5);
+
+    res.json({
+      revenue: totalRevenue,
+      orders: totalOrders,
+      products: totalProducts,
+      users: totalUsers,
+      recentOrders
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Stats error' });
   }
 };

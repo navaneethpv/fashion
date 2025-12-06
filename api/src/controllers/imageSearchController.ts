@@ -12,7 +12,12 @@ export const searchByImageColor = async (req: Request, res: Response) => {
     // 1. Extract Dominant Color from Uploaded Image
     // get-image-colors works with buffers if type is specified
     const colors = await getColors(req.file.buffer, 'image/jpeg'); 
-    const dominant = colors[0]; // The most prominent color
+
+    if (colors.length === 0) {
+      return res.status(422).json({ message: 'Could not extract any colors from the image.' });
+    }
+
+    const dominant = colors[0]; // The most prominent color is the first one.
     
     const queryColor = {
       hex: dominant.hex(),

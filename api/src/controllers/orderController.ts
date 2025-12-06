@@ -90,3 +90,30 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Stats error' });
   }
 };
+
+// ... existing imports
+
+// PATCH /api/orders/:id/status
+export const updateOrderStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const validStatuses = ['pending', 'paid', 'shipped', 'delivered', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const order = await Order.findByIdAndUpdate(
+      id, 
+      { status }, 
+      { new: true } // Return the updated document
+    );
+
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to update order' });
+  }
+};

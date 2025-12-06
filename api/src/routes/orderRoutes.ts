@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { createOrder, getUserOrders, getAllOrders } from '../controllers/orderController';
+import { createOrder, getUserOrders, getAllOrders, updateOrderStatus } from '../controllers/orderController';
 
 const router = Router();
 
 router.post('/', createOrder);
-router.get('/', getUserOrders); // ?userId=...
-router.get('/all', getAllOrders); // Admin route
+router.get('/', getUserOrders);
+router.get('/all', getAllOrders);
+router.patch('/:id/status', updateOrderStatus); // <--- NEW
 
 export default router;

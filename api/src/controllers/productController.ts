@@ -1,7 +1,9 @@
-import { Request, Response } from 'express';
-import { Product } from '../models/Product';
-import getColors from 'get-image-colors'; // We need this
-import axios from 'axios'; // You might need to install this: npm install axios
+import { Request, Response } from "express";
+import { Product } from "../models/Product";
+import getColors from "get-image-colors"; // We need this
+import axios from "axios"; // You might need to install this: npm install axios
+import { uploadImageBuffer, analyzeImageUrl } from "../utils/imageUpload";
+import { upload } from "../config/multer"; // Import multer config
 
 // GET /api/products
 export const getProducts = async (req: Request, res: Response) => {
@@ -23,15 +25,17 @@ export const getProducts = async (req: Request, res: Response) => {
 
     // Sort
     let sortOption: any = { createdAt: -1 }; // Default: Newest
-    if (sort === 'price_asc') sortOption = { price_cents: 1 };
-    if (sort === 'price_desc') sortOption = { price_cents: -1 };
+    if (sort === "price_asc") sortOption = { price_cents: 1 };
+    if (sort === "price_desc") sortOption = { price_cents: -1 };
 
     // Execute
     const products = await Product.find(query)
       .sort(sortOption)
       .limit(limit)
       .skip((page - 1) * limit)
-      .select('name slug price_cents price_before_cents images category offer_tag');
+      .select(
+        "name slug price_cents price_before_cents images category offer_tag"
+      );
 
     const total = await Product.countDocuments(query);
 
@@ -41,11 +45,11 @@ export const getProducts = async (req: Request, res: Response) => {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
@@ -53,36 +57,64 @@ export const getProducts = async (req: Request, res: Response) => {
 export const getProductBySlug = async (req: Request, res: Response) => {
   try {
     const product = await Product.findOne({ slug: req.params.slug });
-    if (!product) return res.status(404).json({ message: 'Product not found' });
+    if (!product) return res.status(404).json({ message: "Product not found" });
     res.json(product);
   } catch (error) {
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
 export const createProduct = async (req: Request, res: Response) => {
   try {
-    const { name, slug, brand, category, price_cents, description, imageUrl, variants } = req.body;
+    const {
+      name,
+      slug,
+      brand,
+      category,
+      price_cents,
+      description,
+      imageUrl,
+      variants,
+    } = req.body;
 
-    // 1. AI Color Extraction
-    // We fetch the image buffer from the URL to analyze it
-    let colorData = { hex: '#000000', r: 0, g: 0, b: 0 };
-    
-    try {
-      const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-      const buffer = Buffer.from(response.data, 'binary');
-      const colors = await getColors(buffer, 'image/jpeg');
-      const dominant = colors[0];
-      
-      colorData = {
-        hex: dominant.hex(),
-        r: dominant.rgb()[0],
-        g: dominant.rgb()[1],
-        b: dominant.rgb()[2]
-      };
-      console.log(`🎨 AI extracted color: ${colorData.hex}`);
-    } catch (err) {
-      console.error("Failed to extract color from URL, using default black.");
+    let finalImageUrl: string = "";
+    let colorData: { hex: string; r: number; g: number; b: number } = {
+      hex: "#000000",
+      r: 0,
+      g: 0,
+      b: 0,
+    };
+    console.log("Received Body:", req.body);
+    console.log("Received File:", req.file);
+    // 1. Handle Image Source (File Upload OR Link Input)
+    if (req.file) {
+      // <-- This check determines if the file made it
+      try {
+        // If it successfully hits this block, it means Multer worked.
+        const result = await uploadImageBuffer(req.file.buffer);
+        finalImageUrl = result.url;
+        colorData = result.colorData;
+      } catch (err) {
+        console.error("Cloudinary Upload/Color failed:", err);
+        return res
+          .status(500)
+          .json({ message: "Image upload failed. Check Cloudinary keys." });
+      }
+    } else if (imageUrl) {
+      try {
+        const result = await analyzeImageUrl(imageUrl);
+        finalImageUrl = result.url;
+        colorData = result.colorData;
+      } catch (err) {
+        console.error("URL Analysis Failed:", err);
+        return res
+          .status(400)
+          .json({ message: "Image URL is invalid or inaccessible." });
+      }
+    } else {
+      return res
+        .status(400)
+        .json({ message: "No image file or URL provided." });
     }
 
     // 2. Create Product
@@ -93,23 +125,51 @@ export const createProduct = async (req: Request, res: Response) => {
       category,
       description,
       price_cents,
-      // We store the image with the AI-calculated data
-      images: [{
-        url: imageUrl,
-        dominant_color: colorData.hex,
-        r: colorData.r,
-        g: colorData.g,
-        b: colorData.b
-      }],
-      variants: variants || [],
+      images: [
+        {
+          url: finalImageUrl,
+          dominant_color: colorData.hex,
+          r: colorData.r,
+          g: colorData.g,
+          b: colorData.b,
+        },
+      ],
+      variants: variants ? JSON.parse(variants) : [],
       is_published: true,
-      tags: [category, brand, 'New Arrival']
+      tags: [category, brand, "New Arrival"],
     });
 
     await newProduct.save();
     res.status(201).json(newProduct);
   } catch (error: any) {
+    if (error.code === 11000) {
+      return res
+        .status(409)
+        .json({
+          message: "Product slug already exists. Please try a different name.",
+        });
+    }
     console.error(error);
-    res.status(500).json({ message: 'Failed to create product', error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to create product due to server error." });
+  }
+};
+
+// ... existing code
+
+// DELETE /api/products/:id
+export const deleteProduct = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const deletedProduct = await Product.findByIdAndDelete(id);
+
+    if (!deletedProduct) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.json({ message: "Product deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
   }
 };

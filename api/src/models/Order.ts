@@ -10,7 +10,7 @@ const OrderItemSchema = new mongoose.Schema({
 });
 
 const OrderSchema = new mongoose.Schema({
-  userId: { type: String, required: true }, // Clerk ID
+  userId: { type: String, required: true },
   items: [OrderItemSchema],
   total_cents: { type: Number, required: true },
   status: { 
@@ -23,11 +23,17 @@ const OrderSchema = new mongoose.Schema({
     status: String,
     method: String
   },
+  // UPDATED: More detailed address schema
   shippingAddress: {
-    street: String,
-    city: String,
-    zip: String,
-    country: String
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
+    email: { type: String, required: true },
+    phone: { type: String, required: true },
+    street: { type: String, required: true },
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    zip: { type: String, required: true },
+    country: { type: String, default: 'US' }
   }
 }, { timestamps: true });
 

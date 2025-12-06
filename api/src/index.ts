@@ -7,6 +7,7 @@ import cartRoutes from './routes/cartRoutes';
 // Import Routes
 import productRoutes from './routes/productRoutes';
 import aiRoutes from './routes/aiRoutes';
+import orderRoutes from './routes/orderRoutes';
 
 dotenv.config();
 

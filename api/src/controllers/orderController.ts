@@ -3,17 +3,19 @@ import { Order } from '../models/Order';
 import { Cart } from '../models/Cart';
 
 // POST /api/orders
+// ... imports
+
 export const createOrder = async (req: Request, res: Response) => {
   try {
+    // We expect shippingAddress to contain all the new fields now
     const { userId, items, total_cents, shippingAddress } = req.body;
 
-    // 1. Create the Order
     const newOrder = new Order({
       userId,
       items,
       total_cents,
-      shippingAddress,
-      status: 'paid', // Mocking successful payment
+      shippingAddress, // Mongoose will validate the fields inside here
+      status: 'paid',
       paymentInfo: {
         method: 'credit_card',
         status: 'succeeded',
@@ -23,7 +25,6 @@ export const createOrder = async (req: Request, res: Response) => {
 
     const savedOrder = await newOrder.save();
 
-    // 2. Clear the User's Cart
     await Cart.findOneAndUpdate(
       { userId }, 
       { $set: { items: [] } }
@@ -36,13 +37,13 @@ export const createOrder = async (req: Request, res: Response) => {
   }
 };
 
-// GET /api/orders?userId=...
 export const getUserOrders = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.query;
-    const orders = await Order.find({ userId }).sort({ createdAt: -1 });
-    res.json(orders);
+    const { userId } = req.params;
+    const orders = await Order.find({ userId }).sort({ orderDate: -1 });
+    res.status(200).json(orders);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch orders' });
+    console.error(error);
+    res.status(500).json({ message: 'Failed to retrieve orders' });
   }
 };

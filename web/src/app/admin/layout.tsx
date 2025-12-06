@@ -37,9 +37,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const menu = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
-    { name: 'Products', icon: Package, href: '/admin' }, // Reusing dashboard for now or add products page
     { name: 'Orders', icon: ShoppingBag, href: '/admin/orders' },
     { name: 'Users', icon: Users, href: '/admin/users' },
+    { name: 'Products', icon: Package, href: '/admin/products' }
   ];
 
   return (
@@ -56,7 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             const isActive = pathname === item.href;
             return (
               <Link
-                key={item.name}
+                key={item.href}
                 href={item.href}
                 className={clsx(
                   "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",

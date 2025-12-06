@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     // Wrap with ClerkProvider
     <ClerkProvider>
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning={true}>
         <body className={inter.className}>{children}</body>
       </html>
     </ClerkProvider>

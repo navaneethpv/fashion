@@ -4,11 +4,11 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import { connectDB } from './config/db';
 import cartRoutes from './routes/cartRoutes';
-// Import Routes
 import productRoutes from './routes/productRoutes';
 import aiRoutes from './routes/aiRoutes';
 import orderRoutes from './routes/orderRoutes';
 import adminRoutes from './routes/adminRoutes';
+import reviewRoutes from './routes/reviewRoutes';
 
 dotenv.config();
 
@@ -27,6 +27,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/cart', cartRoutes)
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 app.get('/', (req, res) => {
   res.send('Eyoris Fashion API is running...');

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { Product } from "../models/Product";
+import { Review } from '../models/Review';
 import getColors from "get-image-colors"; // We need this
 import axios from "axios"; // You might need to install this: npm install axios
 import { uploadImageBuffer, analyzeImageUrl } from "../utils/imageUpload";
@@ -300,3 +301,53 @@ export const updateProductWithImages = async (req: Request, res: Response) => {
         res.status(500).json({ message: "Failed to update product with new images/data." });
     }
 }
+
+export const createReview = async (req: Request, res: Response) => {
+    try {
+        const { userId, productId, rating, comment } = req.body;
+
+        if (!userId || !productId || !rating || !comment) {
+            return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        // 1. Create the new Review
+        const newReview = new Review({ userId, productId, rating, comment });
+        await newReview.save();
+
+        // 2. Recalculate Product's Average Rating
+        const stats = await Review.aggregate([
+            { $match: { productId: newReview.productId } },
+            { $group: {
+                _id: '$productId',
+                averageRating: { $avg: '$rating' },
+                count: { $sum: 1 }
+            }}
+        ]);
+
+        const avgRating = stats[0]?.averageRating || 0;
+        const count = stats[0]?.count || 0;
+
+        // 3. Update Product Document
+        await Product.findByIdAndUpdate(newReview.productId, {
+            rating: parseFloat(avgRating.toFixed(1)),
+            reviews_count: count
+        });
+
+        res.status(201).json(newReview);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to submit review' });
+    }
+};
+
+// GET /api/reviews/:productId
+export const getReviews = async (req: Request, res: Response) => {
+    try {
+        const { productId } = req.params;
+        // Fetch last 10 reviews
+        const reviews = await Review.find({ productId }).sort({ createdAt: -1 }).limit(10);
+        res.json(reviews);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch reviews' });
+    }
+};

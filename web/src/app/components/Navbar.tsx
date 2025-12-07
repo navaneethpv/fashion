@@ -32,7 +32,7 @@ export default function Navbar() {
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-10 py-2.5 bg-gray-50 border-none rounded-md text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-200 transition-all"
+              className="block w-full pl-10 pr-10 py-2.5 bg-gray-50 border-none rounded-md text-sm text-gray-900 shadow-md placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-200 transition-all"
               placeholder="Search for products..."
             />
             <button 

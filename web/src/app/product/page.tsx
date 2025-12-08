@@ -3,13 +3,14 @@ import ProductCard from '../components/ProductCard';
 import ProductFilters from '../components/ProductFilters';
 import Pagination from '../components/Pagination';
 
+// Interface for Search Parameters
 interface SearchParams {
   page?: string;
   category?: string;
   sort?: string;
   minPrice?: string;
   maxPrice?: string;
-  q?: string;
+  q?: string; // The search query
 }
 
 async function getProducts(searchParams: SearchParams) {
@@ -26,17 +27,27 @@ async function getProducts(searchParams: SearchParams) {
       cache: 'no-store'
     });
     
-    if (!res.ok) return { data: [], meta: { page: 1, pages: 1 } };
+    if (!res.ok) return { data: [], meta: { page: 1, pages: 1, total: 0 } };
     return await res.json();
   } catch (error) {
-    return { data: [], meta: { page: 1, pages: 1 } };
+    console.error("API Fetch Error:", error);
+    return { data: [], meta: { page: 1, pages: 1, total: 0 } };
   }
 }
 
-// FIX: Type searchParams as Promise and await it
+// Next.js Server Component
 export default async function ProductsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const resolvedSearchParams = await searchParams; // <--- AWAIT HERE
+  const resolvedSearchParams = await searchParams; // Await the promise
   const { data: products, meta } = await getProducts(resolvedSearchParams);
+
+  // 👇 LOGIC FOR PAGE TITLE & HEADER 👇
+  let pageTitle = 'All Products';
+  if (resolvedSearchParams.q) {
+      pageTitle = `Search Results for "${resolvedSearchParams.q}"`;
+  } else if (resolvedSearchParams.category) {
+      pageTitle = resolvedSearchParams.category;
+  }
+  // 👆 END LOGIC 👆
 
   return (
     <div className="min-h-screen bg-white text-gray-800">
@@ -57,10 +68,11 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
           <div className="flex-1">
             <div className="mb-6">
               <h1 className="text-2xl font-bold">
-                {resolvedSearchParams.category ? resolvedSearchParams.category : 'All Products'}
+                {pageTitle} {/* Use the dynamically determined title */}
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                Showing {products.length} results
+                {/* Show total results if a search or filter is active */}
+                Showing {products.length} {meta.total > 0 && `of ${meta.total}`} results
               </p>
             </div>
 
@@ -87,7 +99,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
             ) : (
               <div className="text-center py-20 bg-gray-50 rounded-xl">
                 <h3 className="text-lg font-semibold text-gray-900">No products found</h3>
-                <p className="text-gray-500">Try adjusting your filters.</p>
+                <p className="text-gray-500">Try adjusting your filters, or check your spelling if you searched.</p>
               </div>
             )}
           </div>

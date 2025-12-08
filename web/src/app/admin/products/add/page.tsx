@@ -1,7 +1,7 @@
 "use client"
 import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Loader2, Plus, ArrowLeft, Image as ImageIcon, Trash2, Upload, Link as LinkIcon, X } from 'lucide-react';
+import { Loader2, Plus, ArrowLeft, Image as ImageIcon, Trash2, Upload, X, Sparkles } from 'lucide-react'; // 👈 ADD Sparkles
 import Image from 'next/image';
 
 // Temporary type for managing file/url array
@@ -15,6 +15,8 @@ interface ImageInput {
 export default function AddProductPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]); // 👈 NEW STATE FOR AI TAGS
 
   // --- CRITICAL CHANGE: ARRAY STATE ---
   const [imageInputs, setImageInputs] = useState<ImageInput[]>([]);
@@ -28,7 +30,6 @@ export default function AddProductPage() {
   const [variants, setVariants] = useState([{ size: 'S', stock: 20 }, { size: 'M', stock: 20 }, { size: 'L', stock: 20 }]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    // ... (keep this as is) ...
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
@@ -39,6 +40,9 @@ export default function AddProductPage() {
 
   // --- NEW IMAGE HANDLERS ---
   const addImageInput = useCallback((type: 'url' | 'file', fileOrUrl: File | string) => {
+    // Limit to 5 images
+    if (imageInputs.length >= 5) return;
+    
     const preview = (type === 'file' && fileOrUrl instanceof File) 
       ? URL.createObjectURL(fileOrUrl) 
       : (fileOrUrl as string);
@@ -47,7 +51,7 @@ export default function AddProductPage() {
       ...prev,
       { type, id: nextImageId.current++, value: fileOrUrl, preview }
     ]);
-  }, []);
+  }, [imageInputs.length]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -74,24 +78,24 @@ export default function AddProductPage() {
   // --- END NEW IMAGE HANDLERS ---
   const handleVariantChange = (index: number, field: 'size' | 'stock', value: string | number) => {
     const newVariants = [...variants];
-    newVariants[index][field] = value as string;
+    // This casting is safe since we control the input types
+    (newVariants[index] as any)[field] = value;
     setVariants(newVariants);
   };
 
   const addVariant = () => {
-    setVariants([...variants, { size: 'XL', stock: 10 }]);
+    setVariants([...variants, { size: '', stock: 0 }]); // Changed initial size to empty string
   };
 
   const removeVariant = (index: number) => {
-    const newVariants = [...variants];
-    newVariants.splice(index, 1);
-    setVariants(newVariants);
+    setVariants(variants.filter((_, i) => i !== index));
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setSuccess(false);
+    setSuggestedTags([]); // Clear previous tags
 
     // 1. Validation
     if (imageInputs.length === 0) {
@@ -108,10 +112,11 @@ export default function AddProductPage() {
 
     // 2. Construct FormData
     const form = new FormData();
+    // 👇 CRUCIAL: Append ALL required text fields
     form.append('name', formData.name);
     form.append('slug', formData.slug);
     form.append('brand', formData.brand);
-    form.append('category', formData.category); // Now included correctly
+    form.append('category', formData.category);
     form.append('description', formData.description);
     form.append('price_cents', priceInCents.toString());
     
@@ -135,26 +140,33 @@ export default function AddProductPage() {
     try {
       const res = await fetch('http://localhost:4000/api/products', {
         method: 'POST',
+        // IMPORTANT: No 'Content-Type' header!
         body: form
       });
 
       if (res.ok) {
+        const newProduct = await res.json(); // 👈 Get the product with final tags
         setSuccess(true);
+        
+        // Extract and display the final AI tags (filter out redundant tags)
+        setSuggestedTags(newProduct.tags.filter((t: string) => 
+            !['new arrival', newProduct.category.toLowerCase(), newProduct.brand.toLowerCase()].includes(t.toLowerCase())
+        )); 
+
         // Reset state
-        setFormData({ name: '', slug: '', brand: '', category: 'T-shirts', price: '', imageUrl: '', description: '' });
+        setFormData({ name: '', slug: '', brand: '', category: 'T-Shirts', price: '', imageUrl: '', description: '' });
         setVariants([{ size: 'S', stock: 20 }, { size: 'M', stock: 20 }, { size: 'L', stock: 20 }]);
         setImageInputs([]); // Reset image array
       } else {
-        alert('Failed. Check Network and unique Slug.');
+        alert('Failed. Check Network and unique Slug. (Backend returned error)');
       }
     } catch (err) {
-      alert('Error connecting to server.');
+      console.error(err);
+      alert('Error connecting to server. Check API console.');
     } finally {
       setLoading(false);
     }
   };
-
-  // ... (keep variant handlers) ...
 
   return (
     <div className="space-y-6">
@@ -167,9 +179,8 @@ export default function AddProductPage() {
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Main Form Content (Basic Details and Inventory - Same as before) */}
+        {/* Main Form Content (Basic Details and Inventory) */}
         <div className="lg:col-span-2 space-y-8">
-          {/* ... (Basic Details section here) ... */}
           {/* Section 1: Basic Info */}
           <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold mb-6">Basic Details</h2>
@@ -210,9 +221,8 @@ export default function AddProductPage() {
             </div>
           </div>
           
-          {/* Section 2: Inventory & Variants (Same as before) */}
+          {/* Section 2: Inventory & Variants */}
           <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-             {/* ... Inventory & Variants code (Same as previous step) ... */}
              <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-bold">Inventory & Variants</h2>
               <button type="button" onClick={addVariant} className="text-sm font-bold text-blue-600 hover:underline">+ Add Size</button>
@@ -283,7 +293,13 @@ export default function AddProductPage() {
             <div className="grid grid-cols-3 gap-2">
               {imageInputs.map(input => (
                 <div key={input.id} className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                  <img src={input.preview} alt="Preview" className="w-full h-full object-cover" />
+                  <Image 
+                    src={input.preview} 
+                    alt="Preview" 
+                    fill 
+                    className="object-cover" 
+                    // onError={() => console.error('Image load failed for URL:', input.preview)} // Optional: error logging
+                  />
                   <button 
                     type="button"
                     onClick={() => removeImage(input.id)}
@@ -310,8 +326,18 @@ export default function AddProductPage() {
           </button>
 
           {success && (
-            <div className="bg-green-50 text-green-700 p-6 rounded-2xl border border-green-100 text-center animate-fade-in">
-              <p className="font-bold text-lg mb-2">Success!</p>
+            <div className="bg-green-50 text-green-700 p-6 rounded-2xl border border-green-100 animate-fade-in">
+              <p className="font-bold text-lg mb-2">✅ Product Published!</p>
+              <h4 className="text-sm font-bold mb-2 flex items-center gap-2 text-green-800">
+                <Sparkles className="w-4 h-4" /> AI Suggested Tags
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {suggestedTags.map(tag => (
+                  <span key={tag} className="px-3 py-1 bg-white border border-green-200 text-xs rounded-full">
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>

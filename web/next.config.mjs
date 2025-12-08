@@ -1,18 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    // Disable built-in optimization so external images from any domain work without explicit domains
+    unoptimized: true,
+    // Also allow any https hostname via a wildcard remotePattern
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'picsum.photos',
-      },
-      {
-        protocol: 'https',
-        hostname: 'loremflickr.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'res.cloudinary.com',
+        hostname: '**',
       },
     ],
   },

@@ -3,12 +3,12 @@ import Navbar from "../../components/Navbar";
 import Gallery from "../../components/Gallery";
 import OutfitGenerator from "../../components/OutfitGenerator";
 import CollapsibleSection from "../../components/CollapsibleSection";
-import ProductReviews from "../../components/productReview";
-import { Star, Truck, ShieldCheck } from "lucide-react";
+import ProductReviews from "../../components/productReview"; 
 import AddToCartButton from "../../components/AddToCartButton";
+import { Star, Truck, ShieldCheck } from "lucide-react";
+
 
 async function getProduct(slug: string) {
-  // ... (same fetch function) ...
   try {
     const res = await fetch(`http://localhost:4000/api/products/${slug}`, {
       cache: "no-store",
@@ -21,7 +21,6 @@ async function getProduct(slug: string) {
   }
 }
 
-// FIX: Type params as a Promise and await it inside the component
 export default async function ProductPage({
   params,
 }: {
@@ -49,8 +48,6 @@ export default async function ProductPage({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">
           {/* Left Column: Gallery */}
           <div className="sticky top-24 self-start">
-            {" "}
-            {/* Gallery is sticky for better UX */}
             <Gallery images={product.images} name={product.name} />
           </div>
 
@@ -81,7 +78,6 @@ export default async function ProductPage({
 
             {/* Price */}
             <div className="mb-8">
-              {/* ... (Price display remains the same) ... */}
               <div className="flex items-center gap-3">
                 <span className="text-3xl font-bold text-gray-900">
                   ${(product.price_cents / 100).toFixed(2)}
@@ -109,43 +105,44 @@ export default async function ProductPage({
               variants={product.variants}
             />
 
-            {/* Delivery & Trust (Moved to the bottom of the right column's fixed content) */}
+            {/* Delivery & Trust */}
             <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 mt-10">
               <div className="flex items-center gap-2">
-                {" "}
-                <Truck className="w-4 h-4" /> <span>Free Delivery</span>{" "}
+                <Truck className="w-4 h-4" /> <span>Free Delivery</span>
               </div>
               <div className="flex items-center gap-2">
-                {" "}
-                <ShieldCheck className="w-4 h-4" /> <span>30 Day Returns</span>{" "}
+                <ShieldCheck className="w-4 h-4" /> <span>30 Day Returns</span>
               </div>
             </div>
 
             <div className="h-px bg-gray-100 my-6" />
           </div>
         </div>
-
-        {/* 🛑 BOTTOM SECTION: COLLAPSIBLE DETAILS AND REVIEWS 🛑 */}
         <div className="max-w-4xl mx-auto pt-8">
           {/* 1. PRODUCT DETAILS / DESCRIPTION */}
-          <CollapsibleSection title="Product Details" defaultOpen={true}>
-            <div className="prose prose-sm text-gray-600">
-              <p>{product.description}</p>
-              <p>Fabric: {product.fabric || "100% Cotton"}</p>
-              <p>Care: {product.careInstructions || "Machine wash cold."}</p>
-            </div>
-          </CollapsibleSection>
+          {CollapsibleSection && (
+            <CollapsibleSection title="Product Details" defaultOpen={true}>
+              <div className="prose prose-sm text-gray-600">
+                <p>{product.description}</p>
+                <p>Fabric: {product.fabric || "100% Cotton"}</p>
+                <p>Care: {product.careInstructions || "Machine wash cold."}</p>
+              </div>
+            </CollapsibleSection>
+          )}
 
           {/* 2. REVIEWS */}
-          <CollapsibleSection
-            title={`Customer Reviews (${product.reviews_count || 0})`}
-          >
-            <ProductReviews productId={product._id} />
-          </CollapsibleSection>
+          {CollapsibleSection && ProductReviews && (
+            <CollapsibleSection
+              title={`Customer Reviews (${product.reviews_count || 0})`}
+            >
+              <ProductReviews productId={product._id} />
+            </CollapsibleSection>
+          )}
 
           {/* 3. AI ASSISTANT / OUTFIT SUGGESTION */}
           <div className="mt-8">
-            <OutfitGenerator currentProduct={product.slug} />
+            {/* 👇 CRITICAL FIX: Pass the MongoDB _id for API call 👇 */}
+            <OutfitGenerator productId={product._id} />
           </div>
         </div>
       </main>

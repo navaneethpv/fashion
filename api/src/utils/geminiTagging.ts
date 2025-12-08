@@ -52,6 +52,10 @@ export async function getProductTagsFromGemini(imageBuffer: Buffer, mimeType: st
       },
     });
 
+    if (!response.text) {
+        console.error("Gemini Tagging Error: Response text is undefined.");
+        return { dominant_color_name: 'Error', style_tags: ['ai-fail'], material_tags: ['unknown'] };
+    }
     // The response text is a stringified JSON object
     const jsonString = response.text.trim();
     return JSON.parse(jsonString);

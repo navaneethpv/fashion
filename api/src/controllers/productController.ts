@@ -1,80 +1,110 @@
 import { Request, Response } from "express";
 import { Product } from "../models/Product";
-import { Review } from '../models/Review';
-import getColors from "get-image-colors"; // We need this
-import axios from "axios"; // You might need to install this: npm install axios
+import axios from "axios";
 import { uploadImageBuffer, analyzeImageUrl } from "../utils/imageUpload";
-import { upload } from "../config/multer"; // Import multer config
+import { getProductTagsFromGemini } from '../utils/geminiTagging'
+import { Review } from "../models/Review"
+interface ImageResult {
+    url: string;
+    dominant_color: string;
+    r: number;
+    g: number;
+    b: number;
+}
+
+// Utility to process a single image source (URL or Buffer)
+async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeType?: string }): Promise<any> {
+    const { buffer, url, mimeType } = source;
+    let finalUrl: string = '';
+    let colorData = { hex: '#000000', r: 0, g: 0, b: 0 };
+    let finalBuffer: Buffer | undefined = buffer;
+
+    if (buffer) {
+        // Option A: File Upload (Cloudinary upload)
+        const result = await uploadImageBuffer(buffer); 
+        finalUrl = result.url;
+        colorData = result.colorData;
+    } else if (url) {
+        // Option B: URL Input (Download and analyze)
+        const result = await analyzeImageUrl(url);
+        finalUrl = result.url;
+        colorData = result.colorData;
+        
+        // Re-download buffer for Gemini analysis (if needed)
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        finalBuffer = Buffer.from(response.data, 'binary');
+    } else {
+        throw new Error("No image source provided.");
+    }
+    
+    // AI Tagging (Call Gemini only if we have a buffer, typically for the main image)
+    let aiTags = { dominant_color_name: '', style_tags: [], material_tags: [] };
+    if (finalBuffer) {
+        aiTags = await getProductTagsFromGemini(finalBuffer, mimeType || 'image/jpeg');
+    }
+
+    return { url: finalUrl, colorData, aiTags };
+}
 
 
-// GET /api/products
+// GET /api/products (Public/Admin Listing)
 export const getProducts = async (req: Request, res: Response) => {
   try {
     const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 100; // Increased limit for Admin view
-    const { category, sort, q, minPrice, maxPrice } = req.query;
+    const limit = Number(req.query.limit) || 24; 
+    const { category, sort, q, minPrice, maxPrice } = req.query; // 'q' is the search query
 
     let matchQuery: any = { is_published: true };
 
-    // Filters (Same as before)
+    // Filters
     if (category) matchQuery.category = category;
-    if (q) matchQuery.$text = { $search: String(q) };
+    
+    // 👇 SEARCH IMPLEMENTATION FIX 👇
+    if (q) {
+        // Use MongoDB's $text operator for search index
+        matchQuery.$text = { $search: String(q) };
+    }
+    // 👆 END SEARCH FIX 👆
+    
     if (minPrice || maxPrice) {
       matchQuery.price_cents = {};
       if (minPrice) matchQuery.price_cents.$gte = Number(minPrice);
       if (maxPrice) matchQuery.price_cents.$lte = Number(maxPrice);
     }
     
-    // Sort (Same as before)
     let sortOption: any = { createdAt: -1 };
     if (sort === "price_asc") sortOption = { price_cents: 1 };
     if (sort === "price_desc") sortOption = { price_cents: -1 };
 
-
-    // 🛑 NEW: AGGREGATION PIPELINE FOR TOTAL STOCK 🛑
-    const products = await Product.aggregate([
-      // 1. Match/Filter (Applies search, category, etc.)
+    // --- AGGREGATION PIPELINE ---
+    let pipeline: any[] = [
       { $match: matchQuery },
+      { $addFields: { totalStock: { $sum: "$variants.stock" } }},
+    ];
 
-      // 2. Add totalStock field
-      { $addFields: { 
-          totalStock: { 
-              $sum: "$variants.stock" 
-          } 
-      }},
-      
-      // 3. Sort
-      { $sort: sortOption },
-
-      // 4. Pagination
+    // CRUCIAL: If using a $text search, MongoDB requires the score to be used for sorting
+    if (q) {
+      pipeline.push({ $sort: { score: { $meta: "textScore" }, ...sortOption } });
+    } else {
+      pipeline.push({ $sort: sortOption });
+    }
+    
+    pipeline.push(
       { $skip: (page - 1) * limit },
       { $limit: limit },
-
-      // 5. Project/Select (Select only necessary fields + the new totalStock field)
       { $project: {
-          name: 1,
-          slug: 1,
-          price_cents: 1,
-          price_before_cents: 1,
-          images: { $slice: ["$images", 1] }, // Only send first image
-          category: 1,
-          offer_tag: 1,
-          variants: 1, // Keep variants for detailed stock check on client side for now
-          totalStock: 1 // CRITICAL: Include the new field
+          name: 1, slug: 1, price_cents: 1, price_before_cents: 1,
+          images: { $slice: ["$images", 1] }, 
+          category: 1, offer_tag: 1, totalStock: 1
       }}
-    ]);
-
-    // Count documents separately for pagination meta
+    );
+    
+    const products = await Product.aggregate(pipeline);
     const total = await Product.countDocuments(matchQuery);
 
     res.json({
       data: products,
-      meta: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+      meta: { page, limit, total, pages: Math.ceil(total / limit) },
     });
   } catch (error) {
     console.error(error);
@@ -82,114 +112,108 @@ export const getProducts = async (req: Request, res: Response) => {
   }
 };
 
+
 // GET /api/products/:slug
 export const getProductBySlug = async (req: Request, res: Response) => {
-  try {
-    const product = await Product.findOne({ slug: req.params.slug });
-    if (!product) return res.status(404).json({ message: "Product not found" });
-    res.json(product);
-  } catch (error) {
-    res.status(500).json({ message: "Server Error" });
-  }
+    try {
+        const product = await Product.findOne({ slug: req.params.slug });
+        if (!product) return res.status(404).json({ message: "Product not found" });
+        res.json(product);
+    } catch (error) {
+        res.status(500).json({ message: "Server Error" });
+    }
 };
 
-interface ImageResult {
-  url: string;
-  dominant_color: string;
-  r: number;
-  g: number;
-  b: number;
-}
 
-// POST /api/products - Admin (NEW MULTI-IMAGE VERSION)
+// POST /api/products - Admin (FINAL MULTI-IMAGE/AI VERSION)
 export const createProduct = async (req: Request, res: Response) => {
   try {
-    // Note: req.body fields have been updated to match the FormData keys
-    const { name, slug, brand, category, price_cents, description, imageUrls, variants } = req.body;
+    // ⚠️ CRITICAL FIX: Destructure all body fields sent by the frontend FormData
+    const { 
+        name, slug, brand, category, price_cents, description, 
+        imageUrls, variants 
+    } = req.body;
     
-    // Multer places uploaded files in req.files (an array)
-    // We cast it to the correct type.
-    const uploadedFiles = req.files as Express.Multer.File[] | undefined;
+    const uploadedFiles = req.files as Express.Multer.File[] || [];
+
+    // Cast and Parse
+    const priceInCents = parseFloat(price_cents as string) * 100;
+    const parsedVariants = variants ? JSON.parse(variants as string) : [];
+    const urlArray: string[] = imageUrls ? JSON.parse(imageUrls as string) : [];
     
-    // Parse imageUrls string back into an array of strings
-    const urlArray: string[] = imageUrls ? JSON.parse(imageUrls) : [];
-
-    let finalImages: ImageResult[] = [];
-
-    // 1. Process File Uploads (if any)
-    if (uploadedFiles && uploadedFiles.length > 0) {
-      const uploadPromises = uploadedFiles.map(file => uploadImageBuffer(file.buffer));
-      const results = await Promise.all(uploadPromises);
-      
-      results.forEach(result => {
-        finalImages.push({
-          url: result.url,
-          dominant_color: result.colorData.hex,
-          r: result.colorData.r,
-          g: result.colorData.g,
-          b: result.colorData.b
-        });
-      });
+    // 1. Process All Images (Uploaded Files + URLs)
+    const imagePromises: Promise<any>[] = [];
+    
+    // A. Process uploaded files (Buffers in req.files)
+    for (const file of uploadedFiles) {
+        imagePromises.push(processSingleImage({ buffer: file.buffer, mimeType: file.mimetype }));
     }
 
-    // 2. Process URL Inputs (if any)
-    if (urlArray.length > 0) {
-      const urlPromises = urlArray.map((url: string) => analyzeImageUrl(url));
-      const results = await Promise.all(urlPromises);
-
-      results.forEach(result => {
-        finalImages.push({
-          url: result.url,
-          dominant_color: result.colorData.hex,
-          r: result.colorData.r,
-          g: result.colorData.g,
-          b: result.colorData.b
-        });
-      });
+    // B. Process input URLs
+    for (const url of urlArray) {
+        imagePromises.push(processSingleImage({ url }));
     }
 
-    // 3. Validation Check
-    if (finalImages.length === 0) {
-      return res.status(400).json({ message: 'At least one image file or URL is required.' });
+    const imageResults = await Promise.all(imagePromises);
+
+    // 2. Extract Tags from the first image processed
+    let mainProductTags = { dominant_color_name: '', style_tags: [], material_tags: [] };
+    const firstImageResult = imageResults[0];
+    if (firstImageResult) {
+      mainProductTags = firstImageResult.aiTags;
+    }
+
+    // 3. Format Image Data for Mongoose
+    const mongooseImageDocs = imageResults.map(result => ({
+        url: result.url,
+        dominant_color: result.colorData.hex,
+        r: result.colorData.r,
+        g: result.colorData.g,
+        b: result.colorData.b
+    }));
+
+    if (mongooseImageDocs.length === 0) {
+        return res.status(400).json({ message: 'No valid images were processed.' });
     }
 
     // 4. Create Product
     const newProduct = new Product({
-      name, slug, brand, category, description, price_cents,
-      images: finalImages, // Save the array of processed images
-      variants: variants ? JSON.parse(variants) : [],
+      name, slug, brand, category, description, 
+      price_cents: priceInCents,
+      images: mongooseImageDocs, 
+      variants: parsedVariants,
       is_published: true,
-      tags: [category, brand, 'New Arrival']
+      tags: [
+          category as string, brand as string, 'New Arrival',
+          mainProductTags.dominant_color_name.toLowerCase(),
+          ...(mainProductTags.style_tags as string[]).map(t => t.toLowerCase()),
+          ...(mainProductTags.material_tags as string[]).map(t => t.toLowerCase()),
+      ].filter(Boolean)
     });
 
     await newProduct.save();
     res.status(201).json(newProduct);
   } catch (error: any) {
     if (error.code === 11000) {
-      return res.status(409).json({ message: "Product slug already exists." });
+        return res.status(409).json({ message: "Product slug already exists." });
     }
-    console.error(error);
-    res.status(500).json({ message: 'Failed to create product due to server error.' });
+    console.error("Product Creation Error:", error);
+    res.status(500).json({ message: "Failed to create product." });
   }
 };
 
-// ... existing code
 
 // DELETE /api/products/:id
 export const deleteProduct = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const deletedProduct = await Product.findByIdAndDelete(id);
-
-    if (!deletedProduct) {
-      return res.status(404).json({ message: "Product not found" });
+    try {
+        const deletedProduct = await Product.findByIdAndDelete(req.params.id);
+        if (!deletedProduct) return res.status(404).json({ message: "Product not found" });
+        res.json({ message: "Product deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Server Error" });
     }
-
-    res.json({ message: "Product deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Server Error" });
-  }
 };
+
 
 export const getProductByIdAdmin = async (req: Request, res: Response) => {
     try {

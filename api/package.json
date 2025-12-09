@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/index.ts",
     "seed": "ts-node scripts/seed_mongo_1000.ts",
-    "upload": "ts-node scripts/cloudinary.ts"
+    "seed:kaggle": "ts-node scripts/seed_kaggle.ts",
+    "clear:products": "ts-node scripts/clear_products.ts"
   },
   "keywords": [],
   "author": "",

@@ -1,33 +1,43 @@
-import { v2 as cloudinary } from 'cloudinary';
+import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import { Buffer } from 'buffer';
+import fs from 'fs/promises'; // Using promises version of fs for async/await
 import getColors from 'get-image-colors';
 import axios from 'axios';
-import dotenv from 'dotenv'; // 👈 ADD DOTENV IMPORT
+import dotenv from 'dotenv';
 
-// Function to conditionally load .env only if not already loaded (safer)
-const loadEnvIfMissing = () => {
-    if (!process.env.CLOUDINARY_API_KEY) {
-        dotenv.config(); // 👈 Load .env
-    }
+// --- ONE-TIME CONFIGURATION ---
+// This code runs only once when the file is first imported anywhere in your app.
+// This is the standard and most reliable way to handle configuration.
+dotenv.config();
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// --- TYPE DEFINITIONS for better code safety ---
+export interface ColorData {
+  hex: string;
+  r: number;
+  g: number;
+  b: number;
 }
 
-const configureCloudinary = () => {
-    // 1. Ensure env is loaded first
-    loadEnvIfMissing(); // 👈 CALL LOAD HERE
-
-    // 2. Configure Cloudinary only if the keys are now available
-    if (!cloudinary.config().api_key && process.env.CLOUDINARY_API_KEY) {
-        cloudinary.config({
-            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-            api_key: process.env.CLOUDINARY_API_KEY,
-            api_secret: process.env.CLOUDINARY_API_SECRET,
-        });
-    }
+export interface UploadResult {
+  url: string;
+  colorData: ColorData;
 }
 
-// Helper to extract dominant color from an image Buffer
-const analyzeColor = async (buffer: Buffer): Promise<{ hex: string; r: number; g: number; b: number }> => {
-  // ... (keep this function as is) ...
+
+// --- HELPER FUNCTIONS ---
+
+/**
+ * Helper function to extract the dominant color from an image Buffer.
+ * @param buffer The image data as a Buffer.
+ * @returns A promise that resolves to the dominant color data.
+ */
+const analyzeColor = async (buffer: Buffer): Promise<ColorData> => {
   try {
     const colors = await getColors(buffer, 'image/jpeg');
     const dominant = colors[0];
@@ -38,38 +48,94 @@ const analyzeColor = async (buffer: Buffer): Promise<{ hex: string; r: number; g
       b: dominant.rgb()[2],
     };
   } catch (error) {
-    console.error("Color analysis failed, defaulting to black.");
+    console.error("Color analysis failed, defaulting to black.", error);
     return { hex: '#000000', r: 0, g: 0, b: 0 };
   }
 };
 
 
-/**
- * Uploads an image (Buffer) to Cloudinary.
- */
-export const uploadImageBuffer = async (buffer: Buffer): Promise<{ url: string; colorData: any }> => {
-  configureCloudinary(); // CRITICAL: ensures keys are read
+// --- CORE UPLOAD FUNCTIONS ---
 
-  const colorData = await analyzeColor(buffer);
-  
-  return new Promise((resolve, reject) => {
-    // ... rest of the code is fine
-    cloudinary.uploader.upload_stream({ folder: "eyoris-products" }, (error, result) => {
-      if (error || !result) return reject(new Error(error?.message || "Cloudinary Upload Failed"));
-      resolve({ url: result.secure_url, colorData });
-    }).end(buffer);
-  });
+/**
+ * **(Primary function for ingestion script)**
+ * Uploads a local image file to Cloudinary, analyzes its color, and returns all data.
+ * @param localFilePath The path to the local image file.
+ * @param publicId The desired public ID (e.g., product ID) for the image in Cloudinary.
+ * @returns A promise resolving to an object with the secure URL and color data.
+ */
+export const uploadLocalImageToCloudinary = async (
+  localFilePath: string,
+  publicId: string
+): Promise<UploadResult> => {
+  try {
+    // 1. Read the local file into a buffer for color analysis
+    const buffer = await fs.readFile(localFilePath);
+    
+    // 2. Perform color analysis and image upload concurrently for speed
+    const [colorData, uploadResponse] = await Promise.all([
+        analyzeColor(buffer),
+        cloudinary.uploader.upload(localFilePath, {
+            public_id: publicId,
+            folder: 'eyoris-fashion', // Organizes images into a specific folder
+            overwrite: true,
+        })
+    ]);
+
+    if (!uploadResponse || !uploadResponse.secure_url) {
+        throw new Error('Cloudinary did not return a valid response.');
+    }
+
+    // 3. Return the combined result
+    return {
+      url: uploadResponse.secure_url,
+      colorData: colorData,
+    };
+  } catch (error) {
+    console.error(`Error processing local image ${localFilePath}:`, error);
+    throw new Error('Failed to upload and analyze local image.');
+  }
 };
 
 
 /**
- * Downloads an image from a URL, analyzes it, and returns the data.
+ * Uploads an image from a Buffer to Cloudinary (e.g., from a user upload).
+ * @param buffer The image file as a Buffer.
+ * @returns A promise resolving to an object with the secure URL and color data.
  */
-export const analyzeImageUrl = async (url: string): Promise<{ url: string; colorData: any }> => {
-    // It's safer to configure here too if this function were used outside of the main API flow
-    // configureCloudinary(); 
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
-    const buffer = Buffer.from(response.data, 'binary');
+export const uploadImageBuffer = async (buffer: Buffer): Promise<UploadResult> => {
+    // Analyze color first
     const colorData = await analyzeColor(buffer);
-    return { url, colorData };
+
+    // Use a modern async/await pattern for upload_stream
+    return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+            { folder: "eyoris-fashion" },
+            (error, result) => {
+                if (error || !result) {
+                    return reject(new Error(error?.message || "Cloudinary Upload Stream Failed"));
+                }
+                resolve({ url: result.secure_url, colorData });
+            }
+        );
+        uploadStream.end(buffer);
+    });
+};
+
+
+/**
+ * Downloads an image from a URL, analyzes its color, and returns the data.
+ * Useful for one-off analysis or migrating from a URL-based dataset.
+ * @param url The public URL of the image to analyze.
+ * @returns A promise resolving to an object with the original URL and color data.
+ */
+export const analyzeImageUrl = async (url: string): Promise<UploadResult> => {
+    try {
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        const buffer = Buffer.from(response.data, 'binary');
+        const colorData = await analyzeColor(buffer);
+        return { url, colorData };
+    } catch (error) {
+        console.error(`Failed to download or analyze image from URL: ${url}`, error);
+        throw new Error('Image analysis from URL failed.');
+    }
 }

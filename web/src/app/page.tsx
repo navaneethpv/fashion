@@ -77,12 +77,12 @@ export default async function Home() {
               <ProductCard
                 key={p._id || p.id}
                 product={{
-                  _id: p.id,
+                  _id: p._id,
                   slug: p.slug,
                   name: p.name,
                   price_cents: p.price_cents,
                   price_before_cents: p.price_before_cents,
-                  images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [],
+                  images: p.images,
                   brand: p.brand,
                   offer_tag: p.offer_tag
                 }}

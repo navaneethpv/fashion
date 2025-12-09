@@ -32,7 +32,7 @@ export const getOutfitRecommendations = async (req: Request, res: Response) => {
 
     // 2. Define Suggestion Criteria
     const currentCategory = currentProduct.category as string;
-    const styleTags = currentProduct.tags;
+    const styleTags = Array.isArray(currentProduct.tags) ? currentProduct.tags : [];
     const excludeId = currentProduct._id;
 
     // Get complementary categories or fall back to main category suggestions
@@ -46,12 +46,12 @@ export const getOutfitRecommendations = async (req: Request, res: Response) => {
         // Rule 1: Match Complementary Category AND Share Style Tags (High Priority)
         { 
           category: { $in: targetCategories },
-          tags: { $in: styleTags.slice(0, 3) } // Match top 3 style tags
+          tags: { $in: (styleTags ?? []).slice(0, 3) } // Match top 3 style tags
         },
         // Rule 2: Fallback to same Category AND Share Style Tags (e.g., another T-Shirt)
         { 
           category: currentCategory, 
-          tags: { $in: styleTags.slice(0, 3) }
+          tags: { $in: (styleTags ?? []).slice(0, 3) }
         },
         // Rule 3: Match Complementary Category only (General suggestions)
         {

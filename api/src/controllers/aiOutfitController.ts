@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Product } from '../models/Product';
+import { Product, IProduct } from '../models/Product';
 import { generateAIOutfits } from '../utils/aiOutfitGenerator';
 
 // 🛑 NEW: POST /api/ai/outfit
@@ -14,19 +14,31 @@ export const generateOutfit = async (req: Request, res: Response) => {
         return res.status(404).json({ message: 'Base product not found in catalog.' });
     }
 
+    // Narrow baseProduct to IProduct type and ensure TypeScript understands tags is present
+    const product = baseProduct as IProduct;
+    const tags = Array.isArray(product.tags) ? product.tags : [];
+
+    const attributes = {
+      fit: tags.includes('oversized') ? 'oversized' : 'regular',
+      pattern: tags.includes('printed') ? 'printed' : 'solid',
+      fabric: tags.find(t => t.toLowerCase().includes('cotton')) ? 'cotton' : 'blend',
+      occasion: tags.includes('party') ? 'party' : 'casual',
+    };
+
+    const base: any = {
+      type: product.category as string,
+      color: product.images[0]?.dominant_color || 'unknown',
+      colorHex: product.images[0]?.dominant_color || '#000000',
+      ...attributes,
+    };
+
     // 2. Format Input Data for Gemini
     const inputData = {
       baseItem: {
-        id: baseProduct._id.toString(),
-        category: baseProduct.category as string,
-        type: baseProduct.category as string, 
-        color: baseProduct.images[0]?.dominant_color || 'unknown',
-        colorHex: baseProduct.images[0]?.dominant_color || '#000000',
-        fit: baseProduct.tags.includes('oversized') ? 'oversized' : 'regular',
-        pattern: baseProduct.tags.includes('printed') ? 'printed' : 'solid',
-        fabric: baseProduct.tags.find(t => t.toLowerCase().includes('cotton')) ? 'cotton' : 'blend', 
-        occasion: baseProduct.tags.includes('party') ? 'party' : 'casual',
-        priceRange: (baseProduct.price_cents > 30000) ? 'high' : 'mid',
+        id: product._id.toString(),
+        category: product.category as string,
+        ...base,
+        priceRange: (product.price_cents > 30000) ? 'high' : 'mid',
         season: 'summer'
       },
       // 🛑 USE PASSED-IN PREFERENCES 🛑

@@ -27,6 +27,7 @@ export interface ColorData {
 export interface UploadResult {
   url: string;
   colorData: ColorData;
+  publicId?: string; // include publicId so callers can persist a non-null external id
 }
 
 
@@ -65,9 +66,12 @@ const analyzeColor = async (buffer: Buffer): Promise<ColorData> => {
  */
 export const uploadLocalImageToCloudinary = async (
   localFilePath: string,
-  publicId: string
+  publicId?: string
 ): Promise<UploadResult> => {
   try {
+    // ensure we always produce a non-null publicId to avoid duplicate-null DB index inserts
+    const computedPublicId = publicId ?? `product_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+
     // 1. Read the local file into a buffer for color analysis
     const buffer = await fs.readFile(localFilePath);
     
@@ -75,7 +79,7 @@ export const uploadLocalImageToCloudinary = async (
     const [colorData, uploadResponse] = await Promise.all([
         analyzeColor(buffer),
         cloudinary.uploader.upload(localFilePath, {
-            public_id: publicId,
+            public_id: computedPublicId,
             folder: 'eyoris-fashion', // Organizes images into a specific folder
             overwrite: true,
         })
@@ -85,10 +89,11 @@ export const uploadLocalImageToCloudinary = async (
         throw new Error('Cloudinary did not return a valid response.');
     }
 
-    // 3. Return the combined result
+    // 3. Return the combined result including the computed publicId
     return {
       url: uploadResponse.secure_url,
       colorData: colorData,
+      publicId: computedPublicId,
     };
   } catch (error) {
     console.error(`Error processing local image ${localFilePath}:`, error);
@@ -102,19 +107,22 @@ export const uploadLocalImageToCloudinary = async (
  * @param buffer The image file as a Buffer.
  * @returns A promise resolving to an object with the secure URL and color data.
  */
-export const uploadImageBuffer = async (buffer: Buffer): Promise<UploadResult> => {
+export const uploadImageBuffer = async (buffer: Buffer, publicId?: string): Promise<UploadResult> => {
+    // ensure non-null publicId
+    const computedPublicId = publicId ?? `product_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+
     // Analyze color first
     const colorData = await analyzeColor(buffer);
 
-    // Use a modern async/await pattern for upload_stream
+    // Use a modern async/await pattern for upload_stream and include public_id
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
-            { folder: "eyoris-fashion" },
+            { folder: "eyoris-fashion", public_id: computedPublicId },
             (error, result) => {
                 if (error || !result) {
                     return reject(new Error(error?.message || "Cloudinary Upload Stream Failed"));
                 }
-                resolve({ url: result.secure_url, colorData });
+                resolve({ url: result.secure_url, colorData, publicId: computedPublicId });
             }
         );
         uploadStream.end(buffer);
@@ -128,12 +136,13 @@ export const uploadImageBuffer = async (buffer: Buffer): Promise<UploadResult> =
  * @param url The public URL of the image to analyze.
  * @returns A promise resolving to an object with the original URL and color data.
  */
-export const analyzeImageUrl = async (url: string): Promise<UploadResult> => {
+export const analyzeImageUrl = async (url: string, publicId?: string): Promise<UploadResult> => {
     try {
         const response = await axios.get(url, { responseType: 'arraybuffer' });
         const buffer = Buffer.from(response.data, 'binary');
         const colorData = await analyzeColor(buffer);
-        return { url, colorData };
+        const computedPublicId = publicId ?? `product_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+        return { url, colorData, publicId: computedPublicId };
     } catch (error) {
         console.error(`Failed to download or analyze image from URL: ${url}`, error);
         throw new Error('Image analysis from URL failed.');

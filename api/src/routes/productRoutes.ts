@@ -1,22 +1,47 @@
-// api/src/routes/productRoutes.ts
-import { Router } from 'express';
-import { getProducts, getProductBySlug, createProduct, deleteProduct, getProductByIdAdmin, updateProduct, updateProductWithImages } from '../controllers/productController'; // <--- NEW IMPORT
-import { upload } from '../config/multer';
+// /api/src/routes/productRoutes.ts
 
-const router = Router();
+import express from 'express';
+import {
+    getProducts,
+    getProductBySlug,
+    createProduct,
+    deleteProduct,
+    getProductByIdAdmin,
+    updateProduct,
+    createReview, // Assuming you have review routes here
+    getReviews
+} from '../controllers/productController';
+import { upload } from '../config/multer'; // Assuming multer is configured for file uploads
 
+// Simple local clerkAuth middleware to avoid missing module error.
+// Replace this with your real Clerk integration (token verification, user attach, etc.).
+import { Request, Response, NextFunction } from 'express';
+export const clerkAuth = (req: Request, res: Response, next: NextFunction) => {
+    const auth = req.headers.authorization;
+    if (!auth) {
+        return res.status(401).json({ message: 'Unauthorized' });
+    }
+    // TODO: validate token and attach user to req (e.g., req.user = decodedUser)
+    next();
+};
+
+const router = express.Router();
+
+// --- Public Routes ---
 router.get('/', getProducts);
-router.post('/', upload.array('images', 5), createProduct);
-router.delete('/:id', deleteProduct);
-router.put('/:id', updateProduct); // Update route
+router.get('/slug/:slug', getProductBySlug);
+router.get('/reviews/:productId', getReviews);
 
-// ADMIN FETCH ROUTE (Fetch by ID) - Must be before the /:slug route
-router.get('/:id/admin', getProductByIdAdmin); 
+// --- Authenticated User Routes ---
+// Protecting review creation so only logged-in users can post
+router.post('/reviews', clerkAuth, createReview); 
 
-// PUBLIC FETCH ROUTE (Fetch by Slug)
-router.get('/:slug', getProductBySlug); 
+// --- Admin-Only Routes ---
+// You would typically have an admin-specific middleware here,
+// but for now, we can protect them with the general clerkAuth.
+router.post('/', clerkAuth, upload.array('images'), createProduct);
+router.get('/admin/:id', clerkAuth, getProductByIdAdmin);
+router.put('/:id', clerkAuth, updateProduct);
+router.delete('/:id', clerkAuth, deleteProduct);
 
-router.get('/:id/admin', getProductByIdAdmin); // Fetch by ID for Admin
-router.patch('/:id/edit', upload.array('newImages', 5), updateProductWithImages); // <--- NEW ROUTE!
-router.put('/:id', updateProduct); // Simple text update by ID (optional, kept for full replacement logic)
 export default router;

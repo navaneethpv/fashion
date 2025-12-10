@@ -34,14 +34,16 @@ async function getProduct(id?: string, slug?: string): Promise<Product | null> {
     "http://localhost:4000";
   const baseUrl = base.replace(/\/$/, "");
 
-  // Build candidates in order: admin/id, direct id, slug route, slug path
+  // Build candidates in order: slug route (public), admin/id, direct id, slug path
   const candidates: string[] = [];
+  if (slug) {
+    candidates.push(`${baseUrl}/api/products/slug/${encodeURIComponent(slug)}`);
+  }
   if (id) {
     candidates.push(`${baseUrl}/api/products/admin/${encodeURIComponent(id)}`);
     candidates.push(`${baseUrl}/api/products/${encodeURIComponent(id)}`);
   }
   if (slug) {
-    candidates.push(`${baseUrl}/api/products/slug/${encodeURIComponent(slug)}`);
     candidates.push(`${baseUrl}/api/products/${encodeURIComponent(slug)}`);
   }
 
@@ -56,11 +58,41 @@ async function getProduct(id?: string, slug?: string): Promise<Product | null> {
         console.warn(`Not found at ${url}, trying next candidate`);
         continue;
       }
+      if (res.status === 401 || res.status === 403) {
+        console.warn(`Auth required for ${url}, trying next candidate`);
+        continue;
+      }
       console.error(`API Error for ${url}: ${res.status} - ${res.statusText}`);
       return null;
     } catch (err) {
       console.error(`Request to ${url} failed:`, err);
     }
+  }
+
+  // FALLBACK: query the list endpoint and find the product by id or slug
+  try {
+    const listUrl = `${baseUrl}/api/products`;
+    console.log(`Falling back to list endpoint: ${listUrl}`);
+    const listRes = await fetch(listUrl, { next: { revalidate: 60 } });
+    if (!listRes.ok) {
+      console.warn(`List endpoint returned ${listRes.status}`);
+      return null;
+    }
+    const json = await listRes.json();
+    const items = Array.isArray(json) ? json : json?.data ?? json?.products ?? null;
+    if (!Array.isArray(items)) {
+      console.warn("Unexpected list response shape", Object.keys(json || {}));
+      return null;
+    }
+    const found = items.find((it: any) => {
+      if (id && (it._id === id || it.id === id || String(it._id) === String(id))) return true;
+      if (slug && it.slug === slug) return true;
+      return false;
+    });
+    if (found) return found;
+    console.warn("Product not found in list response");
+  } catch (err) {
+    console.error("Fallback list fetch failed:", err);
   }
 
   return null;
@@ -96,10 +128,12 @@ export default async function ProductDetailPage({
   params,
   searchParams,
 }: {
-  params: { slug: string };
-  searchParams: { id?: string };
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ id?: string }>;
 }) {
-  const product = await getProduct(searchParams?.id, params.slug);
+  const paramsResolved = await params;
+  const searchParamsResolved = await searchParams;
+  const product = await getProduct(searchParamsResolved?.id, paramsResolved.slug);
 
   if (!product) {
     notFound();

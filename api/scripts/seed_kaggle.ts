@@ -14,7 +14,7 @@ dotenv.config();
 
 const DATASET_FILE = path.join(__dirname, "..", "dataset", "styles.csv");
 const IMAGES_FOLDER = path.join(__dirname, "..", "dataset", "images");
-const MAX_PER_CATEGORY = 1500; // Your setting to top-up categories
+const MAX_PER_CATEGORY = 1800; // Your setting to top-up categories
 
 const BATCH_SIZE = 10;
 let DISABLE_GEMINI_FOR_INGESTION = false; // Set to `false` to enable AI

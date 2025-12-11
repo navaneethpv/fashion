@@ -122,11 +122,20 @@ function applyGenderFilterToQuery(query: any, userGender?: string | null) {
   return query;
 }
 
+// 🔁 Helper: pick a random element from an array
+function pickRandom<T>(arr: T[]): T | null {
+  if (!arr.length) return null;
+  const index = Math.floor(Math.random() * arr.length);
+  return arr[index];
+}
+
 // Find a matching product for a given AI suggestion, respecting user gender
+// and avoiding duplicates within the same outfit.
 async function findMatchingProduct(
   suggested: any,
   baseProductId: string,
-  userGender?: string | null,
+  userGender: string | null,
+  usedProductIds: Set<string>,
 ) {
   const role = (suggested.role || "").toLowerCase();
   const colorSuggestion = suggested.colorSuggestion as string | undefined;
@@ -144,19 +153,24 @@ async function findMatchingProduct(
     query['variants.color'] = new RegExp(colorSuggestion, 'i');
   }
 
-  // 🧠 Apply gender filter based on userPreferences.gender
+  // Apply gender filter based on userPreferences.gender
   query = applyGenderFilterToQuery(query, userGender);
 
-  // Try color + category + gender first
-  let product = await Product.findOne(query).lean();
+  // 1) Try with color + gender + subCategory
+  let candidates = await Product.find(query).lean();
 
-  // Fallback: ignore color if none found (but still respect gender)
-  if (!product) {
+  // Remove already used product IDs (avoid same dress/shoe within same outfit)
+  candidates = candidates.filter((p: any) => !usedProductIds.has(String(p._id)));
+
+  // 2) If none, drop color filter and retry
+  if (!candidates.length) {
     delete query['variants.color'];
-    product = await Product.findOne(query).lean();
+    candidates = await Product.find(query).lean();
+    candidates = candidates.filter((p: any) => !usedProductIds.has(String(p._id)));
   }
 
-  return product;
+  const picked = pickRandom(candidates);
+  return picked || null;
 }
 
 // MAIN CONTROLLER: POST /api/ai/outfit
@@ -213,10 +227,22 @@ export const generateOutfit = async (req: Request, res: Response) => {
     let outfitItems = Array.isArray(aiResult.outfitItems) ? aiResult.outfitItems : [];
     outfitItems = filterOutfitRolesForBase(baseRole, outfitItems);
 
-    // 6) Attach real products from DB (gender-aware)
+    // 6) Attach real products from DB (gender-aware, non-repeating)
     const matchedItems: any[] = [];
+    const usedProductIds = new Set<string>();
+
     for (const item of outfitItems) {
-      const product = await findMatchingProduct(item, baseProduct._id.toString(), userGender);
+      const product = await findMatchingProduct(
+        item,
+        baseProduct._id.toString(),
+        userGender,
+        usedProductIds,
+      );
+
+      if (product) {
+        usedProductIds.add(String(product._id));
+      }
+
       matchedItems.push({
         ...item,
         product,

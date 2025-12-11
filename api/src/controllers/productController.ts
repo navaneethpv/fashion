@@ -37,47 +37,69 @@ async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeT
 }
 
 // GET /api/products (Public Listing)
+// GET /api/products (Public + Admin Listing)
 export const getProducts = async (req: Request, res: Response) => {
   try {
     const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 24; 
+    const limit = Number(req.query.limit) || 24;
     const { category, sort, q, minPrice, maxPrice } = req.query;
 
     let matchQuery: any = { isPublished: true };
 
     if (category) matchQuery.category = category;
     if (q) matchQuery.$text = { $search: String(q) };
+
     if (minPrice || maxPrice) {
       matchQuery.price_cents = {};
       if (minPrice) matchQuery.price_cents.$gte = Number(minPrice) * 100;
       if (maxPrice) matchQuery.price_cents.$lte = Number(maxPrice) * 100;
     }
-    
+
     let sortOption: any = { createdAt: -1 };
     if (sort === "price_asc") sortOption = { price_cents: 1 };
     if (sort === "price_desc") sortOption = { price_cents: -1 };
 
     const pipeline: any[] = [{ $match: matchQuery }];
-    if (q) pipeline.push({ $sort: { score: { $meta: "textScore" } } });
-    else pipeline.push({ $sort: sortOption });
-    
+
+    if (q) {
+      pipeline.push({ $sort: { score: { $meta: "textScore" } } });
+    } else {
+      pipeline.push({ $sort: sortOption });
+    }
+
     pipeline.push(
       { $skip: (page - 1) * limit },
       { $limit: limit },
-      // --- FIXED: Optimized projection to send exactly what the card needs ---
-      { $project: {
-          _id: 1, // MUST include the _id
-          name: 1, 
-          slug: 1, 
-          price_cents: 1, 
+
+      // 🟢 FIXED: Now includes variants (size + stock) for admin stock calculation
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          slug: 1,
+          price_cents: 1,
           price_before_cents: 1,
           brand: 1,
           rating: 1,
-          // Efficiently get ONLY the first image URL as a simple string
-          images: { $arrayElemAt: ["$images.url", 0] } 
-      }}
+
+          // public & admin both need image
+          images: { $arrayElemAt: ["$images.url", 0] },
+
+          // 🟢 critical fix: include variants
+          variants: {
+            $map: {
+              input: "$variants",
+              as: "v",
+              in: {
+                size: "$$v.size",
+                stock: "$$v.stock"
+              }
+            }
+          }
+        }
+      }
     );
-    
+
     const products = await Product.aggregate(pipeline);
     const total = await Product.countDocuments(matchQuery);
 
@@ -90,6 +112,7 @@ export const getProducts = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
 
 // --- Other controller functions (getProductBySlug, createProduct, etc.) ---
 // Make sure they are also updated to use the new schema (name, slug, variants, dominantColor, etc.)

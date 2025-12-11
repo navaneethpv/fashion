@@ -90,8 +90,15 @@ export default function ProductsListPage() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filteredProducts.map((p: any) => {
-              // Calculate total stock from variants
-              const stock = p.totalStock || 0;
+              console.log(p);
+              // Calculate total stock from variants (supports both array of variants or single object)
+              const stock = Array.isArray(p.variants)
+                ? p.variants.reduce((sum: number, v: any) => sum + (v?.stock ?? 0), 0)
+                : (p.variants?.stock ?? 0);
+
+              // normalize image src (supports array or single string)
+              const imgSrc =
+                Array.isArray(p.images) ? p.images[0]?.url ?? "" : p.images ?? "";
 
               return (
                 <tr key={p._id} className="hover:bg-gray-50">
@@ -99,7 +106,7 @@ export default function ProductsListPage() {
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden">
                         <img
-                          src={p.images[0]?.url}
+                          src={imgSrc}
                           alt=""
                           className="w-full h-full object-cover"
                         />
@@ -125,7 +132,7 @@ export default function ProductsListPage() {
                   <td className="px-6 py-3 text-right flex items-center justify-end gap-2">
                     {/* 1. NEW EDIT LINK: Points to the admin editing view */}
                     <Link
-                      href={`/admin/products//manage/${p._id}`}
+                      href={`/admin/products/manage/${p._id}`}
                       className="p-2 hover:bg-blue-50 rounded-lg text-blue-600"
                       title="Edit Stock/Details"
                     >

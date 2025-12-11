@@ -8,6 +8,8 @@ export const getCart = async (req: Request, res: Response) => {
     const { userId } = req.query;
     if (!userId) return res.status(400).json({ message: 'User ID required' });
 
+
+
     const cart = await Cart.findOne({ userId }).populate('items.product', 'name price_cents images slug brand');
     
     if (!cart) return res.json({ items: [] });
@@ -46,6 +48,8 @@ export const addToCart = async (req: Request, res: Response) => {
         product: productId,
         variantSku: variant,
         quantity,
+
+
         price_at_add: product.price_cents
       });
     }

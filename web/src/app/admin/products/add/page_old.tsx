@@ -93,17 +93,11 @@ export default function AddProductPage() {
     setFilteredSubCategories(filtered);
   }, [subCategoryInputValue, subCategories]);
 
-
   useEffect(() => {
-    // Automatically apply the AI's suggested category and subcategory to the form
+    // Automatically apply the AI's suggested category to the form
     if (suggestedCategory) {
-      setFormData(prev => ({ 
-        ...prev, 
-        category: suggestedCategory.category,
-        subCategory: suggestedCategory.subCategory 
-      }));
-      setCategoryInputValue(suggestedCategory.category);
-      setSubCategoryInputValue(suggestedCategory.subCategory);
+      setFormData(prev => ({ ...prev, subCategory: suggestedCategory }));
+      setSubCategoryInputValue(suggestedCategory);
       setIsCategoryDropdownOpen(false);
       setIsSubCategoryDropdownOpen(false);
       setSuggestedCategory(null);
@@ -229,6 +223,7 @@ export default function AddProductPage() {
                         type="text"
                         value={categoryInputValue}
                         onFocus={() => setIsCategoryDropdownOpen(true)}
+                        onBlur={() => setTimeout(() => setIsCategoryDropdownOpen(false), 200)}
                         onChange={(e) => {
                           setCategoryInputValue(e.target.value);
                           setIsCategoryDropdownOpen(true);
@@ -244,8 +239,7 @@ export default function AddProductPage() {
                             .map((cat) => (
                             <div 
                               key={cat} 
-                              onMouseDown={(e) => {
-                                e.preventDefault(); // Prevent blur
+                              onClick={() => {
                                 setCategoryInputValue(cat);
                                 setFormData(prev => ({ ...prev, category: cat }));
                                 setIsCategoryDropdownOpen(false);
@@ -273,6 +267,7 @@ export default function AddProductPage() {
                         type="text"
                         value={subCategoryInputValue}
                         onFocus={() => setIsSubCategoryDropdownOpen(true)}
+                        onBlur={() => setTimeout(() => setIsSubCategoryDropdownOpen(false), 200)}
                         onChange={(e) => {
                           setSubCategoryInputValue(e.target.value);
                           setIsSubCategoryDropdownOpen(true);
@@ -288,8 +283,7 @@ export default function AddProductPage() {
                             filteredSubCategories.map((sc) => (
                               <div 
                                 key={sc} 
-                                onMouseDown={(e) => {
-                                  e.preventDefault(); // Prevent blur
+                                onClick={() => {
                                   setSubCategoryInputValue(sc);
                                   setFormData(prev => ({ ...prev, subCategory: sc }));
                                   setIsSubCategoryDropdownOpen(false);

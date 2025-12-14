@@ -71,36 +71,72 @@ export async function getProductTagsFromGemini(
 }
 
 
-/* ---------------- AI SUBCATEGORY (DB DRIVEN) ---------------- */
-export async function getSuggestedSubCategoryFromGemini(
+
+/* ---------------- AI CATEGORY AND SUBCATEGORY (DB DRIVEN) ---------------- */
+interface CategorySuggestion {
+  category: string;
+  subCategory: string;
+}
+
+export async function getSuggestedCategoryAndSubCategoryFromGemini(
   imageBuffer: Buffer,
   mimeType: string,
+  allowedCategories?: string[],
   allowedSubCategories?: string[]
-): Promise<string> {
+): Promise<CategorySuggestion> {
   // Default categories if none provided
   const defaultCategories = [
     "T-Shirts", "Shirts", "Jeans", "Dresses", "Jackets", 
     "Kurtis", "Sarees", "Footwear", "Accessories"
   ];
   
-  const categories = allowedSubCategories && allowedSubCategories.length > 0 
-    ? allowedSubCategories 
+  const defaultSubCategories = [
+    // T-Shirts
+    "Round Neck", "V Neck", "Polo", "Graphic", "Plain",
+    // Shirts  
+    "Formal Shirt", "Casual Shirt", "Denim Shirt", "Flannel",
+    // Jeans
+    "Slim Fit", "Regular Fit", "Bootcut", "Skinny", "Straight",
+    // Dresses
+    "A-Line", "Bodycon", "Maxi", "Mini", "Midi",
+    // Jackets
+    "Denim Jacket", "Bomber Jacket", "Leather Jacket", "Blazer", "Windbreaker",
+    // Kurtis
+    "Anarkali", "Straight", "A-Line", "Floor Length", "Short",
+    // Sarees
+    "Silk Saree", "Cotton Saree", "Georgette", "Chiffon", "Banarasi",
+    // Footwear
+    "Sneakers", "Heels", "Flats", "Boots", "Sandals",
+    // Accessories
+    "Bags", "Jewelry", "Watches", "Belts", "Sunglasses"
+  ];
+  
+  const categories = allowedCategories && allowedCategories.length > 0 
+    ? allowedCategories 
     : defaultCategories;
+    
+  const subCategories = allowedSubCategories && allowedSubCategories.length > 0 
+    ? allowedSubCategories 
+    : defaultSubCategories;
 
   try {
     const imagePart = bufferToGenerativePart(imageBuffer, mimeType);
 
     const prompt = `
-You are a fashion classifier AI. Analyze the clothing item in the image and determine its category.
+You are a fashion classifier AI. Analyze the clothing item in the image and determine its category and subcategory.
 
-Allowed categories:
+Main Categories:
 ${categories.map((c) => `- ${c}`).join("\n")}
 
+Subcategories (for reference):
+${subCategories.map((sc) => `- ${sc}`).join("\n")}
+
 Rules:
-- Choose ONLY ONE category from the list above
-- Do NOT invent new categories
+- Choose ONLY ONE main category from the list above
+- Choose ONLY ONE subcategory that belongs to the selected main category
+- Do NOT invent new categories or subcategories
 - Return ONLY valid JSON in this exact format:
-{"suggested_category": "CategoryName"}
+{"category": "MainCategoryName", "subCategory": "SubCategoryName"}
 
 Output valid JSON only, no explanations.`;
 
@@ -114,13 +150,18 @@ Output valid JSON only, no explanations.`;
     });
 
     const parsed = JSON.parse(response.text!);
-    const suggestedCategory = parsed.suggested_category || parsed.subCategory || "";
+    const suggestedCategory = parsed.category || "";
+    const suggestedSubCategory = parsed.subCategory || "";
     
-    return categories.includes(suggestedCategory)
-      ? suggestedCategory
-      : categories[0]; // Return first category as fallback
+    return {
+      category: categories.includes(suggestedCategory) ? suggestedCategory : categories[0],
+      subCategory: subCategories.includes(suggestedSubCategory) ? suggestedSubCategory : subCategories[0]
+    };
   } catch (err) {
     console.error("Gemini Category Error:", err);
-    return categories[0]; // Return first category as fallback
+    return {
+      category: categories[0],
+      subCategory: subCategories[0]
+    };
   }
 }

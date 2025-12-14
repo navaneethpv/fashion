@@ -8,7 +8,8 @@ import cloudinary from "../config/cloudinary";
 import { Product } from "../models/Product";
 import { getProductTagsFromGemini } from '../utils/geminiTagging';
 import { Review } from "../models/Review";
-import { getSuggestedSubCategoryFromGemini } from "../utils/geminiTagging";
+
+import { getSuggestedCategoryAndSubCategoryFromGemini } from "../utils/geminiTagging";
 
 /**
  * Upload a buffer to Cloudinary using upload_stream.
@@ -404,6 +405,7 @@ export const getReviews = async (req: Request, res: Response) => {
   }
 };
 
+
 // GET /api/products/subcategories
 export const getSubCategories = async (req: Request, res: Response) => {
   try {
@@ -418,6 +420,44 @@ export const getSubCategories = async (req: Request, res: Response) => {
   }
 };
 
+
+// GET /api/products/categories
+export const getCategories = async (req: Request, res: Response) => {
+  try {
+    const categories = await Product.distinct("category", {
+      isPublished: true,
+      category: { $ne: "" },
+    });
+
+    res.json(categories.sort());
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch categories" });
+  }
+};
+
+// GET /api/products/subcategories/:category
+export const getSubcategoriesByCategory = async (req: Request, res: Response) => {
+  try {
+    const { category } = req.params;
+    
+    if (!category) {
+      return res.status(400).json({ message: "Category parameter is required" });
+    }
+
+    const subCategories = await Product.distinct("subCategory", {
+      category: category,
+      isPublished: true,
+      subCategory: { $ne: "" },
+    });
+
+    res.json(subCategories.sort());
+  } catch (err) {
+    console.error("Error fetching subcategories by category:", err);
+    res.status(500).json({ message: "Failed to fetch subcategories" });
+  }
+};
+
+
 export const aiSuggestSubCategory = async (req: Request, res: Response) => {
   try {
     const file = req.file;
@@ -425,22 +465,31 @@ export const aiSuggestSubCategory = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Image file required" });
     }
 
+    const categories = await Product.distinct("category", {
+      isPublished: true,
+      category: { $ne: "" },
+    });
+    
     const subCategories = await Product.distinct("subCategory", {
       isPublished: true,
       subCategory: { $ne: "" },
     });
 
     if (!subCategories.length) {
-      return res.json({ subCategory: "" });
+      return res.json({ category: "", subCategory: "" });
     }
 
-    const suggested = await getSuggestedSubCategoryFromGemini(
+    const suggested = await getSuggestedCategoryAndSubCategoryFromGemini(
       file.buffer,
       file.mimetype,
+      categories.length > 0 ? categories : undefined,
       subCategories
     );
 
-    res.json({ subCategory: suggested });
+    res.json({ 
+      category: suggested.category,
+      subCategory: suggested.subCategory 
+    });
   } catch (err) {
     console.error("AI Suggest Error:", err);
     res.status(500).json({ message: "AI category failed" });

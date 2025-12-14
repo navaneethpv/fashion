@@ -1,4 +1,5 @@
 
+
 "use client";
 import { useState } from "react";
 
@@ -9,8 +10,13 @@ interface ImageInput {
   preview: string;
 }
 
+interface CategorySuggestion {
+  category: string;
+  subCategory: string;
+}
+
 export function useCategorySuggest() {
-  const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
+  const [suggestedCategory, setSuggestedCategory] = useState<CategorySuggestion | null>(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
 
   const suggestCategoryFromFile = async (file: File) => {
@@ -29,7 +35,10 @@ export function useCategorySuggest() {
       );
 
       const data = await res.json();
-      setSuggestedCategory(data.suggested_category || null);
+      setSuggestedCategory({
+        category: data.category || "",
+        subCategory: data.subCategory || ""
+      });
     } catch (err) {
       console.error("Suggest category failed", err);
       setSuggestedCategory(null);
@@ -54,7 +63,10 @@ export function useCategorySuggest() {
       );
 
       const data = await res.json();
-      setSuggestedCategory(data.suggested_category || null);
+      setSuggestedCategory({
+        category: data.category || "",
+        subCategory: data.subCategory || ""
+      });
     } catch (err) {
       console.error("Suggest category from URL failed", err);
       setSuggestedCategory(null);

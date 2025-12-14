@@ -1,62 +1,90 @@
-// /web/src/hooks/useCategorySuggest.ts
+
 "use client";
+import { useState } from "react";
 
-import { useState } from 'react';
-import axios from 'axios';
-
-// The API endpoint is the same for both request types
-const SUGGEST_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/ai/suggest-category`;
+interface ImageInput {
+  type: 'file' | 'url';
+  id: number;
+  value: File | string;
+  preview: string;
+}
 
 export function useCategorySuggest() {
   const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Can be called with either a File object or an image URL string.
-   */
-  const suggestCategory = async (source: File | string) => {
+  const suggestCategoryFromFile = async (file: File) => {
     setIsSuggesting(true);
-    setError(null);
-    setSuggestedCategory(null);
 
     try {
-      let response;
-      // CASE 1: The source is a File object from a local upload
-      if (source instanceof File) {
-        const formData = new FormData();
-        formData.append('image', source);
-        response = await axios.post<{ category: string }>(SUGGEST_URL, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-      } 
-      // CASE 2: The source is a string (URL)
-      else if (typeof source === 'string') {
-        response = await axios.post<{ category: string }>(SUGGEST_URL, {
-          imageUrl: source // Send as a JSON object
-        }, {
-          headers: { 'Content-Type': 'application/json' },
-        });
-      } 
-      // Invalid source type
-      else {
-        throw new Error("Invalid source type for AI suggestion.");
-      }
-      
-      if (response.data && response.data.category) {
-        setSuggestedCategory(response.data.category);
-      } else {
-        throw new Error("AI did not return a valid category.");
-      }
+      const form = new FormData();
+      form.append("image", file);
 
-    } catch (err: any) {
-      const message = err.response?.data?.message || "AI suggestion failed. Check the URL or image file.";
-      setError(message);
-      alert(message);
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/ai/suggest-category`,
+        {
+          method: "POST",
+          body: form,
+        }
+      );
+
+      const data = await res.json();
+      setSuggestedCategory(data.suggested_category || null);
+    } catch (err) {
+      console.error("Suggest category failed", err);
+      setSuggestedCategory(null);
     } finally {
       setIsSuggesting(false);
     }
   };
 
-  return { suggestCategory, suggestedCategory, isSuggesting, error, setSuggestedCategory };
+  const suggestCategoryFromUrl = async (imageUrl: string) => {
+    setIsSuggesting(true);
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/ai/suggest-category-url`,
+        {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ imageUrl }),
+        }
+      );
+
+      const data = await res.json();
+      setSuggestedCategory(data.suggested_category || null);
+    } catch (err) {
+      console.error("Suggest category from URL failed", err);
+      setSuggestedCategory(null);
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
+  // Generic function that handles both file and URL scenarios
+  const suggestCategory = (imageInputs: ImageInput[]) => {
+    // Prioritize file over URL
+    const fileInput = imageInputs.find(i => i.type === 'file' && i.value instanceof File);
+    const urlInput = imageInputs.find(i => i.type === 'url' && typeof i.value === 'string');
+
+    if (fileInput && fileInput.value instanceof File) {
+      suggestCategoryFromFile(fileInput.value);
+    } else if (urlInput && typeof urlInput.value === 'string' && urlInput.value.trim()) {
+      suggestCategoryFromUrl(urlInput.value.trim());
+    } else {
+      alert("Please upload an image file or provide an image URL to use AI suggestion.");
+      setIsSuggesting(false);
+    }
+  };
+
+  return {
+    suggestCategory,
+    suggestedCategory,
+    isSuggesting,
+    setSuggestedCategory,
+    suggestCategoryFromFile,
+    suggestCategoryFromUrl,
+  };
 }

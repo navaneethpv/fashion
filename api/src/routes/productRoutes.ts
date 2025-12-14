@@ -13,14 +13,17 @@ import {
 } from '../controllers/productController';
 import { upload } from '../config/multer'; // Assuming multer is configured for file uploads
 import { getSubCategories } from "../controllers/productController";
+import { aiSuggestSubCategory } from "../controllers/productController";
 
 
 const router = express.Router();
+
 
 // --- Public Routes ---
 router.get('/', getProducts);
 router.get('/slug/:slug', getProductBySlug);
 router.get('/reviews/:productId', getReviews);
+router.get('/subcategories', getSubCategories);
 
 // --- Authenticated User Routes ---
 // Protecting review creation so only logged-in users can post
@@ -34,7 +37,13 @@ router.get('/admin/:id', getProductByIdAdmin);
 router.put('/:id', updateProduct);
 router.delete('/:id', deleteProduct);
 
-router.get("/subcategories", getSubCategories);
+
+router.post(
+  "/ai/suggest-category",
+  upload.single("image"),
+  aiSuggestSubCategory
+);
+
 
 
 export default router;

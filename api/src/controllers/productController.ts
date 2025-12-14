@@ -8,6 +8,7 @@ import cloudinary from "../config/cloudinary";
 import { Product } from "../models/Product";
 import { getProductTagsFromGemini } from '../utils/geminiTagging';
 import { Review } from "../models/Review";
+import { getSuggestedSubCategoryFromGemini } from "../utils/geminiTagging";
 
 /**
  * Upload a buffer to Cloudinary using upload_stream.
@@ -417,3 +418,31 @@ export const getSubCategories = async (req: Request, res: Response) => {
   }
 };
 
+export const aiSuggestSubCategory = async (req: Request, res: Response) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ message: "Image file required" });
+    }
+
+    const subCategories = await Product.distinct("subCategory", {
+      isPublished: true,
+      subCategory: { $ne: "" },
+    });
+
+    if (!subCategories.length) {
+      return res.json({ subCategory: "" });
+    }
+
+    const suggested = await getSuggestedSubCategoryFromGemini(
+      file.buffer,
+      file.mimetype,
+      subCategories
+    );
+
+    res.json({ subCategory: suggested });
+  } catch (err) {
+    console.error("AI Suggest Error:", err);
+    res.status(500).json({ message: "AI category failed" });
+  }
+};

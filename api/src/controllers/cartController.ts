@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Cart } from "../models/Cart";
-import { Product } from "../models/Product";
+import Product from "../models/Product"; // or however your model is exported
+import mongoose from "mongoose";
 
 /**
  * GET /api/cart?userId=...
@@ -119,3 +120,63 @@ export const removeFromCart = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
+/**
+ * PATCH /api/cart/quantity
+ * Increase / Decrease cart item quantity
+ */
+export const updateCartQuantity = async (req: Request, res: Response) => {
+  try {
+    const { userId, productId, variant, quantity } = req.body;
+    if (!userId || !productId || !variant || typeof quantity !== "number") {
+      return res.status(400).json({ error: "invalid payload" });
+    }
+
+    // try increment existing item quantity
+    const incResult = await Cart.updateOne(
+      { userId, "items.product": productId, "items.variantSku": variant },
+      { $set: { "items.$.price_at_add": await getLatestPrice(productId) }, $inc: { "items.$.quantity": quantity - await getCurrentQuantity(userId, productId, variant) } }
+    );
+
+    // if no item matched, push new (upsert)
+    if (incResult.modifiedCount === 0 && incResult.matchedCount === 0) {
+      await Cart.updateOne(
+        { userId },
+        {
+          $push: {
+            items: {
+              product: new mongoose.Types.ObjectId(productId),
+              variantSku: variant,
+              quantity,
+              price_at_add: await getLatestPrice(productId),
+            },
+          },
+        },
+        { upsert: true }
+      );
+    }
+
+    // return fresh populated cart
+    const cart = await Cart.findOne({ userId }).populate({
+      path: "items.product",
+      select: "name brand images price_cents stock",
+    }).lean();
+
+    return res.status(200).json(cart);
+  } catch (err) {
+    console.error("updateCartQuantity error:", err);
+    return res.status(500).json({ error: "server error" });
+  }
+};
+
+// helper examples (implement according your Product model)
+async function getLatestPrice(productId: string) {
+  const p = await Product.findById(productId).lean();
+  return p?.price_cents ?? 0;
+}
+async function getCurrentQuantity(userId: string, productId: string, variant: string) {
+  const cart = await Cart.findOne({ userId }).lean();
+  const it = cart?.items?.find((i: any) => String(i.product) === String(productId) && i.variantSku === variant);
+  return it?.quantity ?? 0;
+}
+

@@ -1,6 +1,4 @@
-// /api/src/models/Product.ts
-
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema } from "mongoose";
 
 export interface IDominantColor {
   hex: string;
@@ -8,14 +6,10 @@ export interface IDominantColor {
 }
 
 export interface IAITags {
-  // UPDATED: Renamed to match the new Gemini JSON mode output
   dominant_color_name: string;
   style_tags: string[];
   material_tags: string[];
 }
-
-
-
 
 export interface IProduct extends Document {
   name: string;
@@ -28,40 +22,49 @@ export interface IProduct extends Document {
   category: string;
   subCategory?: string;
   images: string[];
+  stock: number; // ✅ ADDED
   dominantColor: IDominantColor;
   aiTags: IAITags;
   variants?: any[];
   rating?: number;
   reviewsCount?: number;
   isPublished?: boolean;
-  // ... other fields
 }
 
+const ProductSchema = new Schema<IProduct>(
+  {
+    name: { type: String, required: true, trim: true },
+    slug: { type: String, required: true, unique: true, trim: true },
+    description: { type: String, required: true },
+    price: { type: Number, required: true },
+    price_cents: { type: Number, required: true },
+    price_before_cents: { type: Number },
+    brand: { type: String, required: true },
+    category: { type: String, required: true, index: true },
 
-const ProductSchema = new Schema<IProduct>({
-  name: { type: String, required: true, trim: true },
-  slug: { type: String, required: true, unique: true, trim: true },
-  description: { type: String, required: true },
-  price: { type: Number, required: true },
-  price_cents: { type: Number, required: true },
-  price_before_cents: { type: Number },
-  brand: { type: String, required: true },
-  category: { type: String, required: true, index: true },
-  images: [{ type: String, required: true }],
-  dominantColor: {
-    hex: { type: String },
-    rgb: { type: [Number] },
+    images: [{ type: String, required: true }],
+
+    stock: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    dominantColor: {
+      hex: { type: String },
+      rgb: { type: [Number] },
+    },
+
+    aiTags: {
+      dominant_color_name: { type: String },
+      style_tags: { type: [String] },
+      material_tags: { type: [String] },
+    },
   },
-  aiTags: {
-    // UPDATED: The schema now matches the new Gemini output structure
-    dominant_color_name: { type: String },
-    style_tags: { type: [String] },
-    material_tags: { type: [String] },
-  },
-  // ... other schema fields
-}, { timestamps: true });
+  { timestamps: true }
+);
 
-ProductSchema.index({ name: 'text', category: 'text' });
+ProductSchema.index({ name: "text", category: "text" });
 
-export const Product = mongoose.model<IProduct>('Product', ProductSchema);
+export const Product = mongoose.model<IProduct>("Product", ProductSchema);
 export default Product;

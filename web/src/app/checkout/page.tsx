@@ -278,9 +278,13 @@ export default function CheckoutPage() {
               
               <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                 {cart.items.map((item: any) => (
-                  <div key={item.variantSku} className="flex gap-4">
+                  <div key={`${item.product?._id ?? 'unknown'}-${item.variantSku ?? 'default'}`} className="flex gap-4">
                     <div className="w-12 h-16 bg-gray-100 rounded-md flex-shrink-0 relative overflow-hidden">
-                       <img src={item.product.images[0].url} className="object-cover w-full h-full" alt="" />
+                       <img
+                         src={item.product?.images?.[0]?.url ?? '/images/placeholder.png'}
+                         className="object-cover w-full h-full"
+                         alt={item.product?.name ?? ''}
+                       />
                     </div>
                     <div className="flex-1 text-sm">
                       <p className="font-bold text-gray-900 truncate">{item.product.name}</p>

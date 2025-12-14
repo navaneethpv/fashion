@@ -19,7 +19,8 @@ export default function CartPage() {
         `http://localhost:4000/api/cart?userId=${user.id}`
       );
       const data = await res.json();
-      setCart(data);
+      // normalize so cart.items is always an array
+      setCart({ ...data, items: data?.items ?? [] });
     } catch (err) {
       console.error(err);
     } finally {
@@ -53,11 +54,90 @@ export default function CartPage() {
     if (isLoaded && user) fetchCart();
   }, [isLoaded, user]);
 
+  const updateQuantity = async (
+    productId: string,
+    variant: string,
+    newQty: number
+  ) => {
+    if (!user || newQty < 1) return;
+
+    // Optimistic update (preserve product)
+    setCart((prev: any) => ({
+      ...prev,
+      items: (prev?.items ?? []).map((item: any) =>
+        (item.product?._id ?? item.product) === productId && item.variantSku === variant
+          ? { ...item, quantity: newQty, product: item.product }
+          : item
+      ),
+    }));
+
+    try {
+      // debug: log outgoing payload
+      console.log("PATCH /api/cart/quantity ->", { userId: user.id, productId, variant, quantity: newQty });
+
+      const res = await fetch("http://localhost:4000/api/cart/quantity", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          productId,
+          variant,
+          quantity: newQty,
+        }),
+      });
+
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch (e) {
+        // no-json body (e.g. 204) -> leave data null
+      }
+
+      console.log("PATCH /api/cart/quantity response:", res.status, data);
+
+      if (!res.ok) {
+        // improved logging of server error body/text
+        const text = data || (await res.text().catch(() => "no-body"));
+        console.error("Failed to update cart quantity on server:", res.status, text);
+        await fetchCart().catch((e) => console.error("fetchCart failed", e));
+        return;
+      }
+
+      // If server returned items, merge server items with prev populated product objects
+      if (data && Array.isArray(data.items)) {
+        setCart((prev: any) => {
+          const prevItems = prev?.items ?? [];
+          const mergedItems = data.items.map((serverItem: any) => {
+            const match = prevItems.find((pi: any) => {
+              const piProdId = pi.product?._id ?? pi.product;
+              const svProdId = serverItem.product?._id ?? serverItem.product;
+              return String(piProdId) === String(svProdId) && pi.variantSku === serverItem.variantSku;
+            });
+            // keep populated product from prev if available, otherwise use server value
+            return { ...serverItem, product: match?.product ?? serverItem.product };
+          });
+          return { ...data, items: mergedItems };
+        });
+        return;
+      }
+
+      // If server returned nothing useful, keep optimistic UI and schedule a background reconcile
+      fetchCart().catch((e) => console.error("fetchCart after qty update failed", e));
+    } catch (err) {
+      console.error("updateQuantity error:", err);
+      // network error: revert to authoritative cart
+      fetchCart();
+    }
+  };
+
   // Calculate Total
   const subtotal =
-    cart?.items?.reduce((acc: number, item: any) => {
-      return acc + item.product.price_cents * item.quantity;
+    (cart?.items ?? []).reduce((acc: number, item: any) => {
+      return acc + (item.product?.price_cents ?? 0) * item.quantity;
     }, 0) || 0;
+
+  // safe items reference for rendering
+  const items = cart?.items ?? [];
 
   if (!isLoaded || loading) {
     return (
@@ -87,7 +167,8 @@ export default function CartPage() {
   // Helper to safely resolve image URL
   const resolveImageUrl = (product: any) => {
     const PLACEHOLDER = "https://via.placeholder.com/300x200?text=No+Image";
-    if (!product || !product.images || product.images.length === 0) return PLACEHOLDER;
+    if (!product || !product.images || product.images.length === 0)
+      return PLACEHOLDER;
 
     const image = product.images[0];
     if (typeof image === "string") return image;
@@ -101,7 +182,7 @@ export default function CartPage() {
       <main className="max-w-7xl mx-auto px-4 py-12">
         <h1 className="text-3xl font-black mb-8 text-gray-700">Shopping Bag</h1>
 
-        {!cart || cart.items.length === 0 ? (
+        {!cart || items.length === 0 ? (
           <div className="text-center py-20 bg-gray-50 rounded-xl">
             <p className="text-gray-900 mb-4">Your bag is empty.</p>
             <Link
@@ -115,7 +196,7 @@ export default function CartPage() {
           <div className="flex flex-col lg:flex-row gap-12">
             {/* Cart Items */}
             <div className="flex-1 space-y-6">
-              {cart.items.map((item: any) => (
+              {items.map((item: any) => (
                 <div
                   key={`${item.product._id}-${item.variantSku}`}
                   className="flex gap-4 p-4 border rounded-xl"
@@ -157,9 +238,49 @@ export default function CartPage() {
                     </div>
 
                     <div className="mt-4 flex justify-between items-end">
-                      <div className="font-medium text-gray-900">
-                        Qty: {item.quantity}
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() =>
+                            updateQuantity(
+                              item.product._id,
+                              item.variantSku,
+                              item.quantity - 1
+                            )
+                          }
+                          disabled={item.quantity === 1}
+                          className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-100 disabled:opacity-50"
+                        >
+                          −
+                        </button>
+
+                        <span className="font-medium text-gray-900">
+                          {item.quantity}
+                        </span>
+
+                        <button
+                          onClick={() =>
+                            updateQuantity(
+                              item.product._id,
+                              item.variantSku,
+                              item.quantity + 1
+                            )
+                          }
+                          disabled={
+                            item.quantity >= (item.product.stock ?? Infinity)
+                          }
+                          className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-100 disabled:opacity-50"
+                        >
+                          +
+                        </button>
                       </div>
+
+                      {item.product.stock !== undefined &&
+                        item.quantity >= item.product.stock && (
+                          <p className="text-xs text-red-500 mt-1">
+                            Only {item.product.stock} left in stock
+                          </p>
+                        )}
+
                       <div className="font-bold text-lg text-gray-800">
                         ₹{(item.product.price_cents / 100).toFixed(2)}
                       </div>
@@ -172,7 +293,9 @@ export default function CartPage() {
             {/* Summary */}
             <div className="w-full lg:w-96 flex-shrink-0">
               <div className="bg-gray-50 p-6 rounded-2xl sticky top-24">
-                <h3 className="font-bold text-gray-700 text-lg mb-6">Order Summary</h3>
+                <h3 className="font-bold text-gray-700 text-lg mb-6">
+                  Order Summary
+                </h3>
 
                 <div className="space-y-4 mb-6 text-sm">
                   <div className="flex justify-between">

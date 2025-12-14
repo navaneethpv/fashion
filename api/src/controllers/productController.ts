@@ -402,3 +402,18 @@ export const getReviews = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Failed to fetch reviews' });
   }
 };
+
+// GET /api/products/subcategories
+export const getSubCategories = async (req: Request, res: Response) => {
+  try {
+    const subCategories = await Product.distinct("subCategory", {
+      isPublished: true,
+      subCategory: { $ne: "" },
+    });
+
+    res.json(subCategories.sort());
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch subcategories" });
+  }
+};
+

@@ -12,18 +12,8 @@ import {
     getReviews
 } from '../controllers/productController';
 import { upload } from '../config/multer'; // Assuming multer is configured for file uploads
+import { getSubCategories } from "../controllers/productController";
 
-// Simple local clerkAuth middleware to avoid missing module error.
-// // Replace this with your real Clerk integration (token verification, user attach, etc.).
-// import { Request, Response, NextFunction } from 'express';
-// export const clerkAuth = (req: Request, res: Response, next: NextFunction) => {
-//     const auth = req.headers.authorization;
-//     if (!auth) {
-//         return res.status(401).json({ message: 'Unauthorized' });
-//     }
-//     // TODO: validate token and attach user to req (e.g., req.user = decodedUser)
-//     next();
-// };
 
 const router = express.Router();
 
@@ -43,5 +33,8 @@ router.post('/', upload.array('images'), createProduct);
 router.get('/admin/:id', getProductByIdAdmin);
 router.put('/:id', updateProduct);
 router.delete('/:id', deleteProduct);
+
+router.get("/subcategories", getSubCategories);
+
 
 export default router;

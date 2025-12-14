@@ -290,7 +290,7 @@ export default function CheckoutPage() {
                       <p className="font-bold text-gray-900 truncate">{item.product.name}</p>
                       <p className="text-gray-900 text-xs">Size: {item.variantSku} | Qty: {item.quantity}</p>
                     </div>
-                    <span className="font-bold text-sm">${((item.product.price_cents * item.quantity)/100).toFixed(2)}</span>
+                    <span className="font-bold text-sm">₹{((item.product.price_cents * item.quantity)/100).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -298,7 +298,7 @@ export default function CheckoutPage() {
               <div className="border-t border-gray-100 pt-4 space-y-2 mb-6 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-900">Subtotal</span>
-                  <span className="font-bold">${(subtotal / 100).toFixed(2)}</span>
+                  <span className="font-bold">₹{(subtotal / 100).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-900">Shipping</span>
@@ -306,14 +306,14 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-900">Tax (Estimated)</span>
-                  <span className="font-bold">$0.00</span>
+                  <span className="font-bold">₹0.00</span>
                 </div>
               </div>
 
               <div className="border-t border-gray-100 pt-4 mb-6">
                 <div className="flex justify-between text-xl font-black">
                   <span>Total</span>
-                  <span>${(subtotal / 100).toFixed(2)}</span>
+                  <span>₹{(subtotal / 100).toFixed(2)}</span>
                 </div>
               </div>
 
@@ -329,7 +329,7 @@ export default function CheckoutPage() {
                   </>
                 ) : (
                   <>
-                    <Lock className="w-4 h-4" /> Pay ${(subtotal / 100).toFixed(2)}
+                    <Lock className="w-4 h-4" /> Pay ₹{(subtotal / 100).toFixed(2)}
                   </>
                 )}
               </button>

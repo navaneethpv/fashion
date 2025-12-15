@@ -150,8 +150,10 @@ export default function ProductsListPage() {
                     </div>
                   </td>
                   <td className="px-6 py-3 text-gray-600">{p.category}</td>
+
+
                   <td className="px-6 py-3 font-mono">
-                    ₹{(p.price_cents / 100).toFixed(2)}
+                    ₹{new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format((p.price_cents || 0) / 100)}
                   </td>
                   <td className="px-6 py-3">
                     <span

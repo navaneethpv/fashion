@@ -33,7 +33,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatsCard 
           title="Total Revenue" 
-          value={`₹${(stats.revenue / 100).toLocaleString()}`} 
+
+        value={`₹${new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format((stats.revenue || 0) / 100)}`}
           trend="+12.5%" 
           isPositive={true}
           icon={DollarSign}
@@ -72,7 +73,8 @@ export default function DashboardPage() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} prefix="$" />
+
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} tickFormatter={(value) => `₹${value}`} />
                 <Tooltip />
                 <Area type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
               </AreaChart>

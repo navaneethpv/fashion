@@ -55,6 +55,7 @@ export default function CheckoutPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+
   // 2. Handle Payment
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,20 +63,12 @@ export default function CheckoutPage() {
 
     const orderPayload = {
       userId: user?.id,
-      items: cart.items.map((item: any) => ({
-        productId: item.product._id,
-        name: item.product.name,
-        variantSku: item.variantSku,
-        quantity: item.quantity,
-        price_cents: item.product.price_cents,
-        image: item.product.images[0].url
-      })),
-      total_cents: subtotal,
-      shippingAddress: formData // Sends all the detailed fields
+      shippingAddress: formData // Only send shipping address, backend calculates from cart
     };
 
     try {
-      await new Promise(r => setTimeout(r, 2000)); // 2s simulated delay
+      // Simulate payment processing delay
+      await new Promise(r => setTimeout(r, 2000)); 
 
       const res = await fetch('http://localhost:4000/api/orders', {
         method: 'POST',
@@ -86,11 +79,13 @@ export default function CheckoutPage() {
       if (res.ok) {
         setOrderSuccess(true);
       } else {
-        alert('Payment failed. Please try again.');
+        const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('Order creation failed:', errorData);
+        alert(`Payment failed: ${errorData.message || 'Please try again.'}`);
       }
     } catch (err) {
-      console.error(err);
-      alert('Error connecting to server.');
+      console.error('Payment error:', err);
+      alert('Error connecting to server. Please check your internet connection.');
     } finally {
       setProcessing(false);
     }

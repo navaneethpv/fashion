@@ -9,7 +9,6 @@ const OrderItemSchema = new mongoose.Schema({
   image: { type: String }
 });
 
-
 const OrderSchema = new mongoose.Schema({
   userId: { type: String, required: true },
   items: [OrderItemSchema],
@@ -37,11 +36,11 @@ const OrderSchema = new mongoose.Schema({
   
   paymentInfo: {
     id: String,
-    status: String,
-    method: String
-  },
+    status:: String
+  String,
+    method },
   
-  // More detailed address schema
+  // Shipping address schema
   shippingAddress: {
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
@@ -56,3 +55,4 @@ const OrderSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 export const Order = mongoose.model('Order', OrderSchema);
+

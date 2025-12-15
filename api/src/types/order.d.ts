@@ -11,6 +11,7 @@ export interface ShippingAddress {
   country?: string;
 }
 
+
 export interface OrderItem {
   productId: string;
   name: string;
@@ -20,18 +21,31 @@ export interface OrderItem {
   image?: string | null;
 }
 
+// Status enums
+export type PaymentStatus = 'Pending' | 'Paid' | 'Failed' | 'Refunded';
+export type OrderStatus = 'Placed' | 'Shipped' | 'Delivered' | 'Cancelled';
+export type LegacyStatus = 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled';
+
 export interface CreateOrderRequest {
   userId: string;
   shippingAddress: ShippingAddress;
   total_cents?: number; // Optional, will be calculated server-side
 }
 
+
 export interface CreateOrderResponse {
   _id: string;
   userId: string;
   items: OrderItem[];
   total_cents: number;
-  status: 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled';
+  
+  // Legacy status field for backward compatibility
+  status: LegacyStatus;
+  
+  // New separated status fields
+  paymentStatus: PaymentStatus;
+  orderStatus: OrderStatus;
+  
   paymentInfo: {
     id: string;
     status: string;
@@ -59,8 +73,35 @@ export interface MonthlySalesData {
   }[];
 }
 
+
 export interface PriceMismatchError {
   message: string;
   calculated_total: number;
   requested_total: number;
+}
+
+export interface UpdateOrderStatusRequest {
+  orderStatus: OrderStatus;
+}
+
+export interface UpdatePaymentStatusRequest {
+  paymentStatus: PaymentStatus;
+}
+
+export interface OrderStatusUpdateResponse {
+  _id: string;
+  userId: string;
+  items: OrderItem[];
+  total_cents: number;
+  status: LegacyStatus;
+  paymentStatus: PaymentStatus;
+  orderStatus: OrderStatus;
+  paymentInfo: {
+    id: string;
+    status: string;
+    method: string;
+  };
+  shippingAddress: ShippingAddress;
+  createdAt: string;
+  updatedAt: string;
 }

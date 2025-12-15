@@ -1,4 +1,5 @@
 
+
 import { Request, Response } from 'express';
 import { Order } from '../models/Order';
 import { Cart } from '../models/Cart';
@@ -10,7 +11,11 @@ import {
   calculateOrderTotal,
   ValidationError 
 } from '../utils/validation';
-import { CreateOrderRequest, CreateOrderResponse } from '../types/order';
+import { 
+  CreateOrderRequest, 
+  CreateOrderResponse,
+  OrderStatusUpdateResponse 
+} from '../types/order';
 
 
 
@@ -32,6 +37,7 @@ export const createOrder = async (req: Request, res: Response) => {
       });
     }
 
+
     // Calculate order items with snapshot prices from cart
     const orderItems = cart.items.map((cartItem: any) => {
       if (!cartItem.product) {
@@ -44,7 +50,7 @@ export const createOrder = async (req: Request, res: Response) => {
         variantSku: cartItem.variantSku,
         quantity: cartItem.quantity,
         price_cents: cartItem.price_at_add, // Use snapshot price from cart
-        image: cartItem.product.images?.[0] || null
+        image: cartItem.product.images?.[0]?.url || '' // Extract URL string from Cloudinary object
       };
     });
 
@@ -60,13 +66,17 @@ export const createOrder = async (req: Request, res: Response) => {
       });
     }
 
+
     // Create order with validated data
+    // After successful Stripe payment, set paymentStatus to "Paid" and orderStatus to "Placed"
     const orderData = {
       userId: validatedRequest.userId,
       items: orderItems,
       total_cents: calculatedTotal,
       shippingAddress: validatedRequest.shippingAddress,
-      status: 'paid' as const,
+      status: 'paid' as const, // Legacy field for backward compatibility
+      paymentStatus: 'Paid' as const, // Payment confirmed
+      orderStatus: 'Placed' as const, // Order created, ready for shipping
       paymentInfo: {
         method: 'credit_card',
         status: 'succeeded',
@@ -124,31 +134,54 @@ export const getAllOrders = async (req: Request, res: Response) => {
   }
 };
 
+
 // GET /api/admin/stats
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
-    // 1. Total Revenue (exclude cancelled orders)
+    // 1. Total Revenue (exclude cancelled orders, use paymentStatus for accuracy)
     const revenueAgg = await Order.aggregate([
-      { $match: { status: { $in: ['paid', 'shipped', 'delivered'] } } },
+      { $match: { paymentStatus: 'Paid', orderStatus: { $ne: 'Cancelled' } } },
       { $group: { _id: null, total: { $sum: '$total_cents' } } }
     ]);
     const totalRevenue = revenueAgg[0]?.total || 0;
 
     // 2. Counts (exclude cancelled)
-    const totalOrders = await Order.countDocuments({ status: { $ne: 'cancelled' } });
+    const totalOrders = await Order.countDocuments({ orderStatus: { $ne: 'Cancelled' } });
     const totalProducts = await Product.countDocuments();
     const totalUsers = await User.countDocuments();
 
     // 3. Recent Orders (exclude cancelled)
-    const recentOrders = await Order.find({ status: { $ne: 'cancelled' } })
+    const recentOrders = await Order.find({ orderStatus: { $ne: 'Cancelled' } })
       .sort({ createdAt: -1 }).limit(5);
+
+    // 4. Payment Status breakdown
+    const paymentStatusStats = await Order.aggregate([
+      {
+        $group: {
+          _id: '$paymentStatus',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // 5. Order Status breakdown
+    const orderStatusStats = await Order.aggregate([
+      {
+        $group: {
+          _id: '$orderStatus',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
 
     res.json({
       revenue: totalRevenue,
       orders: totalOrders,
       products: totalProducts,
       users: totalUsers,
-      recentOrders
+      recentOrders,
+      paymentStatusBreakdown: paymentStatusStats,
+      orderStatusBreakdown: orderStatusStats
     });
   } catch (error) {
     console.error(error);
@@ -156,20 +189,64 @@ export const getDashboardStats = async (req: Request, res: Response) => {
   }
 };
 
-// PATCH /api/orders/:id/status
+
+// PATCH /api/orders/:id/order-status (Admin - Update shipment status only)
 export const updateOrderStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { orderStatus } = req.body;
 
-    const validStatuses = ['pending', 'paid', 'shipped', 'delivered', 'cancelled'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
+    const validOrderStatuses = ['Placed', 'Shipped', 'Delivered', 'Cancelled'];
+    if (!validOrderStatuses.includes(orderStatus)) {
+      return res.status(400).json({ message: 'Invalid order status' });
+    }
+
+    // Find the order first to check if it exists
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    // Ensure payment is completed before allowing shipment status changes
+    if (order.paymentStatus !== 'Paid' && orderStatus !== 'Cancelled') {
+      return res.status(400).json({ 
+        message: 'Cannot update shipment status: payment not completed',
+        currentPaymentStatus: order.paymentStatus 
+      });
+    }
+
+    // Update order status (shipment status)
+    const updatedOrder = await Order.findByIdAndUpdate(
+      id, 
+      { 
+        orderStatus,
+        // Update legacy status for backward compatibility
+        status: orderStatus === 'Cancelled' ? 'cancelled' : 
+               orderStatus === 'Shipped' ? 'shipped' :
+               orderStatus === 'Delivered' ? 'delivered' : 'paid'
+      }, 
+      { new: true }
+    );
+
+    res.json(updatedOrder);
+  } catch (error) {
+    console.error('Update Order Status Error:', error);
+    res.status(500).json({ message: 'Failed to update order status' });
+  }
+};
+
+// PATCH /api/orders/:id/payment-status (Admin - Update payment status only)
+export const updatePaymentStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { paymentStatus } = req.body;
+
+    const validPaymentStatuses = ['Pending', 'Paid', 'Failed', 'Refunded'];
+    if (!validPaymentStatuses.includes(paymentStatus)) {
+      return res.status(400).json({ message: 'Invalid payment status' });
     }
 
     const order = await Order.findByIdAndUpdate(
       id, 
-      { status }, 
+      { paymentStatus }, 
       { new: true }
     );
 
@@ -177,15 +254,18 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 
     res.json(order);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to update order status' });
+    console.error('Update Payment Status Error:', error);
+    res.status(500).json({ message: 'Failed to update payment status' });
   }
 };
+
 
 // GET /api/admin/monthly-sales
 export const getMonthlySales = async (req: Request, res: Response) => {
   try {
     const { year = new Date().getFullYear() } = req.query;
 
+    // Use paymentStatus for revenue calculations (only paid orders contribute to revenue)
     const monthlySales = await Order.aggregate([
       {
         $match: {
@@ -193,7 +273,8 @@ export const getMonthlySales = async (req: Request, res: Response) => {
             $gte: new Date(`${year}-01-01`),
             $lt: new Date(`${parseInt(year as string) + 1}-01-01`)
           },
-          status: { $in: ['paid', 'shipped', 'delivered'] }
+          paymentStatus: 'Paid',
+          orderStatus: { $ne: 'Cancelled' } // Exclude cancelled orders
         }
       },
       {

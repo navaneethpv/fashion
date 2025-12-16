@@ -38,3 +38,7 @@ coverage/
 # OS-generated files
 .DS_Store
 Thumbs.db
+
+# Datasets (ignore either singular or plural)
+dataset/
+datasets/

@@ -14,7 +14,7 @@ dotenv.config();
 
 const DATASET_FILE = path.join(__dirname, "..", "dataset", "styles.csv");
 const IMAGES_FOLDER = path.join(__dirname, "..", "dataset", "images");
-const MAX_PER_CATEGORY = 1800; // Your setting to top-up categories
+const MAX_PER_CATEGORY = 300; // Your setting to top-up categories
 
 const BATCH_SIZE = 10;
 let DISABLE_GEMINI_FOR_INGESTION = false; // Set to `false` to enable AI
@@ -49,7 +49,20 @@ if (!DISABLE_GEMINI_FOR_INGESTION) {
 }
 
 const categoryCount: Record<string, number> = {};
+
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Normalize gender from Kaggle dataset to our format
+function normalizeGender(gender: string): string {
+  const normalized = gender?.toLowerCase().trim();
+  
+  if (normalized === "men" || normalized === "man") return "Men";
+  if (normalized === "women" || normalized === "woman") return "Women";
+  if (normalized === "boys" || normalized === "girls" || normalized === "kids" || normalized === "children") return "Kids";
+  if (normalized === "unisex" || normalized === "neutral") return "Men"; // Default Unisex to Men
+  
+  return "Men"; // Default fallback
+}
 
 function generateRandomVariants(
   productId: string,
@@ -124,7 +137,11 @@ async function processRow(
     return null;
   }
 
-  const category = (row.masterCategory || "Apparel").trim();
+
+  const normalizedGender = normalizeGender(row.gender);
+  const category = (row.articleType || row.masterCategory || "Apparel").trim();
+  const masterCategory = (row.masterCategory || "Apparel").trim();
+  
   if (categoryCount[category] >= MAX_PER_CATEGORY) {
     return null;
   }
@@ -138,6 +155,7 @@ async function processRow(
     const imageBuffer = await fs.promises.readFile(imagePath);
     const mimeType = "image/jpeg";
     const colors = await getColors(imageBuffer, { count: 1, type: mimeType });
+
     const dominantColorData = {
       hex: colors[0].hex(),
       rgb: {
@@ -145,6 +163,7 @@ async function processRow(
         g: colors[0].rgb()[1],
         b: colors[0].rgb()[2],
       },
+      name: row.baseColour?.trim() || "Unknown",
     };
 
     let aiTagsData: {
@@ -180,12 +199,16 @@ async function processRow(
 
     const priceInRupees = Math.floor(199 + Math.random() * 801);
 
+
     const productDocument = {
       name: displayName,
       slug: slug,
       brand: "Eyoris Basics",
       category,
-      subCategory: row.articleType,
+      subCategory: row.subCategory || row.articleType,
+      gender: normalizedGender,
+      masterCategory,
+      isFashionItem: true,
       description: `A stylish ${row.baseColour} ${row.articleType} for the ${row.season} season.`,
       price_cents: priceInRupees * 100,
       price_before_cents: Math.round(priceInRupees * 1.35) * 100,

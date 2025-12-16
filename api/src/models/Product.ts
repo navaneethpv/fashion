@@ -11,6 +11,7 @@ export interface IAITags {
   material_tags: string[];
 }
 
+
 export interface IProduct extends Document {
   name: string;
   slug: string;
@@ -21,15 +22,19 @@ export interface IProduct extends Document {
   brand: string;
   category: string;
   subCategory?: string;
+  gender?: string;
+  masterCategory?: string;
+  isFashionItem?: boolean;
   images: string[];
   stock: number; // ✅ ADDED
-  dominantColor: IDominantColor;
+  dominantColor: IDominantColor & { name?: string };
   aiTags: IAITags;
   variants?: any[];
   rating?: number;
   reviewsCount?: number;
   isPublished?: boolean;
 }
+
 
 const ProductSchema = new Schema<IProduct>(
   {
@@ -41,6 +46,10 @@ const ProductSchema = new Schema<IProduct>(
     price_before_cents: { type: Number },
     brand: { type: String, required: true },
     category: { type: String, required: true, index: true },
+    subCategory: { type: String },
+    gender: { type: String, index: true },
+    masterCategory: { type: String },
+    isFashionItem: { type: Boolean, default: false },
 
     images: [{ type: String, required: true }],
 
@@ -53,6 +62,7 @@ const ProductSchema = new Schema<IProduct>(
     dominantColor: {
       hex: { type: String },
       rgb: { type: [Number] },
+      name: { type: String },
     },
 
     aiTags: {

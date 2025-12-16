@@ -1,10 +1,10 @@
 // /api/scripts/seed_kaggle.ts
+
 import fs from "fs";
 import path from "path";
 import csv from "csv-parser";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import getColors from "get-image-colors";
 import slugify from "slugify";
 import { connectDB } from "../src/config/db";
 import cloudinary from "../src/config/cloudinary";
@@ -33,13 +33,14 @@ interface KaggleRow {
   productDisplayName: string;
 }
 
-let geminiVisionModel: any = null;
+
+let geminiModel: any = null;
 if (!DISABLE_GEMINI_FOR_INGESTION) {
   try {
     const { GoogleGenAI } = require("@google/genai");
     const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    geminiVisionModel = genAI.getGenerativeModel({
-      model: "gemini-pro-vision",
+    geminiModel = genAI.getGenerativeModel({
+      model: "gemini-pro",
     });
     console.log("✅ Gemini client initialized successfully.");
   } catch (e: any) {
@@ -52,6 +53,7 @@ const categoryCount: Record<string, number> = {};
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+
 // Normalize gender from Kaggle dataset to our format
 function normalizeGender(gender: string): string {
   const normalized = gender?.toLowerCase().trim();
@@ -62,6 +64,33 @@ function normalizeGender(gender: string): string {
   if (normalized === "unisex" || normalized === "neutral") return "Men"; // Default Unisex to Men
   
   return "Men"; // Default fallback
+}
+
+// Normalize color from Kaggle dataset to consistent HEX values
+function normalizeColor(color: string): string {
+  const colorMap: Record<string, string> = {
+    "Navy Blue": "#001f3f",
+    "Blue": "#1e40af",
+    "Black": "#000000",
+    "White": "#ffffff",
+    "Grey": "#6b7280",
+    "Gray": "#6b7280",
+    "Red": "#dc2626",
+    "Green": "#15803d",
+    "Yellow": "#ca8a04",
+    "Pink": "#db2777",
+    "Purple": "#7c3aed",
+    "Brown": "#78350f",
+    "Beige": "#f5f5dc",
+    "Copper": "#b87333",
+    "Silver": "#9ca3af",
+    "Gold": "#d4af37",
+    "Orange": "#ea580c",
+    "Maroon": "#7f1d1d"
+  };
+
+  const normalizedColor = colorMap[color?.trim()];
+  return normalizedColor || "#9ca3af"; // Fallback to Silver Gray
 }
 
 function generateRandomVariants(
@@ -149,38 +178,30 @@ async function processRow(
   const imagePath = path.join(IMAGES_FOLDER, `${id}.jpg`);
   if (!fs.existsSync(imagePath)) return null;
 
+
   try {
     const imageUrl = await uploadToCloudinary(imagePath, category);
     if (!imageUrl) return null;
-    const imageBuffer = await fs.promises.readFile(imagePath);
-    const mimeType = "image/jpeg";
-    const colors = await getColors(imageBuffer, { count: 1, type: mimeType });
-
+    
+    const normalizedHex = normalizeColor(row.baseColour);
     const dominantColorData = {
-      hex: colors[0].hex(),
-      rgb: {
-        r: colors[0].rgb()[0],
-        g: colors[0].rgb()[1],
-        b: colors[0].rgb()[2],
-      },
       name: row.baseColour?.trim() || "Unknown",
+      hex: normalizedHex,
+      rgb: []
     };
+
 
     let aiTagsData: {
       semanticColor?: string;
       style_tags?: string[];
       material_tags?: string[];
     } = {};
-    if (!DISABLE_GEMINI_FOR_INGESTION && geminiVisionModel) {
-      const prompt = `Analyze the clothing item, ignoring the background. Respond with a clean JSON object containing: "semanticColor", "style_tags" (array), and "material_tags" (array).`;
-      const imagePart = {
-        inlineData: { data: imageBuffer.toString("base64"), mimeType },
-      };
+
+    if (!DISABLE_GEMINI_FOR_INGESTION && geminiModel) {
+      const prompt = `Analyze this clothing description: "${displayName}". It's a ${row.baseColour} ${row.articleType} for ${normalizedGender}. Respond with a clean JSON object containing: "semanticColor", "style_tags" (array), and "material_tags" (array).`;
       try {
-        const result = await geminiVisionModel.generateContent([
-          prompt,
-          imagePart,
-        ]);
+
+        const result = await geminiModel.generateContent([prompt]);
         const responseText = result.response.text();
         const cleaned = responseText
           .replaceAll("```json", "")
@@ -200,6 +221,7 @@ async function processRow(
     const priceInRupees = Math.floor(199 + Math.random() * 801);
 
 
+
     const productDocument = {
       name: displayName,
       slug: slug,
@@ -210,9 +232,10 @@ async function processRow(
       masterCategory,
       isFashionItem: true,
       description: `A stylish ${row.baseColour} ${row.articleType} for the ${row.season} season.`,
+      price: priceInRupees,
       price_cents: priceInRupees * 100,
       price_before_cents: Math.round(priceInRupees * 1.35) * 100,
-      images: [{ url: imageUrl }],
+      images: [imageUrl],
       variants: generateRandomVariants(id, category, row.baseColour),
       dominantColor: dominantColorData,
       aiTags: aiTagsData,

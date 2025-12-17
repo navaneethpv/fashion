@@ -35,6 +35,7 @@ interface Product {
   name: string;
   slug: string;
   brand: string;
+  gender?: string;
   description: string;
   price_cents: number;
   price_before_cents?: number;
@@ -313,7 +314,7 @@ export default async function ProductDetailPage({
 
           {/* 3. AI ASSISTANT / OUTFIT SUGGESTION */}
           <div className="mt-8">
-            <OutfitGenerator productId={product._id} />
+            <OutfitGenerator productId={product._id} productGender={product.gender} />
           </div>
         </div>
       </main>

@@ -28,11 +28,54 @@ const STYLE_VIBES = [
   { value: "party_bold", label: "Party & Bold" },
 ];
 
-export default function OutfitGenerator({ productId }: { productId: string }) {
+const PLACEHOLDER_IMAGE = "https://via.placeholder.com/300x200?text=No+Image";
+
+// Helper to resolve image URL from various formats (string, array of strings, array of objects)
+function resolveImageUrl(images: any): string {
+  if (!images) return PLACEHOLDER_IMAGE;
+  
+  const base = process.env.NEXT_PUBLIC_API_BASE || 
+               process.env.NEXT_PUBLIC_API_URL || 
+               "http://localhost:4000";
+  
+  function prefixIfRelative(url?: string): string {
+    if (!url) return PLACEHOLDER_IMAGE;
+    if (/^https?:\/\//i.test(url)) return url;
+    return `${base.replace(/\/$/, "")}/${url.replace(/^\//, "")}`;
+  }
+  
+  // Handle string URL
+  if (typeof images === "string") {
+    return images.trim() ? prefixIfRelative(images) : PLACEHOLDER_IMAGE;
+  }
+  
+  // Handle array
+  if (Array.isArray(images) && images.length > 0) {
+    const first = images[0];
+    if (!first) return PLACEHOLDER_IMAGE;
+    
+    // Array of strings
+    if (typeof first === "string") {
+      return prefixIfRelative(first);
+    }
+    
+    // Array of objects with url property
+    if (typeof first === "object" && first.url) {
+      return prefixIfRelative(first.url);
+    }
+  }
+  
+  return PLACEHOLDER_IMAGE;
+}
+
+interface OutfitGeneratorProps {
+  productId: string;
+  productGender?: string | null;
+}
+
+export default function OutfitGenerator({ productId, productGender }: OutfitGeneratorProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<OutfitResult | null>(null);
-
-  const [gender, setGender] = useState<"male" | "female">("female");
   const [styleVibe, setStyleVibe] = useState(STYLE_VIBES[0].value);
 
   const [sliderRef, instanceRef] = useKeenSlider<HTMLDivElement>({
@@ -47,8 +90,16 @@ export default function OutfitGenerator({ productId }: { productId: string }) {
     setLoading(true);
     setResult(null);
 
+    const normalizedGender: "male" | "female" | null = (() => {
+      if (!productGender) return null;
+      const g = productGender.toLowerCase().trim();
+      if (/(men|man|male|boy)/i.test(g)) return "male";
+      if (/(women|woman|female|girl|lady|ladies)/i.test(g)) return "female";
+      return null;
+    })();
+
     const userPreferences = {
-      gender,
+      gender: normalizedGender,
       styleVibe,
       avoidColors: ["neon green", "bright yellow"],
       preferredBrightness: "medium",
@@ -104,21 +155,6 @@ export default function OutfitGenerator({ productId }: { productId: string }) {
       {/* Filter Inputs */}
       <div className="flex gap-4 pb-4 mb-4 border-b border-violet-100">
         <div className="flex-1">
-          <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Gender</label>
-          <div className="relative">
-            <select
-              value={gender}
-              onChange={(e) => setGender(e.target.value as "male" | "female")}
-              className="w-full p-2 border border-gray-600 rounded-lg appearance-none text-sm pr-8 bg-white focus:border-primary text-gray-700"
-            >
-              <option value="female">Female</option>
-              <option value="male">Male</option>
-            </select>
-            <ChevronDown className="w-4 h-4 absolute right-3 top-2.5 text-gray-500" />
-          </div>
-        </div>
-
-        <div className="flex-1">
           <label className="text-xs font-bold text-gray-900 uppercase block mb-1">
             Style Vibe
           </label>
@@ -162,9 +198,15 @@ export default function OutfitGenerator({ productId }: { productId: string }) {
                     <>
                       <Link href={`/products/${item.product.slug}`} className="block">
                         <img
-                          src={item.product.images?.[0]?.url}
+                          src={resolveImageUrl(item.product.images)}
                           alt={item.product.name}
                           className="w-full h-44 object-cover rounded-lg mb-3"
+                          onError={(e) => {
+                            const target = e.currentTarget as HTMLImageElement;
+                            if (target.src !== PLACEHOLDER_IMAGE) {
+                              target.src = PLACEHOLDER_IMAGE;
+                            }
+                          }}
                         />
                         <p className="font-bold text-gray-900">{item.product.name}</p>
                         <p className="text-sm text-gray-600">{item.product.brand}</p>

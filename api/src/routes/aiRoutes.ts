@@ -8,6 +8,7 @@ import { getOutfitRecommendations } from '../controllers/recommendationControlle
 
 import { getSuggestedCategoryAndSubCategoryFromGemini } from '../utils/geminiTagging';
 import { generateOutfit } from '../controllers/aiOutfitController';
+import { generateEnhancedOutfit } from '../controllers/enhancedOutfitController';
 import axios from 'axios';
 import { Product } from '../models/Product';
 
@@ -98,6 +99,7 @@ router.post('/suggest-category-url', async (req, res) => {
     }
 });
 
-router.post('/outfit', generateOutfit);
+// Use enhanced outfit generator (deterministic, no API key required)
+router.post('/outfit', generateEnhancedOutfit);
 
 export default router;

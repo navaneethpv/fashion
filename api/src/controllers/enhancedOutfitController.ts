@@ -57,8 +57,10 @@ const BASE_CATEGORIES: Record<Gender, string[]> = {
 const OUTFIT_RULES: Record<Gender, Record<string, OutfitPlan>> = {
   Men: {
     Shirts: [
-      { role: "bottom", categories: ["Jeans", "Pants", "Trousers", "Shorts"] },
-      { role: "footwear", categories: ["Sneakers", "Shoes"] },
+      // Shirts default to formal/office, so prefer Pants/Trousers over Jeans/Shorts
+      // Shorts will be excluded for office_casual/office_formal vibes via exclusion rules
+      { role: "bottom", categories: ["Pants", "Trousers", "Jeans", "Shorts"] },
+      { role: "footwear", categories: ["Shoes", "Sneakers"] }, // Formal shoes first
       { role: "accessory", categories: ["Watches", "Belts"] },
     ],
     "T-Shirts": [
@@ -226,6 +228,22 @@ const STYLE_VIBE_CATEGORY_PREFS: Record<string, string[]> = {
   festive: ["Dresses", "Kurtis", "Earrings", "Bangles", "Necklaces", "Handbags", "Heels"],
 };
 
+// Style vibe category EXCLUSIONS (hard filters - never suggest these for certain vibes)
+const STYLE_VIBE_CATEGORY_EXCLUSIONS: Record<string, string[]> = {
+  office_casual: ["Shorts", "Sneakers", "Flip Flops", "Sandals"], // No casual items for office
+  office_formal: ["Shorts", "Sneakers", "Flip Flops", "Sandals", "T-Shirts"], // Strict formal
+  casual: [], // Casual allows everything
+  festive: ["Shorts", "Jeans", "Sneakers"], // Festive = dresses/kurtis, not casual
+};
+
+// Base category context rules - what NOT to suggest based on base product
+const BASE_CATEGORY_EXCLUSIONS: Record<string, string[]> = {
+  // Formal/Office shirts should not get casual bottoms
+  "Shirts": ["Shorts"], // Shirts can be formal, so exclude shorts unless explicitly casual
+  "Trousers": ["Shorts", "Sneakers"], // Trousers are formal, exclude casual items
+  "Pants": ["Shorts"], // Pants can be formal, exclude shorts unless casual vibe
+};
+
 // Color groups for deterministic harmony
 const NEUTRALS = [
   "black",
@@ -270,14 +288,14 @@ function colorCompatibilityScore(baseColor: string | null | undefined, candidate
   const baseNeutral = isNeutral(base);
   const candNeutral = isNeutral(cand);
 
-  // Neutral pairs with anything
+  // Neutral pairs with anything - highest score
   if (baseNeutral || candNeutral) {
-    return 2;
+    return 3; // Increased from 2 to prioritize neutrals more
   }
 
-  // Avoid identical non-neutral colors
+  // Avoid identical non-neutral colors (monochrome outfits are less interesting)
   if (base && cand && base === cand) {
-    return 0.5;
+    return 0.3; // Lowered from 0.5 to strongly discourage exact matches
   }
 
   const baseWarm = isWarm(base);
@@ -285,16 +303,16 @@ function colorCompatibilityScore(baseColor: string | null | undefined, candidate
   const candWarm = isWarm(cand);
   const candCool = isCool(cand);
 
-  // Warm pairs best with neutrals (handled), next with warm
-  if (baseWarm && candWarm) return 1.5;
+  // Warm pairs best with neutrals (handled above), next with warm
+  if (baseWarm && candWarm) return 2; // Increased from 1.5
 
   // Cool pairs with cool (if not neutral)
-  if (baseCool && candCool) return 1.5;
+  if (baseCool && candCool) return 2; // Increased from 1.5
 
-  // Cross warm/cool gets lower score
-  if ((baseWarm && candCool) || (baseCool && candWarm)) return 0.8;
+  // Cross warm/cool gets lower score (clashing colors)
+  if ((baseWarm && candCool) || (baseCool && candWarm)) return 0.5; // Lowered from 0.8
 
-  // Fallback modest score
+  // Fallback modest score for unknown colors
   return 1;
 }
 
@@ -402,7 +420,7 @@ async function pickAccessoryWithPriority(
       return !usedProductIds.has(String(p._id)) && !usedCategories.has(cat);
     });
 
-    // If we have candidates, sort and pick the best one
+    // If we have candidates, sort and pick with variation
     if (candidates.length > 0) {
       // Sort deterministically: color compatibility desc, style pref desc, price asc, rating desc
       candidates.sort((a: any, b: any) => {
@@ -424,7 +442,10 @@ async function pickAccessoryWithPriority(
         return bRating - aRating;
       });
 
-      const picked = candidates[0];
+      // Use varied selection instead of always picking first item
+      const selectionIndex = getVariedSelectionIndex(candidates.length, baseProduct._id.toString(), "accessory");
+      const picked = candidates[selectionIndex];
+      
       if (picked) {
         usedProductIds.add(String(picked._id));
         const pickedCategory = normalize(picked.subCategory || picked.category || "");
@@ -442,17 +463,28 @@ function buildQuery(
   categories: string[],
   gender: Gender,
   baseProductId: string,
+  styleVibe?: string,
+  baseCategory?: string,
 ) {
   const normalized = normalizeCategories(categories);
+  
+  // Filter out excluded categories based on style vibe and base category
+  const filteredCategories = normalized.filter((cat) => {
+    return !isCategoryExcluded(cat, styleVibe, baseCategory);
+  });
+  
+  // If all categories were excluded, use original list (better than no results)
+  const finalCategories = filteredCategories.length > 0 ? filteredCategories : normalized;
+  
   return {
     isPublished: true,
     isFashionItem: true,
     gender,
     _id: { $ne: baseProductId },
     $or: [
-      { subCategory: { $in: normalized } },
-      { category: { $in: normalized } },
-      { masterCategory: { $in: normalized } },
+      { subCategory: { $in: finalCategories } },
+      { category: { $in: finalCategories } },
+      { masterCategory: { $in: finalCategories } },
     ],
   };
 }
@@ -467,6 +499,58 @@ function applyStylePreferenceWeight(category: string, styleVibe?: string): numbe
   return Math.max(0, prefs.length - idx);
 }
 
+// Check if a category should be excluded based on style vibe
+function isCategoryExcluded(category: string, styleVibe?: string, baseCategory?: string): boolean {
+  if (styleVibe) {
+    const exclusions = STYLE_VIBE_CATEGORY_EXCLUSIONS[styleVibe];
+    if (exclusions) {
+      const normalized = normalize(category);
+      if (exclusions.some((exc) => normalize(exc) === normalized || normalized.includes(normalize(exc)))) {
+        return true;
+      }
+    }
+  }
+  
+  // Check base category exclusions
+  if (baseCategory) {
+    const baseExclusions = BASE_CATEGORY_EXCLUSIONS[baseCategory];
+    if (baseExclusions) {
+      const normalized = normalize(category);
+      if (baseExclusions.some((exc) => normalize(exc) === normalized || normalized.includes(normalize(exc)))) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
+}
+
+// Get a varied selection index from top candidates
+// Picks randomly from top 30% (or top 5) to ensure quality while providing variation
+function getVariedSelectionIndex(candidatesLength: number, baseProductId: string, role: string): number {
+  if (candidatesLength === 0) return 0;
+  if (candidatesLength === 1) return 0;
+  
+  // Pick from top 30% of candidates (or top 5, whichever is smaller) for quality
+  // This ensures we get good matches while still providing variation
+  const topN = Math.min(Math.max(1, Math.floor(candidatesLength * 0.3)), 5);
+  
+  // Use a seeded random based on productId + role + current time (seconds) for variation
+  // This ensures different products get different selections, and same product gets varied results across requests
+  const seed = `${baseProductId}-${role}-${Math.floor(Date.now() / 1000)}`;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  // Add some true randomness for better variation
+  const randomFactor = Math.random() * 0.3; // 0-0.3 random offset
+  const index = (Math.abs(hash) % topN) + Math.floor(randomFactor * topN);
+  
+  return Math.min(index, topN - 1); // Ensure we don't exceed topN
+}
+
 async function pickProductForPlan(
   plan: OutfitPlanItem,
   baseProduct: any,
@@ -474,6 +558,7 @@ async function pickProductForPlan(
   usedProductIds: Set<string>,
   usedCategories: Set<string>,
   styleVibe?: string,
+  baseCategory?: string,
 ) {
   // Use priority-based selection for accessories
   if (plan.role === "accessory") {
@@ -486,9 +571,9 @@ async function pickProductForPlan(
     );
   }
 
-  // For non-accessory items, use the original logic
+  // For non-accessory items, use the original logic with style-vibe filtering
   const baseColor = baseProduct?.dominantColor?.name;
-  const query = buildQuery(plan.categories, gender, baseProduct._id.toString());
+  const query = buildQuery(plan.categories, gender, baseProduct._id.toString(), styleVibe, baseCategory);
   let candidates = await Product.find(query).lean();
 
   // Remove already used products and duplicate categories
@@ -496,6 +581,14 @@ async function pickProductForPlan(
     const cat = normalize(p.subCategory || p.category || "");
     return !usedProductIds.has(String(p._id)) && !usedCategories.has(cat);
   });
+
+  // Additional filtering: exclude categories that don't match style vibe
+  if (styleVibe) {
+    candidates = candidates.filter((p: any) => {
+      const cat = p.subCategory || p.category || "";
+      return !isCategoryExcluded(cat, styleVibe, baseCategory);
+    });
+  }
 
   // Sort deterministically: color compatibility desc, style pref desc, price asc, rating desc
   candidates.sort((a: any, b: any) => {
@@ -517,7 +610,10 @@ async function pickProductForPlan(
     return bRating - aRating;
   });
 
-  const picked = candidates[0];
+  // Use varied selection instead of always picking first item
+  const selectionIndex = getVariedSelectionIndex(candidates.length, baseProduct._id.toString(), plan.role);
+  const picked = candidates[selectionIndex];
+  
   if (!picked) return null;
 
   usedProductIds.add(String(picked._id));
@@ -527,11 +623,44 @@ async function pickProductForPlan(
   return picked;
 }
 
+// Map subCategory values to category keys used in OUTFIT_RULES
+const SUBCATEGORY_TO_CATEGORY_MAP: Record<string, string> = {
+  // Topwear mappings
+  "Topwear": "Tops",
+  "topwear": "Tops",
+  "TOPPER": "Tops",
+  "topper": "Tops",
+  
+  // Bottomwear mappings
+  "Bottomwear": "Pants",
+  "bottomwear": "Pants",
+  "BOTTOMWEAR": "Pants",
+  
+  // Footwear mappings
+  "Footwear": "Shoes",
+  "footwear": "Shoes",
+  "FOOTWEAR": "Shoes",
+  
+  // Accessories mappings
+  "Accessories": "Watches",
+  "accessories": "Watches",
+  "ACCESSORIES": "Watches",
+};
+
 function findPlanForBase(gender: Gender, baseCategory: string): OutfitPlan | null {
   const plans = OUTFIT_RULES[gender];
   if (!plans) return null;
+  
+  // First try exact match
   const exact = plans[baseCategory];
   if (exact) return exact;
+
+  // Try subCategory mapping
+  const mappedCategory = SUBCATEGORY_TO_CATEGORY_MAP[baseCategory];
+  if (mappedCategory) {
+    const mapped = plans[mappedCategory];
+    if (mapped) return mapped;
+  }
 
   // Try case-insensitive match
   const key = Object.keys(plans).find((k) => k.toLowerCase() === baseCategory.toLowerCase());
@@ -565,12 +694,21 @@ export const generateEnhancedOutfit = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "AI outfit suggestions are only available for fashion items." });
     }
 
-    const baseCategory = baseProduct.subCategory || baseProduct.category;
+    // Try subCategory first, then fallback to category
+    let baseCategory = baseProduct.subCategory || baseProduct.category;
     if (!baseCategory) {
       return res.status(400).json({ message: "Base product must have a category or subCategory." });
     }
 
-    const plan = findPlanForBase(gender, baseCategory);
+    let plan = findPlanForBase(gender, baseCategory);
+    
+    // If no plan found with subCategory, try with category field as fallback
+    if (!plan && baseProduct.subCategory && baseProduct.category) {
+      plan = findPlanForBase(gender, baseProduct.category);
+      if (plan) {
+        baseCategory = baseProduct.category; // Use category for matching products
+      }
+    }
     if (!plan) {
       // If no specific plan exists, allow request to proceed but return empty outfit
       // This enables future expansion without blocking valid fashion items
@@ -595,6 +733,7 @@ export const generateEnhancedOutfit = async (req: Request, res: Response) => {
         usedProductIds,
         usedCategories,
         styleVibe,
+        baseCategory, // Pass baseCategory for context-aware exclusions
       );
       if (picked) {
         matchedItems.push({

@@ -121,11 +121,11 @@ export default function ProductReviews({ productId }: { productId: string }) {
             <h4 className="font-bold text-lg mb-4 text-gray-900 border-t pt-4">Latest Reviews</h4>
             {isLoading ? (
                 <Loader2 className="w-6 h-6 animate-spin text-gray-900" />
-            ) : reviews.length === 0 ? (
+            ) : !Array.isArray(reviews) || reviews.length === 0 ? (
                 <p className="text-gray-900 text-sm">Be the first to review this product!</p>
             ) : (
                 <div className="space-y-6">
-                    {reviews.map(review => (
+                    {reviews.map((review: any) => (
                         <div key={review._id} className="border-b pb-4">
                             <StarRating rating={review.rating} />
                             <p className="text-sm font-medium mt-1 text-gray-900">Reviewer: Anonymous</p>

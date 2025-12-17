@@ -2,14 +2,27 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
 
-const CATEGORIES = ['T-Shirts', 'Jeans', 'Dresses', 'Jackets', 'Sneakers', 'Accessories'];
 const SORT_OPTIONS = [
   { label: 'Newest First', value: 'newest' },
   { label: 'Price: Low to High', value: 'price_asc' },
   { label: 'Price: High to Low', value: 'price_desc' },
 ];
 
-export default function ProductFilters() {
+export type SizeFilterMode = 'apparel' | 'footwear' | 'none';
+
+interface ProductFiltersProps {
+  sizeFilterMode?: SizeFilterMode;
+  categories: string[];
+  brands: string[];
+  colors: string[];
+}
+
+export default function ProductFilters({
+  sizeFilterMode = 'none',
+  categories,
+  brands,
+  colors,
+}: ProductFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -34,6 +47,30 @@ export default function ProductFilters() {
 
   return (
     <div className="space-y-8">
+      {/* Search */}
+      <div>
+        <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Search</h3>
+        <input
+          type="text"
+          className="w-full p-2 border border-gray-300 rounded text-sm bg-white"
+          placeholder="Search by name, brand, category"
+          defaultValue={searchParams.get('search') || ''}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              const value = (e.target as HTMLInputElement).value.trim();
+              handleFilterChange('search', value);
+            }
+          }}
+        />
+        {searchParams.get('search') && (
+          <button
+            onClick={() => handleFilterChange('search', '')}
+            className="mt-2 text-xs text-red-500 hover:underline"
+          >
+            Clear Search
+          </button>
+        )}
+      </div>
       {/* Sort By */}
       <div>
         <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Sort By</h3>
@@ -48,38 +85,44 @@ export default function ProductFilters() {
         </select>
       </div>
 
-      {/* Categories */}
-      <div>
-        <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Categories</h3>
-        <div className="space-y-2">
-          {CATEGORIES.map((cat) => {
-            const isActive = searchParams.get('category') === cat;
-            return (
-              <label key={cat} className="flex items-center gap-2 cursor-pointer group">
-                <input 
-                  type="radio" 
-                  name="category"
-                  checked={isActive}
-                  onChange={() => handleFilterChange('category', cat)}
-                  className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
-                />
-                <span className={`text-sm group-hover:text-primary transition-colors ${isActive ? 'font-bold text-gray-900' : 'text-gray-600'}`}>
-                  {cat}
-                </span>
-              </label>
-            );
-          })}
-          {/* Clear Filter */}
-          {searchParams.get('category') && (
-            <button 
-              onClick={() => handleFilterChange('category', '')}
-              className="text-xs text-red-500 hover:underline mt-2"
-            >
-              Clear Category
-            </button>
-          )}
+      {/* Categories (derived from current products) */}
+      {categories.length > 0 && (
+        <div>
+          <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Categories</h3>
+          <div className="space-y-2">
+            {categories.map((cat) => {
+              const isActive = searchParams.get('category') === cat;
+              return (
+                <label key={cat} className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="category"
+                    checked={isActive}
+                    onChange={() => handleFilterChange('category', cat)}
+                    className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
+                  />
+                  <span
+                    className={`text-sm group-hover:text-primary transition-colors ${
+                      isActive ? 'font-bold text-gray-900' : 'text-gray-600'
+                    }`}
+                  >
+                    {cat}
+                  </span>
+                </label>
+              );
+            })}
+            {/* Clear Filter */}
+            {searchParams.get('category') && (
+              <button
+                onClick={() => handleFilterChange('category', '')}
+                className="text-xs text-red-500 hover:underline mt-2"
+              >
+                Clear Category
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Price Range (Simple manual inputs) */}
       <div>
@@ -102,6 +145,111 @@ export default function ProductFilters() {
          </button>
         )}
       </div>
+
+      {/* Brand (derived from current products) */}
+      {brands.length > 0 && (
+        <div>
+          <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Brand</h3>
+          <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+            {brands.map((brand) => {
+              const isActive = searchParams.get('brand') === brand;
+              return (
+                <button
+                  key={brand}
+                  type="button"
+                  className={`w-full text-left text-xs px-2 py-1 rounded ${
+                    isActive
+                      ? 'bg-gray-900 text-white font-semibold'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                  onClick={() => handleFilterChange('brand', isActive ? '' : brand)}
+                >
+                  {brand}
+                </button>
+              );
+            })}
+          </div>
+          {searchParams.get('brand') && (
+            <button
+              onClick={() => handleFilterChange('brand', '')}
+              className="mt-2 text-xs text-red-500 hover:underline"
+            >
+              Clear Brand
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Color (derived from current products) */}
+      {colors.length > 0 && (
+        <div>
+          <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Color</h3>
+          <div className="flex flex-wrap gap-2">
+            {colors.map((color) => {
+              const isActive = searchParams.get('color') === color;
+              return (
+                <button
+                  key={color}
+                  type="button"
+                  className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                    isActive
+                      ? 'bg-gray-900 text-white border-gray-900'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                  }`}
+                  onClick={() => handleFilterChange('color', isActive ? '' : color)}
+                >
+                  {color}
+                </button>
+              );
+            })}
+          </div>
+          {searchParams.get('color') && (
+            <button
+              onClick={() => handleFilterChange('color', '')}
+              className="mt-2 text-xs text-red-500 hover:underline"
+            >
+              Clear Color
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Size (context-aware) */}
+      {sizeFilterMode !== 'none' && (
+        <div>
+          <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Size</h3>
+          <div className="flex flex-wrap gap-2">
+            {(sizeFilterMode === 'apparel'
+              ? ['XS', 'S', 'M', 'L', 'XL', 'XXL']
+              : ['6', '7', '8', '9', '10']
+            ).map((size) => {
+              const isActive = searchParams.get('size') === size;
+              return (
+                <button
+                  key={size}
+                  type="button"
+                  className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                    isActive
+                      ? 'bg-gray-900 text-white border-gray-900'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                  }`}
+                  onClick={() => handleFilterChange('size', isActive ? '' : size)}
+                >
+                  {size}
+                </button>
+              );
+            })}
+          </div>
+          {searchParams.get('size') && (
+            <button
+              onClick={() => handleFilterChange('size', '')}
+              className="mt-2 text-xs text-red-500 hover:underline"
+            >
+              Clear Size
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

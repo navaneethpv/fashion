@@ -1,78 +1,114 @@
 "use client"
-import { useState, useEffect, useRef } from 'react';
-import { Search, Camera, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Search, Camera } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface SearchInputProps {
   onCameraClick: () => void;
 }
 
+interface ProductForSuggestions {
+  name: string;
+  slug: string;
+  images?: string[] | { url?: string }[];
+}
+
+function useDebouncedValue<T>(value: T, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const handle = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(handle);
+  }, [value, delay]);
+  return debounced;
+}
+
 export default function SearchInput({ onCameraClick }: SearchInputProps) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<ProductForSuggestions[]>([]);
+  const [suggestions, setSuggestions] = useState<ProductForSuggestions[]>([]);
   const [loading, setLoading] = useState(false);
+  const debouncedQuery = useDebouncedValue(query);
+
   const router = useRouter();
+  const searchParams = useSearchParams();
   const searchRef = useRef<HTMLDivElement>(null);
-  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const createSearchQuery = useCallback(
+    (value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value) {
+        params.set('search', value);
+      } else {
+        params.delete('search');
+      }
+      params.set('page', '1');
+      return params.toString();
+    },
+    [searchParams]
+  );
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setResults([]);
+        setSuggestions([]);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Debounce API call
-  useEffect(() => {
-    if (debounceTimeout.current) {
-      clearTimeout(debounceTimeout.current);
-    }
-    
-    // Minimum 3 characters to start searching
-    if (query.length < 3) {
-      setResults([]);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    debounceTimeout.current = setTimeout(() => {
-      fetchProducts(query);
-    }, 300);
-
-    return () => {
-      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-    };
-  }, [query]);
-
-  const fetchProducts = async (q: string) => {
+  const ensureProductsLoaded = useCallback(async () => {
+    if (allProducts.length > 0 || loading) return;
     try {
-      const res = await fetch(`http://localhost:4000/api/products?q=${encodeURIComponent(q)}&limit=6`);
-      if (res.ok) {
-        const data = await res.json();
-        setResults(data.data || []);
-      } else {
-        setResults([]);
-      }
-    } catch (error) {
-      setResults([]);
+      setLoading(true);
+      const res = await fetch('http://localhost:4000/api/products?limit=200');
+      if (!res.ok) return;
+      const data = await res.json();
+      const list: ProductForSuggestions[] = (data.data || []).map((p: ProductForSuggestions) => ({
+        name: p.name,
+        slug: p.slug,
+        images: p.images,
+      }));
+      setAllProducts(list);
     } finally {
       setLoading(false);
     }
-  };
+  }, [allProducts.length, loading]);
+
+  // Build suggestions client-side from cached products
+  useEffect(() => {
+    const raw = query.trim();
+    const q = debouncedQuery.trim().toLowerCase();
+
+    // Clear immediately when raw input is empty
+    if (!raw) {
+      setSuggestions([]);
+      return;
+    }
+
+    if (!q || allProducts.length === 0) {
+      setSuggestions([]);
+      return;
+    }
+
+    const max = 8;
+    const next = allProducts
+      .filter((p) => p.name.toLowerCase().includes(q))
+      .slice(0, max);
+
+    setSuggestions(next);
+  }, [debouncedQuery, query, allProducts]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      // Direct navigation using the full, entered query
-      router.push(`/products?q=${encodeURIComponent(query.trim())}`);
-      setResults([]);
+    const value = query.trim();
+    if (value) {
+      const qs = createSearchQuery(value);
+      router.push(`/product?${qs}`);
+      setSuggestions([]);
     }
   };
 
@@ -88,7 +124,7 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
           placeholder="Search for cargo, minimalist, black tees..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => query.length >= 3 && fetchProducts(query)}
+          onFocus={ensureProductsLoaded}
         />
         <button 
           type="button" 
@@ -100,46 +136,50 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
       </form>
 
       {/* Suggestion Dropdown */}
-      {(loading || results.length > 0) && (
+      {(loading || suggestions.length > 0) && (
         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden">
           {loading ? (
-            <div className="p-4 flex items-center justify-center text-gray-500">
-              <Loader2 className="w-5 h-5 animate-spin mr-2" /> Searching...
-            </div>
+            <div className="p-3 text-xs text-gray-500">Loading suggestions…</div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {results.map((product) => (
+              {suggestions.map((s) => (
                 <Link
-                  key={product.slug}
-                  href={`/products/${product.slug}`}
-                  onClick={() => setResults([])}
-                  className="flex items-center p-3 hover:bg-gray-50 transition-colors"
+                  key={s.slug}
+                  href={`/products/${s.slug}`}
+                  onClick={() => setSuggestions([])}
+                  className="flex items-center px-3 py-2 hover:bg-gray-50 transition-colors text-sm"
                 >
-                  <div className="relative w-12 h-12 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden mr-3">
-                    <Image 
-                      src={product.images[0].url} 
-                      alt={product.name} 
-                      fill 
-                      className="object-cover" 
+                  <div className="relative h-12 w-12 rounded-md overflow-hidden bg-gray-100 shrink-0 mr-3">
+                    <Image
+                      src={
+                        Array.isArray(s.images) && s.images[0]
+                          ? (typeof s.images[0] === 'string'
+                              ? s.images[0]
+                              : (s.images[0] as { url?: string }).url || '/placeholder.png')
+                          : '/placeholder.png'
+                      }
+                      alt={s.name}
+                      fill
                       sizes="48px"
+                      className="object-cover"
                     />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{product.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {/* Displaying AI-relevant info: Category + Price */}
-                      {product.category} • ${(product.price_cents / 100).toFixed(2)}
-                    </p>
-                  </div>
+                  <span className="truncate text-gray-900">{s.name}</span>
                 </Link>
               ))}
-              <Link
-                href={`/products?q=${encodeURIComponent(query.trim())}`}
-                onClick={() => setResults([])}
-                className="block p-3 text-center text-sm font-bold text-primary hover:bg-violet-50 transition-colors"
-              >
-                View all results for "{query}" {/* Uses the full typed query */}
-              </Link>
+              {query.trim() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const qs = createSearchQuery(query.trim());
+                    router.push(`/product?${qs}`);
+                    setSuggestions([]);
+                  }}
+                  className="w-full px-3 py-2 text-center text-xs font-semibold text-primary hover:bg-violet-50 transition-colors"
+                >
+                  View all results for “{query}”
+                </button>
+              )}
             </div>
           )}
         </div>

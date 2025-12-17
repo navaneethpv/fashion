@@ -2,6 +2,7 @@ import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import OfferSection from '@/components/home/OfferSection';
 
 // Fetch data directly from backend
 async function getTrendingProducts() {
@@ -26,7 +27,7 @@ export default async function Home() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative h-[500px] w-full bg-gradient-to-r from-violet-100 to-pink-50 overflow-hidden">
+      <section className="relative h-[500px] w-full bg-linear-to-r from-violet-100 to-pink-50 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center">
           <div className="max-w-xl z-10">
             <span className="text-accent font-bold tracking-wider text-sm uppercase mb-2 block">
@@ -49,20 +50,12 @@ export default async function Home() {
           </div>
           {/* Abstract Hero Visual */}
           <div className="absolute right-0 top-0 h-full w-1/2 bg-[url('https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=2070')] bg-cover bg-center opacity-80 mask-image-gradient" />
-          <div className="absolute inset-0 bg-gradient-to-r from-violet-100 via-violet-100/80 to-transparent z-0 pointer-events-none" />
+          <div className="absolute inset-0 bg-linear-to-r from-violet-100 via-violet-100/80 to-transparent z-0 pointer-events-none" />
         </div>
       </section>
-
-      {/* Offer Tiles */}
-      <section className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {['Flat 30% Off', 'Buy 1 Get 1', 'New Arrivals', 'Clearance'].map((offer, i) => (
-             <div key={i} className="bg-gray-50 h-32 rounded-xl flex items-center justify-center border border-gray-100 cursor-pointer hover:bg-gray-100 transition">
-               <h3 className="text-xl font-bold text-gray-800 uppercase italic">{offer}</h3>
-             </div>
-          ))}
-        </div>
-      </section>
+      
+      {/* Curated Offer / Campaign Section */}
+      <OfferSection />
 
       {/* Trending Section */}
       <section className="max-w-7xl mx-auto px-4 py-12">

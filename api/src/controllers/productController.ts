@@ -81,7 +81,7 @@ async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeT
     if (buffer) {
       try {
         console.log(`[COLOR_DETECTION] Starting Gemini color analysis for image: ${finalUrl}`);
-        
+
         // Use Promise.all to run color and AI analysis concurrently for speed.
         const [geminiColorResult, aiResult] = await Promise.all([
           getGarmentColorFromGemini(buffer, mimeType),
@@ -101,7 +101,7 @@ async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeT
           console.warn(`[COLOR_DETECTION] ⚠️ Gemini returned incomplete color data for image: ${finalUrl}. Using fallback gray.`);
           console.warn(`[COLOR_DETECTION] Gemini response:`, JSON.stringify(geminiColorResult, null, 2));
         }
-        
+
         if (aiResult) {
           aiTags = aiResult;
           console.log(`[COLOR_DETECTION] ✅ AI tags extracted successfully for image: ${finalUrl}`);
@@ -111,11 +111,11 @@ async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeT
         const errorType = analysisError.constructor?.name || 'UnknownError';
         const errorMessage = analysisError.message || 'No error message';
         const errorStack = analysisError.stack ? `\nStack: ${analysisError.stack}` : '';
-        
+
         console.error(`[COLOR_DETECTION] ❌ Gemini color detection FAILED for image: ${finalUrl}`);
         console.error(`[COLOR_DETECTION] Error Type: ${errorType}`);
         console.error(`[COLOR_DETECTION] Error Message: ${errorMessage}`);
-        
+
         // Check for specific error types to provide actionable diagnostics
         if (errorMessage.includes('API key') || errorMessage.includes('GEMINI_API_KEY')) {
           console.error(`[COLOR_DETECTION] 🔑 DIAGNOSIS: Missing or invalid Gemini API key. Check GEMINI_API_KEY environment variable.`);
@@ -128,14 +128,14 @@ async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeT
         } else {
           console.error(`[COLOR_DETECTION] 🔑 DIAGNOSIS: Unknown error. Full error:${errorStack}`);
         }
-        
+
         console.warn(`[COLOR_DETECTION] ⚠️ Using fallback gray color (#808080) for image: ${finalUrl}`);
         // We don't re-throw here because we still have the image URL - image upload succeeds.
       }
     } else {
       console.warn(`[COLOR_DETECTION] ⚠️ No buffer available for color detection. Using fallback gray color for image: ${finalUrl}`);
     }
-    
+
     // Log final status
     if (colorDetectionStatus === 'fallback') {
       console.log(`[COLOR_DETECTION] 📊 Final status: FALLBACK color used (${dominantColor.name}, ${dominantColor.hex}) for image: ${finalUrl}`);
@@ -171,7 +171,7 @@ export const getProducts = async (req: Request, res: Response) => {
       // Innerwear terms to exclude (case-insensitive matching)
       const innerwearTerms = ['briefs', 'bras', 'lingerie', 'underwear', 'innerwear'];
       const innerwearRegex = new RegExp(innerwearTerms.join('|'), 'i');
-      
+
       // Exclude products where category, subCategory, or masterCategory matches any innerwear term
       matchQuery.$nor = [
         { category: { $regex: innerwearRegex } },
@@ -316,7 +316,7 @@ export const createProduct = async (req: Request, res: Response) => {
       .map((s: any) => (s.reason && s.reason.message) ? s.reason.message : String(s));
 
     console.log('[createProduct] image processing successes:', successes.length, 'failures:', failures.length);
-    if (failures.length) console.warn('[createProduct] image processing failure reasons (sample):', failures.slice(0,5));
+    if (failures.length) console.warn('[createProduct] image processing failure reasons (sample):', failures.slice(0, 5));
 
     if (successes.length === 0) {
       return res.status(500).json({
@@ -343,14 +343,14 @@ export const createProduct = async (req: Request, res: Response) => {
     // Validate gender (required for outfit generation, must be one of: Men, Women, Kids)
     const validGenders = ["Men", "Women", "Kids"];
     if (!gender) {
-      return res.status(400).json({ 
-        message: `Gender is required. Must be one of: ${validGenders.join(", ")}` 
+      return res.status(400).json({
+        message: `Gender is required. Must be one of: ${validGenders.join(", ")}`
       });
     }
     const genderTrimmed = String(gender).trim();
     if (!validGenders.includes(genderTrimmed)) {
-      return res.status(400).json({ 
-        message: `Invalid gender "${genderTrimmed}". Must be one of: ${validGenders.join(", ")}` 
+      return res.status(400).json({
+        message: `Invalid gender "${genderTrimmed}". Must be one of: ${validGenders.join(", ")}`
       });
     }
 
@@ -383,10 +383,10 @@ export const createProduct = async (req: Request, res: Response) => {
   } catch (error: any) {
     if (error?.code === 11000) return res.status(409).json({ message: "Product slug already exists." });
     console.error("Product Creation Error:", error);
-    return res.status(500).json({ 
-      message: "Failed to create product.", 
-      details: process.env.NODE_ENV !== 'production' ? error.message : undefined 
-    }); 
+    return res.status(500).json({
+      message: "Failed to create product.",
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+    });
   }
 
 };
@@ -421,7 +421,22 @@ export const updateProduct = async (req: Request, res: Response) => {
     const updateData = req.body;
 
     delete updateData._id;
-    delete updateData.images;
+    delete updateData.images; // We don't support image updates here yet
+
+    // Sync price and price_cents
+    if (updateData.price !== undefined) {
+      const priceVal = Number(updateData.price);
+      if (!isNaN(priceVal)) {
+        updateData.price = priceVal;
+        // Heuristic: if price is small (e.g. < 1000) assume it's decimal (rupees), * 100 for cents
+        // If it's large, assume it's already cents? No, the Edit page sends the decimal value.
+        // Let's standardise: Edit page sends "1299.00" (rupees).
+        // Backend expects price (decimal) and price_cents (integer).
+        updateData.price_cents = Math.round(priceVal * 100);
+
+        // Also check price_before_cents logic if needed, but let's stick to fixing the main price first.
+      }
+    }
 
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
@@ -449,11 +464,13 @@ export const createReview = async (req: Request, res: Response) => {
     await newReview.save();
     const stats = await Review.aggregate([
       { $match: { productId: new mongoose.Types.ObjectId(productId) } },
-      { $group: {
+      {
+        $group: {
           _id: '$productId',
           averageRating: { $avg: '$rating' },
           count: { $sum: 1 }
-      }}
+        }
+      }
     ]);
     if (stats.length > 0) {
       await Product.findByIdAndUpdate(productId, {
@@ -517,7 +534,7 @@ export const getCategories = async (req: Request, res: Response) => {
 export const getSubcategoriesByCategory = async (req: Request, res: Response) => {
   try {
     const { category } = req.params;
-    
+
     if (!category) {
       return res.status(400).json({ message: "Category parameter is required" });
     }
@@ -547,7 +564,7 @@ export const aiSuggestSubCategory = async (req: Request, res: Response) => {
       isPublished: true,
       category: { $ne: "" },
     });
-    
+
     const subCategories = await Product.distinct("subCategory", {
       isPublished: true,
       subCategory: { $ne: "" },
@@ -564,9 +581,9 @@ export const aiSuggestSubCategory = async (req: Request, res: Response) => {
       subCategories
     );
 
-    res.json({ 
+    res.json({
       category: suggested.category,
-      subCategory: suggested.subCategory 
+      subCategory: suggested.subCategory
     });
   } catch (err) {
     console.error("AI Suggest Error:", err);

@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, useCallback, use } from 'react';
 import { Loader2, ArrowLeft, Trash2, Save, X, Plus, Upload, Image as ImageIcon, Zap } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { motion, Variants } from 'framer-motion';
 import { useCategorySuggest } from '../../../../../hooks/useCategorySuggest';
 
 interface Variant {
@@ -268,73 +269,39 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
             return;
         }
 
+        // Check for new file uploads and warn the user
+        const hasNewFiles = imageInputs.some(input => input.type === 'file');
+        const hasModifiedImages = imageInputs.length > 0; // Simple check, ideally check diff
+
+        if (hasNewFiles) {
+            alert("⚠️ LIMITATION: The server currently does not support uploading NEW image files in Edit mode.\n\nOnly text details (Price, Name, Stock, etc.) will be saved.");
+        }
+
         try {
-            // Using logic from Edit page (PUT) but adapting to handle file uploads like Add page
-            // Since most apps can't PUT multipart/form-data efficiently to express without Multer handling it 
-            // the same way POST does. The backend 'POST /api/products' handles images.
-            // Let's assume PUT /api/products/:id ALSO handles multipart or we must send JSON.
-            // CAUTION: The original Edit page sent JSON. The Add page sends FormData.
-            // We should check if the backend endpoint supports FormData for updates.
-            // Given I cannot see backend PUT route code, I will optimistically assume I must use FormData
-            // if I want to upload NEW files. If not, I might need to upload images separately.
-            
-            // NOTE: Sending JSON for existing images + FormData for new files is tricky without specific backend grouping.
-            // Strategy: Convert everything to FormData to be safe, assuming backend uses Multer on PUT too.
-            // If backend only accepts JSON on PUT, we have a problem uploading new files. 
-            // BUT: The original Edit page code I saw sent JSON. This strongly implies it DID NOT support file text uploads.
-            
-            // IMPORTANT: If we strictly follow "Do NOT touch backend", and the backend PUT expects JSON, 
-            // we effectively cannot upload *new files* via this endpoint unless they are URLs.
-            // However, typical express/multer setups usually allow the same middleware on PUT.
-            // I will use FormData because we are adding file upload support.
-            
-            // Actually, to be safest and respect "Minimal backend change" (none), 
-            // I will implement a mixed approach? No, FormData is the standard way to send files.
-            
-            // Let's try sending JSON first if NO new files are added (for safety), 
-            // and FormData if files are present? No, consistency is key.
-            // I'll stick to the original plan: Update fields.
-            // Wait, looking at original Edit page:
-            // headers: { 'Content-Type': 'application/json' },
-            // body: JSON.stringify({...})
-            // It definitively used JSON. 
-            
-            // To support file uploads without backend changes, I likely need to assume 
-            // the backend *might* not support multipart on PUT. 
-            // However, the User asked to "Resture functionality". 
-            // Use FormData. If it fails, it's a backend limitation we'll identify.
+            // Prepare JSON payload
+            // Note: The backend 'updateProduct' controller currently ignores 'images' updates.
+            // We are sending the payload as JSON to fix the 'Failed to update' crash.
+            const payload = {
+                name: formData.name,
+                slug: formData.slug,
+                brand: formData.brand,
+                category: formData.category,
+                masterCategory: formData.masterCategory,
+                gender: formData.gender,
+                price: formData.price,
+                description: formData.description,
+                variants: variants
+            };
 
-            const form = new FormData();
-            form.append('name', formData.name);
-            form.append('slug', formData.slug);
-            form.append('brand', formData.brand);
-            form.append('category', formData.category);
-            form.append('masterCategory', formData.masterCategory);
-            form.append('gender', formData.gender);
-            form.append('price', formData.price); // Backend expects string/number, check controller
-            form.append('description', formData.description);
-            form.append('variants', JSON.stringify(variants));
-
-            // Handle Images
-            const imageUrls: string[] = [];
-            imageInputs.forEach(input => {
-                if (input.type === 'file') {
-                    form.append('images', input.value as File);
-                } else {
-                    imageUrls.push(input.value as string);
-                }
-            });
-            form.append('imageUrls', JSON.stringify(imageUrls));
-
-            // Use PUT to update
+            // Use PUT with JSON
             const res = await fetch(`http://localhost:4000/api/products/${productId}`, { 
                 method: 'PUT',
-                // Do NOT set Content-Type header for FormData, browser does it with boundary
-                body: form 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload) 
             });
 
             if (res.ok) {
-                setMessage('✅ Product saved successfully!');
+                setMessage('✅ Product saved successfully! (Note: Image updates skipped)');
             } else {
                 const err = await res.json();
                 throw new Error(err.message || 'Failed to save');
@@ -356,11 +323,39 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
             </div>
         );
     }
+    
+    // Animation Variants
+    const containerVariants: Variants = {
+        hidden: { opacity: 0 },
+        visible: { 
+            opacity: 1,
+            transition: { 
+                staggerChildren: 0.1,
+                delayChildren: 0.2
+            }
+        }
+    };
 
+    const itemVariants: Variants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { 
+            opacity: 1, 
+            y: 0,
+            transition: { duration: 0.5, ease: "easeOut" }
+        }
+    };
+
+    
+    
     return (
         <div className="min-h-screen bg-[#F9FAFB] pb-32">
             {/* --- HEADER --- */}
-            <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
+            <motion.div 
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100"
+            >
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-6">
                         <Link href="/admin/products" className="group flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 bg-white hover:border-black hover:bg-black transition-all duration-300">
@@ -379,29 +374,36 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                 {message}
                             </div>
                         )}
-                        <button 
+                        <motion.button 
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={handleSave} 
                             disabled={isSaving} 
-                            className="bg-black text-white px-8 py-3 rounded-full font-semibold text-sm hover:bg-gray-800 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 shadow-xl shadow-black/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-black text-white px-8 py-3 rounded-full font-semibold text-sm hover:bg-gray-800 transition-colors flex items-center gap-2 shadow-xl shadow-black/10 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSaving ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />}
                             <span>Save Changes</span>
-                        </button>
+                        </motion.button>
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
             {/* --- MAIN CONTENT --- */}
             <form onSubmit={handleSave} className="max-w-7xl mx-auto px-6 py-10">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                <motion.div 
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className="grid grid-cols-1 lg:grid-cols-12 gap-10"
+                >
                     
                     {/* LEFT COLUMN (8 cols) */}
                     <div className="lg:col-span-8 space-y-10">
                         
                         {/* SECTION: BASIC INFO */}
-                        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <motion.section variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300">
                             <div className="px-8 py-6 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
-                                <h2 className="font-bold text-gray-900 text-lg">Product Information</h2>
+                                <h2 className="font-bold text-gray-900 text-lg">Basic Information</h2>
                                 <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">General Details</span>
                             </div>
                             <div className="p-8 space-y-8">
@@ -456,12 +458,12 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                     />
                                 </div>
                             </div>
-                        </section>
+                        </motion.section>
 
-                         {/* SECTION: INVENTORY & PRICING */}
-                         <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        {/* SECTION: PRICING & INVENTORY */}
+                        <motion.section variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300">
                              <div className="px-8 py-6 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
-                                <h2 className="font-bold text-gray-900 text-lg">Inventory & Pricing</h2>
+                                <h2 className="font-bold text-gray-900 text-lg">Pricing & Inventory</h2>
                                 <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">SKUs & Costs</span>
                             </div>
                             <div className="p-8">
@@ -481,7 +483,16 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                         />
                                     </div>
                                 </div>
+                            </div>
+                        </motion.section>
 
+                        {/* SECTION: VARIANTS */}
+                        <motion.section variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300">
+                            <div className="px-8 py-6 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
+                                <h2 className="font-bold text-gray-900 text-lg">Variants</h2>
+                                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Sizes & Stock</span>
+                            </div>
+                            <div className="p-8">
                                 {/* Variants Table */}
                                 <div className="bg-gray-50/50 rounded-2xl border border-gray-100 overflow-hidden">
                                      <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
@@ -528,14 +539,14 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                     </div>
                                 </div>
                             </div>
-                         </section>
+                        </motion.section>
                     </div>
 
                     {/* RIGHT COLUMN (4 cols) */}
                     <div className="lg:col-span-4 space-y-10">
                         
                          {/* SECTION: CATEGORIZATION */}
-                        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <motion.section variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300">
                              <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30">
                                 <h2 className="font-bold text-gray-900 text-base">Categorization</h2>
                             </div>
@@ -632,25 +643,30 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                     </div>
                                 </div>
                             </div>
-                        </section>
+                        </motion.section>
 
                         {/* SECTION: IMAGES */}
-                        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <motion.section variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300">
                              <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
-                                <h2 className="font-bold text-gray-900 text-base">Media</h2>
+                                <h2 className="font-bold text-gray-900 text-base">Images</h2>
                                 <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-full">{imageInputs.length}/5</span>
                             </div>
                             <div className="p-6">
                                 <div className="grid grid-cols-2 gap-3 mb-6">
                                     {imageInputs.map((input, idx) => (
-                                        <div key={input.id} className={`relative aspect-[3/4] bg-gray-50 rounded-xl overflow-hidden border border-gray-100 group shadow-sm transition-all hover:shadow-md ${idx === 0 ? 'col-span-2 border-2 border-black/5 ring-4 ring-black/5' : ''}`}>
+                                        <motion.div 
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            key={input.id} 
+                                            className={`relative aspect-[3/4] bg-gray-50 rounded-xl overflow-hidden border border-gray-100 group shadow-sm transition-all hover:shadow-md ${idx === 0 ? 'col-span-2 border-2 border-black/5 ring-4 ring-black/5' : ''}`}
+                                        >
                                             <Image src={input.preview} alt="Preview" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
                                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
                                             <button type="button" onClick={() => removeImage(input.id)} className="absolute top-2 right-2 bg-white/90 backdrop-blur text-black p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white transform translate-y-2 group-hover:translate-y-0 scale-90 group-hover:scale-100">
                                                 <X className="w-3 h-3" />
                                             </button>
                                              {idx === 0 && <span className="absolute bottom-3 left-3 bg-black/70 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded">COVER</span>}
-                                        </div>
+                                        </motion.div>
                                     ))}
                                     {imageInputs.length < 5 && (
                                         <button 
@@ -681,10 +697,10 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                                     </div>
                                 </div>
                             </div>
-                        </section>
+                        </motion.section>
                     </div>
 
-                </div>
+                </motion.div>
             </form>
         </div>
     );

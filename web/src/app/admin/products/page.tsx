@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  Image as ImageIcon,
 } from "lucide-react";
 
 export default function ProductsListPage() {
@@ -131,20 +132,35 @@ export default function ProductsListPage() {
                 ? p.variants.reduce((sum: number, v: any) => sum + (v?.stock ?? 0), 0)
                 : (p.variants?.stock ?? 0);
 
-               // normalize image src (supports array or single string)
-               const imgSrc =
-                 Array.isArray(p.images) ? p.images[0]?.url ?? "" : p.images ?? "";
+               // Extract image src (supports array or single string)
+               // Handle: array of objects with url, array of strings, single string, or undefined
+               let imgSrc: string | undefined;
+               if (Array.isArray(p.images)) {
+                 if (p.images.length > 0) {
+                   const firstImg = p.images[0];
+                   imgSrc = typeof firstImg === 'string' ? firstImg : firstImg?.url;
+                 }
+               } else if (typeof p.images === 'string') {
+                 imgSrc = p.images;
+               }
+
+               // Only use imgSrc if it's a valid non-empty string
+               const hasValidImage = imgSrc && imgSrc.trim().length > 0;
 
                return (
                  <tr key={p._id} className="hover:bg-gray-50">
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden">
-                        <img
-                          src={imgSrc}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
+                        {hasValidImage ? (
+                          <img
+                            src={imgSrc}
+                            alt={p.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <ImageIcon className="w-5 h-5 text-gray-400" />
+                        )}
                       </div>
                       <span className="font-bold text-gray-900">{p.name}</span>
                     </div>

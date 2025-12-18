@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { Loader2, Plus, ArrowLeft, Image as ImageIcon, Trash2, Upload, X, Sparkles, Zap } from 'lucide-react';
+import { Loader2, Plus, ArrowLeft, Image as ImageIcon, Trash2, Upload, X, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { useCategorySuggest } from '../../../../hooks/useCategorySuggest';
 
@@ -19,7 +19,6 @@ export default function AddProductPage() {
   // --- States for UI and Submission ---
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
 
   // --- AI Hook Integration ---
   const { suggestCategory, suggestedCategory, isSuggesting, setSuggestedCategory } = useCategorySuggest();
@@ -34,8 +33,9 @@ export default function AddProductPage() {
     name: '',
     slug: '',
     brand: '',
-    category: 'Apparel', // Locked as per your backend model
-    subCategory: '',      // This is the new field the user will select
+    masterCategory: '',    // Admin "Category" → maps to masterCategory in backend
+    category: '',          // Admin "SubCategory" (articleType) → maps to category in backend
+    gender: '',           // Gender field (Men/Women/Kids)
     price: '',
     description: ''
   });
@@ -43,69 +43,147 @@ export default function AddProductPage() {
   // --- Variant Management State ---
   const [variants, setVariants] = useState([{ size: 'S', stock: 20 }, { size: 'M', stock: 20 }, { size: 'L', stock: 20 }]);
 
-  // --- NEW State for Cascading Category/SubCategory Dropdowns ---
-  const [categories, setCategories] = useState<string[]>([]);
-  const [subCategories, setSubCategories] = useState<string[]>([]);
-  const [filteredSubCategories, setFilteredSubCategories] = useState<string[]>([]);
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const [isSubCategoryDropdownOpen, setIsSubCategoryDropdownOpen] = useState(false);
-  const [categoryInputValue, setCategoryInputValue] = useState('');
-  const [subCategoryInputValue, setSubCategoryInputValue] = useState('');
+  // --- State for Cascading Category/SubCategory Dropdowns ---
+  const [masterCategories, setMasterCategories] = useState<string[]>([]); // For Category dropdown (masterCategory)
+  const [articleTypes, setArticleTypes] = useState<string[]>([]); // For SubCategory dropdown (category/articleType)
+  const [filteredArticleTypes, setFilteredArticleTypes] = useState<string[]>([]);
+  const [isMasterCategoryDropdownOpen, setIsMasterCategoryDropdownOpen] = useState(false);
+  const [isArticleTypeDropdownOpen, setIsArticleTypeDropdownOpen] = useState(false);
+  const [masterCategoryInputValue, setMasterCategoryInputValue] = useState('');
+  const [articleTypeInputValue, setArticleTypeInputValue] = useState('');
+  
+  // --- Gender dropdown state ---
+  const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false);
+  const genderOptions = ['Men', 'Women', 'Kids'];
 
   // --- Logic Hooks ---
   useEffect(() => {
-    // Fetch all categories when the component loads
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/categories`)
+    // Fetch masterCategories from products (since there's no dedicated endpoint)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products?limit=1000`)
       .then((res) => res.json())
       .then((data) => {
-        setCategories(data);
-        setCategoryInputValue(data[0] || 'Apparel'); // Set default
-        setFormData(prev => ({ ...prev, category: data[0] || 'Apparel' }));
+        const masterCats = Array.from(new Set(
+          data.data
+            .map((p: any) => p.masterCategory)
+            .filter((cat: string) => cat && cat.trim())
+        )).sort() as string[];
+        
+        // Fallback to common master categories if none found
+        const defaultMasterCategories = ['Apparel', 'Footwear', 'Accessories'];
+        setMasterCategories(masterCats.length > 0 ? masterCats : defaultMasterCategories);
+        
+        // Set default if empty (only on initial load)
+        setFormData(prev => {
+          if (!prev.masterCategory) {
+            const defaultCat = masterCats.length > 0 ? masterCats[0] : defaultMasterCategories[0];
+            setMasterCategoryInputValue(defaultCat);
+            return { ...prev, masterCategory: defaultCat };
+          }
+          return prev;
+        });
       })
-      .catch((err) => console.error("Category fetch failed", err));
+      .catch((err) => {
+        console.error("MasterCategory fetch failed", err);
+        // Fallback to defaults
+        const defaultMasterCategories = ['Apparel', 'Footwear', 'Accessories'];
+        setMasterCategories(defaultMasterCategories);
+        setFormData(prev => {
+          if (!prev.masterCategory) {
+            setMasterCategoryInputValue(defaultMasterCategories[0]);
+            return { ...prev, masterCategory: defaultMasterCategories[0] };
+          }
+          return prev;
+        });
+      });
   }, []);
 
   useEffect(() => {
-    // Fetch subcategories when category changes
-    if (formData.category) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/subcategories/${formData.category}`)
+    // Fetch articleTypes (categories) when masterCategory changes
+    // These are the articleTypes that belong to the selected masterCategory
+    if (formData.masterCategory) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products?limit=1000`)
         .then((res) => res.json())
         .then((data) => {
-          setSubCategories(data);
-          setFilteredSubCategories(data);
-          setSubCategoryInputValue(''); // Clear subcategory when category changes
-          setFormData(prev => ({ ...prev, subCategory: '' }));
+          const articleTypesList = Array.from(new Set(
+            data.data
+              .filter((p: any) => p.masterCategory === formData.masterCategory)
+              .map((p: any) => p.category)
+              .filter((cat: string) => cat && cat.trim())
+          )).sort() as string[];
+          
+          // Fallback: if no articleTypes found for this masterCategory, fetch all categories
+          if (articleTypesList.length === 0) {
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/categories`)
+              .then((res) => res.json())
+              .then((cats) => {
+                setArticleTypes(cats);
+                setFilteredArticleTypes(cats);
+              })
+              .catch((err) => console.error("Category fetch failed", err));
+          } else {
+            setArticleTypes(articleTypesList);
+            setFilteredArticleTypes(articleTypesList);
+          }
+          
+          setArticleTypeInputValue(''); // Clear articleType when masterCategory changes
+          setFormData(prev => ({ ...prev, category: '' }));
         })
-        .catch((err) => console.error("Subcategory fetch failed", err));
+        .catch((err) => {
+          console.error("ArticleType fetch failed", err);
+          // Fallback to all categories
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/categories`)
+            .then((res) => res.json())
+            .then((cats) => {
+              setArticleTypes(cats);
+              setFilteredArticleTypes(cats);
+            })
+            .catch((e) => console.error("Category fetch failed", e));
+        });
     } else {
-      setSubCategories([]);
-      setFilteredSubCategories([]);
-      setSubCategoryInputValue('');
-      setFormData(prev => ({ ...prev, subCategory: '' }));
+      setArticleTypes([]);
+      setFilteredArticleTypes([]);
+      setArticleTypeInputValue('');
+      setFormData(prev => ({ ...prev, category: '' }));
     }
-  }, [formData.category]);
+  }, [formData.masterCategory]);
 
   useEffect(() => {
-    // Filter the subcategory list based on input
-    const filtered = subCategories.filter((sc) => 
-      sc.toLowerCase().includes(subCategoryInputValue.toLowerCase())
+    // Filter the articleType list based on input
+    const filtered = articleTypes.filter((at) => 
+      at.toLowerCase().includes(articleTypeInputValue.toLowerCase())
     );
-    setFilteredSubCategories(filtered);
-  }, [subCategoryInputValue, subCategories]);
+    setFilteredArticleTypes(filtered);
+  }, [articleTypeInputValue, articleTypes]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.dropdown-container')) {
+        setIsMasterCategoryDropdownOpen(false);
+        setIsArticleTypeDropdownOpen(false);
+        setIsGenderDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
 
   useEffect(() => {
     // Automatically apply the AI's suggested category and subcategory to the form
+    // AI returns: category (articleType) and subCategory
+    // We need to map: AI category → formData.category (articleType), AI subCategory → can be ignored or used as subCategory
     if (suggestedCategory) {
+      // AI's "category" is actually the articleType (what goes in backend "category" field)
+      // AI's "subCategory" can be used as subCategory if needed, but primary mapping is category → category
       setFormData(prev => ({ 
         ...prev, 
-        category: suggestedCategory.category,
-        subCategory: suggestedCategory.subCategory 
+        category: suggestedCategory.category, // AI category → backend category (articleType)
       }));
-      setCategoryInputValue(suggestedCategory.category);
-      setSubCategoryInputValue(suggestedCategory.subCategory);
-      setIsCategoryDropdownOpen(false);
-      setIsSubCategoryDropdownOpen(false);
+      setArticleTypeInputValue(suggestedCategory.category);
+      setIsMasterCategoryDropdownOpen(false);
+      setIsArticleTypeDropdownOpen(false);
       setSuggestedCategory(null);
     }
   }, [suggestedCategory, setSuggestedCategory]);
@@ -155,15 +233,32 @@ export default function AddProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.subCategory) {
-      alert("Please select a subcategory.");
+    if (!formData.gender) {
+      alert("Please select a gender.");
+      return;
+    }
+    if (!formData.category) {
+      alert("Please select a subcategory (article type).");
+      return;
+    }
+    if (!formData.masterCategory) {
+      alert("Please select a category.");
       return;
     }
     setLoading(true);
     setSuccess(false);
 
     const form = new FormData();
-    Object.entries(formData).forEach(([key, value]) => form.append(key, value));
+    // Map formData fields to backend fields
+    form.append('name', formData.name);
+    form.append('slug', formData.slug);
+    form.append('brand', formData.brand);
+    form.append('category', formData.category); // articleType → backend category
+    form.append('masterCategory', formData.masterCategory); // masterCategory → backend masterCategory
+    form.append('gender', formData.gender); // gender → backend gender
+    form.append('price', formData.price);
+    form.append('description', formData.description);
+    
     form.append('variants', JSON.stringify(variants));
 
     const imageUrls: string[] = [];
@@ -178,7 +273,8 @@ export default function AddProductPage() {
         setSuccess(true);
         // Reset form...
       } else {
-        alert('Failed to create product.');
+        const errorData = await res.json().catch(() => ({}));
+        alert(`Failed to create product: ${errorData.message || 'Unknown error'}`);
       }
     } finally {
       setLoading(false);
@@ -214,89 +310,129 @@ export default function AddProductPage() {
                 </div>
               </div>
 
+              {/* Gender Dropdown */}
+              <div className="dropdown-container">
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Gender *</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.gender}
+                    onFocus={() => setIsGenderDropdownOpen(true)}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, gender: e.target.value }));
+                      setIsGenderDropdownOpen(true);
+                    }}
+                    placeholder="Select gender..."
+                    className="w-full p-2 border rounded-md"
+                    required
+                  />
+                  {isGenderDropdownOpen && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {genderOptions
+                        .filter(g => g.toLowerCase().includes(formData.gender.toLowerCase()))
+                        .map((gender) => (
+                        <div 
+                          key={gender} 
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setFormData(prev => ({ ...prev, gender }));
+                            setIsGenderDropdownOpen(false);
+                          }} 
+                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        >
+                          {gender}
+                        </div>
+                      ))}
+                      {genderOptions.filter(g => g.toLowerCase().includes(formData.gender.toLowerCase())).length === 0 && (
+                        <div className="px-4 py-2 text-gray-500">No options found.</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* 
               // ========================================================== //
               // CASCADING CATEGORY/SUBCATEGORY SELECTION
+              // Category → masterCategory, SubCategory → category (articleType)
               // ========================================================== //
               */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Category Dropdown */}
-                <div className="relative">
+                {/* Master Category Dropdown */}
+                <div className="dropdown-container relative">
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Category *</label>
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="text"
-                        value={categoryInputValue}
-                        onFocus={() => setIsCategoryDropdownOpen(true)}
-                        onChange={(e) => {
-                          setCategoryInputValue(e.target.value);
-                          setIsCategoryDropdownOpen(true);
-                        }}
-                        placeholder="Select category..."
-                        className="w-full p-2 border rounded-md"
-                        required
-                      />
-                      {isCategoryDropdownOpen && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {categories
-                            .filter(cat => cat.toLowerCase().includes(categoryInputValue.toLowerCase()))
-                            .map((cat) => (
-                            <div 
-                              key={cat} 
-                              onMouseDown={(e) => {
-                                e.preventDefault(); // Prevent blur
-                                setCategoryInputValue(cat);
-                                setFormData(prev => ({ ...prev, category: cat }));
-                                setIsCategoryDropdownOpen(false);
-                              }} 
-                              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                            >
-                              {cat}
-                            </div>
-                          ))}
-                          {categories.filter(cat => cat.toLowerCase().includes(categoryInputValue.toLowerCase())).length === 0 && (
-                            <div className="px-4 py-2 text-gray-500">No categories found.</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={masterCategoryInputValue}
+                      onFocus={() => setIsMasterCategoryDropdownOpen(true)}
+                      onChange={(e) => {
+                        setMasterCategoryInputValue(e.target.value);
+                        setIsMasterCategoryDropdownOpen(true);
+                      }}
+                      placeholder="Select category..."
+                      className="w-full p-2 border rounded-md"
+                      required
+                    />
+                    {isMasterCategoryDropdownOpen && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {masterCategories
+                          .filter(cat => cat.toLowerCase().includes(masterCategoryInputValue.toLowerCase()))
+                          .map((cat) => (
+                          <div 
+                            key={cat} 
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setMasterCategoryInputValue(cat);
+                              setFormData(prev => ({ ...prev, masterCategory: cat }));
+                              setIsMasterCategoryDropdownOpen(false);
+                            }} 
+                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                          >
+                            {cat}
+                          </div>
+                        ))}
+                        {masterCategories.filter(cat => cat.toLowerCase().includes(masterCategoryInputValue.toLowerCase())).length === 0 && (
+                          <div className="px-4 py-2 text-gray-500">No categories found.</div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* SubCategory Dropdown */}
-                <div className="relative">
+                {/* Article Type (SubCategory) Dropdown */}
+                <div className="dropdown-container relative">
                   <label className="text-sm font-medium text-gray-700 mb-1 block">Sub Category *</label>
                   <div className="flex items-center gap-2">
                     <div className="relative flex-1">
                       <input
                         type="text"
-                        value={subCategoryInputValue}
-                        onFocus={() => setIsSubCategoryDropdownOpen(true)}
+                        value={articleTypeInputValue}
+                        onFocus={() => setIsArticleTypeDropdownOpen(true)}
                         onChange={(e) => {
-                          setSubCategoryInputValue(e.target.value);
-                          setIsSubCategoryDropdownOpen(true);
+                          setArticleTypeInputValue(e.target.value);
+                          setIsArticleTypeDropdownOpen(true);
                         }}
-                        placeholder={formData.category ? "Select subcategory..." : "Select category first..."}
+                        placeholder={formData.masterCategory ? "Select subcategory..." : "Select category first..."}
                         className="w-full p-2 border rounded-md"
-                        disabled={!formData.category}
+                        disabled={!formData.masterCategory}
                         required
                       />
-                      {isSubCategoryDropdownOpen && formData.category && (
+                      {isArticleTypeDropdownOpen && formData.masterCategory && (
                         <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {filteredSubCategories.length > 0 ? (
-                            filteredSubCategories.map((sc) => (
+                          {filteredArticleTypes.length > 0 ? (
+                            filteredArticleTypes.map((at) => (
                               <div 
-                                key={sc} 
+                                key={at} 
                                 onMouseDown={(e) => {
-                                  e.preventDefault(); // Prevent blur
-                                  setSubCategoryInputValue(sc);
-                                  setFormData(prev => ({ ...prev, subCategory: sc }));
-                                  setIsSubCategoryDropdownOpen(false);
+                                  e.preventDefault();
+                                  setArticleTypeInputValue(at);
+                                  setFormData(prev => ({ ...prev, category: at }));
+                                  setIsArticleTypeDropdownOpen(false);
                                 }} 
                                 className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                               >
-                                {sc}
+                                {at}
                               </div>
                             ))
                           ) : (
@@ -310,7 +446,7 @@ export default function AddProductPage() {
                     <button
                       type="button"
                       onClick={handleSuggestClick}
-                      disabled={isSuggesting || imageInputs.length === 0 || !formData.category}
+                      disabled={isSuggesting || imageInputs.length === 0}
                       className="bg-purple-600 text-white p-2.5 rounded-md hover:bg-purple-700 transition disabled:opacity-50"
                       title="AI Suggest SubCategory"
                     >

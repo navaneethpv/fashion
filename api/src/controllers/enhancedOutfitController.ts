@@ -384,12 +384,12 @@ function matchesAccessoryPriority(product: any, keywords: string[]): boolean {
     return searchFields.some((field) => {
       // Exact match
       if (field === keyword) return true;
-      
+
       // Contains match (case-insensitive, already normalized)
       // The priority order ensures higher priority items are checked first,
       // so even if "bag" matches "handbag", handbags will be selected in their priority group first
       if (field.includes(keyword)) return true;
-      
+
       return false;
     });
   });
@@ -458,7 +458,7 @@ async function pickAccessoryWithPriority(
       // Use varied selection instead of always picking first item
       const selectionIndex = getVariedSelectionIndex(candidates.length, baseProduct._id.toString(), "accessory");
       const picked = candidates[selectionIndex];
-      
+
       if (picked) {
         usedProductIds.add(String(picked._id));
         const pickedCategory = normalize(picked.subCategory || picked.category || "");
@@ -480,15 +480,15 @@ function buildQuery(
   baseCategory?: string,
 ) {
   const normalized = normalizeCategories(categories);
-  
+
   // Filter out excluded categories based on style vibe and base category
   const filteredCategories = normalized.filter((cat) => {
     return !isCategoryExcluded(cat, styleVibe, baseCategory);
   });
-  
+
   // If all categories were excluded, use original list (better than no results)
   const finalCategories = filteredCategories.length > 0 ? filteredCategories : normalized;
-  
+
   return {
     isPublished: true,
     isFashionItem: true,
@@ -523,7 +523,7 @@ function isCategoryExcluded(category: string, styleVibe?: string, baseCategory?:
       }
     }
   }
-  
+
   // Check base category exclusions
   if (baseCategory) {
     const baseExclusions = BASE_CATEGORY_EXCLUSIONS[baseCategory];
@@ -534,7 +534,7 @@ function isCategoryExcluded(category: string, styleVibe?: string, baseCategory?:
       }
     }
   }
-  
+
   return false;
 }
 
@@ -543,11 +543,11 @@ function isCategoryExcluded(category: string, styleVibe?: string, baseCategory?:
 function getVariedSelectionIndex(candidatesLength: number, baseProductId: string, role: string): number {
   if (candidatesLength === 0) return 0;
   if (candidatesLength === 1) return 0;
-  
+
   // Pick from top 30% of candidates (or top 5, whichever is smaller) for quality
   // This ensures we get good matches while still providing variation
   const topN = Math.min(Math.max(1, Math.floor(candidatesLength * 0.3)), 5);
-  
+
   // Use a seeded random based on productId + role + current time (seconds) for variation
   // This ensures different products get different selections, and same product gets varied results across requests
   const seed = `${baseProductId}-${role}-${Math.floor(Date.now() / 1000)}`;
@@ -556,11 +556,11 @@ function getVariedSelectionIndex(candidatesLength: number, baseProductId: string
     hash = ((hash << 5) - hash) + seed.charCodeAt(i);
     hash = hash & hash; // Convert to 32-bit integer
   }
-  
+
   // Add some true randomness for better variation
   const randomFactor = Math.random() * 0.3; // 0-0.3 random offset
   const index = (Math.abs(hash) % topN) + Math.floor(randomFactor * topN);
-  
+
   return Math.min(index, topN - 1); // Ensure we don't exceed topN
 }
 
@@ -626,7 +626,7 @@ async function pickProductForPlan(
   // Use varied selection instead of always picking first item
   const selectionIndex = getVariedSelectionIndex(candidates.length, baseProduct._id.toString(), plan.role);
   const picked = candidates[selectionIndex];
-  
+
   if (!picked) return null;
 
   usedProductIds.add(String(picked._id));
@@ -643,17 +643,17 @@ const SUBCATEGORY_TO_CATEGORY_MAP: Record<string, string> = {
   "topwear": "Tops",
   "TOPPER": "Tops",
   "topper": "Tops",
-  
+
   // Bottomwear mappings
   "Bottomwear": "Pants",
   "bottomwear": "Pants",
   "BOTTOMWEAR": "Pants",
-  
+
   // Footwear mappings
   "Footwear": "Shoes",
   "footwear": "Shoes",
   "FOOTWEAR": "Shoes",
-  
+
   // Accessories mappings
   "Accessories": "Watches",
   "accessories": "Watches",
@@ -663,7 +663,7 @@ const SUBCATEGORY_TO_CATEGORY_MAP: Record<string, string> = {
 function findPlanForBase(gender: Gender, baseCategory: string): OutfitPlan | null {
   const plans = OUTFIT_RULES[gender];
   if (!plans) return null;
-  
+
   // First try exact match
   const exact = plans[baseCategory];
   if (exact) return exact;
@@ -714,7 +714,7 @@ export const generateEnhancedOutfit = async (req: Request, res: Response) => {
     }
 
     let plan = findPlanForBase(gender, baseCategory);
-    
+
     // If no plan found with subCategory, try with category field as fallback
     if (!plan && baseProduct.subCategory && baseProduct.category) {
       plan = findPlanForBase(gender, baseProduct.category);
@@ -759,6 +759,87 @@ export const generateEnhancedOutfit = async (req: Request, res: Response) => {
           product: picked,
         });
         if (matchedItems.length >= 3) break; // Limit to max 3 outfit items
+      }
+    }
+
+    // --- Women's Accessory Expansion Logic ---
+    if (gender === "Women") {
+      const existingCategories = new Set(matchedItems.map(i => normalize(i.suggestedType)));
+      const hasBangles = existingCategories.has("bangles");
+      const hasNecklace = existingCategories.has("necklaces");
+      const hasWatch = existingCategories.has("watches");
+
+      const accessoriesToAdd: string[] = [];
+
+      // Logic Rule 1: If Bangles -> Ensure Necklace + Watch
+      if (hasBangles) {
+        if (!hasNecklace) accessoriesToAdd.push("Necklaces");
+        if (!hasWatch) accessoriesToAdd.push("Watches");
+      }
+      // Logic Rule 2: If Necklace -> Ensure Bangles + (Optional) Watch
+      else if (hasNecklace) {
+        if (!hasBangles) accessoriesToAdd.push("Bangles");
+        // Optional Watch - let's add it if we have space to be "richer"
+        if (!hasWatch) accessoriesToAdd.push("Watches");
+      }
+      // Logic Rule 3: If neither -> Add primary (Necklace default for elegance, or Bangles)
+      else if (!hasBangles && !hasNecklace) {
+        accessoriesToAdd.push("Necklaces");
+        accessoriesToAdd.push("Bangles");
+      }
+
+      // Constraints: Max 3 accessories total in the outfit
+      const currentAccessoryCount = matchedItems.filter(i => i.role === "accessory").length;
+      let slotsAvailable = 3 - currentAccessoryCount;
+
+      for (const cat of accessoriesToAdd) {
+        if (slotsAvailable <= 0) break;
+        if (usedCategories.has(normalize(cat))) continue; // Double check to avoid duplicates
+
+        const query = {
+          isPublished: true,
+          isFashionItem: true,
+          gender,
+          _id: { $ne: baseProduct._id },
+          $or: [
+            { category: { $regex: cat, $options: "i" } },
+            { subCategory: { $regex: cat, $options: "i" } }
+          ]
+        };
+
+        // Fetch candidates
+        let candidates = await Product.find(query).limit(10).lean();
+
+        // Filter used
+        candidates = candidates.filter((p: any) => !usedProductIds.has(String(p._id)));
+
+        // Sort by harmony
+        if (candidates.length > 0) {
+          const baseColor = baseProduct.dominantColor?.name;
+          candidates.sort((a: any, b: any) => {
+            const aScore = colorCompatibilityScore(baseColor, a.dominantColor?.name);
+            const bScore = colorCompatibilityScore(baseColor, b.dominantColor?.name);
+            return bScore - aScore;
+          });
+
+          const picked = candidates[0]; // Simple pick best match
+
+          if (picked) {
+            // Add to result
+            matchedItems.push({
+              role: "accessory",
+              suggestedType: cat,
+              colorSuggestion: picked.dominantColor?.name || "",
+              colorHexSuggestion: picked.dominantColor?.hex || "",
+              patternSuggestion: "solid",
+              reason: `Completes the look with ${cat}`,
+              product: picked,
+            });
+            usedProductIds.add(String(picked._id));
+            usedCategories.add(normalize(cat));
+            slotsAvailable--;
+          }
+        }
       }
     }
 

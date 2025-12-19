@@ -1,195 +1,177 @@
 "use client"
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Camera } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Camera, X, Tag, ShoppingBag } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 
 interface SearchInputProps {
   onCameraClick: () => void;
 }
 
-interface ProductForSuggestions {
-  name: string;
-  slug: string;
-  category?: string;
-  brand?: string;
-  images?: string[] | { url?: string }[] | string;
-}
-
-type SuggestionItem = 
-  | { type: 'category'; value: string; label: string }
-  | { type: 'brand'; value: string; label: string };
-
-function useDebouncedValue<T>(value: T, delay = 300) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const handle = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(handle);
-  }, [value, delay]);
-  return debounced;
+interface Suggestion {
+  type: 'brand' | 'category' | 'product';
+  text: string;
+  subText: string;
+  image: string | null;
+  slug?: string;
 }
 
 export default function SearchInput({ onCameraClick }: SearchInputProps) {
-  const [query, setQuery] = useState('');
-  const [allProducts, setAllProducts] = useState<ProductForSuggestions[]>([]);
-  const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const debouncedQuery = useDebouncedValue(query);
-
-  const router = useRouter();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  // Initialize with URL search param if present
+  const [query, setQuery] = useState(searchParams.get('search') || '');
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  const createSearchQuery = useCallback(
-    (value: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (value) {
-        params.set('search', value);
-      } else {
-        params.delete('search');
-      }
-      params.set('page', '1');
-      return params.toString();
-    },
-    [searchParams]
-  );
+  // Sync with URL
+  useEffect(() => {
+    setQuery(searchParams.get('search') || '');
+  }, [searchParams]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setSuggestions([]);
+        setShowDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const ensureProductsLoaded = useCallback(async () => {
-    if (allProducts.length > 0 || loading) return;
-    try {
-      setLoading(true);
-      const res = await fetch('http://localhost:4000/api/products?limit=200');
-      if (!res.ok) return;
-        const data = await res.json();
-      const list: ProductForSuggestions[] = (data.data || []).map((p: {
-        name?: string;
-        slug?: string;
-        category?: string;
-        brand?: string;
-        images?: string[] | { url?: string }[] | string;
-      }) => ({
-        name: p.name || '',
-        slug: p.slug || '',
-        category: p.category || '',
-        brand: p.brand || '',
-        images: p.images || [],
-      }));
-      setAllProducts(list);
-    } finally {
-      setLoading(false);
-    }
-  }, [allProducts.length, loading]);
+  // Debounced fetch for suggestions
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (!query || query.trim().length < 2) {
+        setSuggestions([]);
+        return;
+      }
 
-  // Helper to highlight matching text
-  const highlightText = (text: string, query: string) => {
-    if (!query.trim()) return text;
-    const parts = text.split(new RegExp(`(${query})`, 'gi'));
-    return parts.map((part, i) =>
-      part.toLowerCase() === query.toLowerCase() ? (
-        <mark key={i} className="bg-yellow-200 font-semibold">
-          {part}
-        </mark>
-      ) : (
-        part
-      )
+      try {
+        const res = await fetch(`http://localhost:4000/api/products/suggestions?q=${encodeURIComponent(query)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSuggestions(data);
+          // Only show dropdown if we have focus (heuristic: usually this runs while specific typing)
+          // But to be safe, we rely on the input focus or manual trigger.
+          // Here we just update data, showDropdown state is managed by focus/change.
+        }
+      } catch (err) {
+        console.error('Failed to fetch suggestions', err);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [query]);
+
+  const handleSearch = (value: string) => {
+    if (!value.trim()) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('search', value);
+    // Reset page to 1 on new search
+    params.set('page', '1');
+    router.push(`/product?${params.toString()}`);
+    setShowDropdown(false);
+    setSuggestions([]);
+  };
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    handleSearch(query);
+  };
+
+  const handleSelect = (item: Suggestion) => {
+    setQuery(item.text);
+    handleSearch(item.text);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setFocusedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setFocusedIndex(prev => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === 'Enter') {
+      if (focusedIndex >= 0 && suggestions[focusedIndex]) {
+        e.preventDefault();
+        handleSelect(suggestions[focusedIndex]);
+      } else {
+        handleSubmit();
+      }
+    } else if (e.key === 'Escape') {
+      setShowDropdown(false);
+    }
+  };
+
+  const highlightMatch = (text: string, highlight: string) => {
+    if (!highlight.trim()) return text;
+    const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
+    return (
+      <span>
+        {parts.map((part, i) => 
+          part.toLowerCase() === highlight.toLowerCase() ? 
+            <span key={i} className="font-bold text-gray-900 bg-yellow-100/50">{part}</span> : 
+            part
+        )}
+      </span>
     );
   };
 
-  // Build suggestions client-side from cached products (Flipkart-style: only categories/brands, no products)
-  useEffect(() => {
-    const raw = query.trim();
-    const q = debouncedQuery.trim().toLowerCase();
-
-    // Clear immediately when raw input is empty
-    if (!raw) {
-      setSuggestions([]);
-      return;
+  const renderIcon = (item: Suggestion) => {
+    if (item.image) {
+      return (
+        <img 
+          src={item.image} 
+          alt={item.text} 
+          className="w-8 h-8 object-cover rounded" 
+        />
+      );
     }
-
-    if (!q || allProducts.length === 0) {
-      setSuggestions([]);
-      return;
-    }
-
-    const suggestionsList: SuggestionItem[] = [];
-
-    // 1. Extract unique categories (articleTypes) that match the query
-    const uniqueCategories = Array.from(
-      new Set(
-        allProducts
-          .map((p) => p.category?.trim())
-          .filter((v): v is string => !!v && v.toLowerCase().includes(q))
-      )
-    ).sort();
-
-    // Add category suggestions (max 5)
-    uniqueCategories.slice(0, 5).forEach((category) => {
-      suggestionsList.push({
-        type: 'category',
-        value: category,
-        label: category,
-      });
-    });
-
-    // 2. Extract unique brands that match the query (if categories are less than 5)
-    if (suggestionsList.length < 8) {
-      const uniqueBrands = Array.from(
-        new Set(
-          allProducts
-            .map((p) => p.brand?.trim())
-            .filter((v): v is string => !!v && v.toLowerCase().includes(q))
-        )
-      ).sort();
-
-      // Add brand suggestions (fill up to 8 total)
-      const remainingSlots = 8 - suggestionsList.length;
-      uniqueBrands.slice(0, remainingSlots).forEach((brand) => {
-        suggestionsList.push({
-          type: 'brand',
-          value: brand,
-          label: brand,
-        });
-      });
-    }
-
-    setSuggestions(suggestionsList);
-  }, [debouncedQuery, query, allProducts]);
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const value = query.trim();
-    if (value) {
-      const qs = createSearchQuery(value);
-      router.push(`/product?${qs}`);
-      setSuggestions([]);
-    }
+    if (item.type === 'brand') return <Tag className="w-5 h-5 text-gray-400" />;
+    if (item.type === 'category') return <ShoppingBag className="w-5 h-5 text-gray-400" />;
+    return <Search className="w-5 h-5 text-gray-400" />;
   };
 
   return (
-    <div ref={searchRef} className="flex-1 max-w-lg hidden md:flex relative group">
-      <form onSubmit={handleSearchSubmit} className="w-full">
+    <div ref={searchRef} className="flex-1 max-w-lg hidden md:flex relative group z-50">
+      <form onSubmit={handleSubmit} className="w-full relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-4 w-4 text-gray-400 group-focus-within:text-primary" />
+          <Search className="h-4 w-4 text-gray-400 group-focus-within:text-black transition-colors" />
         </div>
         <input
           type="text"
-          className="block w-full pl-10 pr-10 py-2.5 bg-gray-50 border-none rounded-md text-sm text-gray-900 shadow-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-200 transition-all"
-          placeholder="Search for cargo, minimalist, black tees..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={ensureProductsLoaded}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setShowDropdown(true);
+            setFocusedIndex(-1);
+          }}
+          onFocus={() => {
+            if (suggestions.length > 0) setShowDropdown(true);
+          }}
+          onKeyDown={handleKeyDown}
+          className="block w-full pl-10 pr-10 py-2.5 bg-gray-50 border-none rounded-lg text-sm text-gray-900 shadow-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-200 focus:bg-white transition-all"
+          placeholder="Search for products, brands..."
         />
+        
+        {query ? (
+           <button 
+             type="button"
+             onClick={() => {
+               setQuery('');
+               setSuggestions([]);
+               // Optional: Clear search from URL? Maybe not, just clear input.
+             }}
+             className="absolute inset-y-0 right-10 flex items-center px-2 cursor-pointer text-gray-400 hover:text-gray-600"
+           >
+             <X className="h-4 w-4" />
+           </button>
+        ) : null}
+
         <button 
           type="button" 
           onClick={onCameraClick}
@@ -200,70 +182,36 @@ export default function SearchInput({ onCameraClick }: SearchInputProps) {
       </form>
 
       {/* Suggestion Dropdown */}
-      {(loading || suggestions.length > 0) && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden">
-          {loading ? (
-            <div className="p-3 text-xs text-gray-500">Loading suggestions…</div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {suggestions.map((s) => {
-                if (s.type === 'category') {
-                  // Category suggestion (articleType)
-                  return (
-                <Link
-                      key={`category-${s.value}`}
-                      href={`/product?articleType=${encodeURIComponent(s.value)}`}
-                      onClick={() => setSuggestions([])}
-                      className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors"
-                >
-                      <div className="relative h-10 w-10 rounded-md overflow-hidden bg-linear-to-br from-primary/20 to-accent/20 shrink-0 flex items-center justify-center">
-                        <span className="text-[10px] font-bold text-primary">CAT</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900">
-                          {highlightText(s.label, debouncedQuery.trim())}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-0.5">Browse all {s.label}</div>
-                  </div>
-                </Link>
-                  );
-                } else {
-                  // Brand suggestion
-                  return (
-              <Link
-                      key={`brand-${s.value}`}
-                      href={`/product?brand=${encodeURIComponent(s.value)}`}
-                      onClick={() => setSuggestions([])}
-                      className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 transition-colors"
-              >
-                      <div className="relative h-10 w-10 rounded-md overflow-hidden bg-linear-to-br from-gray-200 to-gray-300 shrink-0 flex items-center justify-center">
-                        <span className="text-[10px] font-bold text-gray-700">BR</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900">
-                          {highlightText(s.label, debouncedQuery.trim())}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-0.5">Brand</div>
-                      </div>
-              </Link>
-                  );
-                }
-              })}
-              {query.trim() && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const qs = createSearchQuery(query.trim());
-                    router.push(`/product?${qs}`);
-                    setSuggestions([]);
-                  }}
-                  className="w-full px-3 py-2 text-center text-xs font-semibold text-primary hover:bg-violet-50 transition-colors"
-                >
-                  View all results for “{query}”
-                </button>
-              )}
+      {showDropdown && suggestions.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden py-2" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          {suggestions.map((item, index) => (
+            <div
+              key={index}
+              onClick={() => handleSelect(item)}
+              className={`px-4 py-2.5 cursor-pointer flex items-center gap-3 transition-colors ${
+                index === focusedIndex ? 'bg-gray-50' : 'hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-gray-100 rounded">
+                {renderIcon(item)}
+              </div>
+              <div className="flex flex-col flex-1">
+                <span className="text-sm text-gray-700 leading-none mb-0.5">
+                  {highlightMatch(item.text, query)}
+                </span>
+                <span className="text-xs text-blue-600 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                  {item.subText}
+                </span>
+              </div>
             </div>
-          )}
+          ))}
+          {/* View all option */}
+          <div 
+            onClick={() => handleSearch(query)}
+            className="px-4 py-3 bg-gray-50 border-t border-gray-100 cursor-pointer text-xs font-semibold text-center text-primary hover:text-violet-700"
+          >
+            View all results for &quot;{query}&quot;
+          </div>
         </div>
       )}
     </div>

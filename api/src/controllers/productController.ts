@@ -158,49 +158,95 @@ export const getProducts = async (req: Request, res: Response) => {
   try {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 24;
+    const skip = (page - 1) * limit;
     const { category, sort, q, minPrice, maxPrice } = req.query;
 
-    let matchQuery: any = { isPublished: true };
+    const pipeline: any[] = [];
 
-    if (category) matchQuery.category = category;
-    if (q) matchQuery.$text = { $search: String(q) };
+    // 1. Match Stage (Base Filters)
+    const matchStage: any = { isPublished: true };
 
-    // Exclude innerwear products from browsing (but allow in search results)
-    // Only filter when there's no search query (q parameter)
-    if (!q) {
-      // Innerwear terms to exclude (case-insensitive matching)
-      const innerwearTerms = ['briefs', 'bras', 'lingerie', 'underwear', 'innerwear'];
-      const innerwearRegex = new RegExp(innerwearTerms.join('|'), 'i');
-
-      // Exclude products where category, subCategory, or masterCategory matches any innerwear term
-      matchQuery.$nor = [
-        { category: { $regex: innerwearRegex } },
-        { subCategory: { $regex: innerwearRegex } },
-        { masterCategory: { $regex: innerwearRegex } }
-      ];
-    }
+    if (category) matchStage.category = category;
+    if (req.query.subCategory) matchStage.subCategory = req.query.subCategory;
+    if (req.query.masterCategory) matchStage.masterCategory = req.query.masterCategory;
+    if (req.query.brand) matchStage.brand = req.query.brand;
+    if (req.query.gender) matchStage.gender = req.query.gender;
+    if (req.query.size) matchStage.sizes = req.query.size;
+    if (req.query.articleType) matchStage.category = req.query.articleType; // Handle articleType param legacy
 
     if (minPrice || maxPrice) {
-      matchQuery.price_cents = {};
-      if (minPrice) matchQuery.price_cents.$gte = Number(minPrice) * 100;
-      if (maxPrice) matchQuery.price_cents.$lte = Number(maxPrice) * 100;
+      matchStage.price_cents = {};
+      if (minPrice) matchStage.price_cents.$gte = Number(minPrice) * 100;
+      if (maxPrice) matchStage.price_cents.$lte = Number(maxPrice) * 100;
     }
 
-    let sortOption: any = { createdAt: -1 };
-    if (sort === "price_asc") sortOption = { price_cents: 1 };
-    if (sort === "price_desc") sortOption = { price_cents: -1 };
+    // Search Logic (Regex + Scoring)
+    let isSearch = false;
+    if (q && typeof q === 'string') {
+      isSearch = true;
+      const escapeRegex = (text: string) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      const exactRegex = new RegExp(`^${escapeRegex(q)}$`, 'i');
+      const startsWithRegex = new RegExp(`^${escapeRegex(q)}`, 'i');
+      const generalRegex = new RegExp(escapeRegex(q), 'i');
 
-    const pipeline: any[] = [{ $match: matchQuery }];
+      matchStage.$or = [
+        { name: generalRegex },
+        { brand: generalRegex },
+        { category: generalRegex },
+        { subCategory: generalRegex },
+        { masterCategory: generalRegex },
+        { description: generalRegex }
+      ];
 
-    if (q) {
-      pipeline.push({ $sort: { score: { $meta: "textScore" } } });
+      pipeline.push({ $match: matchStage });
+
+      // 2. Add Scoring Field
+      pipeline.push({
+        $addFields: {
+          searchScore: {
+            $switch: {
+              branches: [
+                // Exact Name Match -> Score 100
+                { case: { $regexMatch: { input: "$name", regex: exactRegex } }, then: 100 },
+                // Name Starts With -> Score 80
+                { case: { $regexMatch: { input: "$name", regex: startsWithRegex } }, then: 80 },
+                // Name Contains -> Score 60
+                { case: { $regexMatch: { input: "$name", regex: generalRegex } }, then: 60 },
+                // Brand/Category Match -> Score 40
+                {
+                  case: {
+                    $or: [
+                      { $regexMatch: { input: "$brand", regex: generalRegex } },
+                      { $regexMatch: { input: "$category", regex: generalRegex } }
+                    ]
+                  }, then: 40
+                }
+              ],
+              default: 20 // Description or other matches
+            }
+          }
+        }
+      });
+
+      // 3. Sort by Score
+      pipeline.push({ $sort: { searchScore: -1, createdAt: -1 } });
+
     } else {
-      pipeline.push({ $sort: sortOption });
+      // No search, just match
+      pipeline.push({ $match: matchStage });
+
+      // Default Sort
+      const sortOptions: any = {};
+      if (sort === 'price_asc') sortOptions.price_cents = 1;
+      else if (sort === 'price_desc') sortOptions.price_cents = -1;
+      else if (sort === 'newest') sortOptions.createdAt = -1;
+      else sortOptions.createdAt = -1; // Default
+
+      pipeline.push({ $sort: sortOptions });
     }
 
+    // 4. Project fields
     pipeline.push(
-      { $skip: (page - 1) * limit },
-      { $limit: limit },
       {
         $project: {
           _id: 1,
@@ -230,16 +276,139 @@ export const getProducts = async (req: Request, res: Response) => {
       }
     );
 
-    const products = await Product.aggregate(pipeline);
-    const total = await Product.countDocuments(matchQuery);
+    // 5. Pagination
+    pipeline.push({
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [{ $skip: skip }, { $limit: limit }]
+      }
+    });
+
+    // Execute Pipeline
+    const result = await Product.aggregate(pipeline);
+
+    // Extract results
+    const data = result[0].data || [];
+    const total = result[0].metadata[0] ? result[0].metadata[0].total : 0;
 
     res.json({
-      data: products,
-      meta: { page, limit, total, pages: Math.ceil(total / limit) },
+      data,
+      meta: {
+        total,
+        page,
+        pages: Math.ceil(total / limit)
+      }
     });
+
   } catch (error) {
     console.error("Get Products Error:", error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+
+// ----------------- Controller: Search Suggestions -----------------
+export const getSearchSuggestions = async (req: Request, res: Response) => {
+  try {
+    const { q } = req.query;
+    if (!q || typeof q !== 'string') return res.json([]);
+
+    const escapeRegex = (text: string) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    const regex = new RegExp(escapeRegex(q), 'i');
+
+    // 1. Find matching Brands (distinct)
+    // We only want unique brands that match the query
+    const brandMatches = await Product.aggregate([
+      { $match: { brand: regex, isPublished: true } },
+      { $group: { _id: { $toLower: "$brand" }, original: { $first: "$brand" } } },
+      { $limit: 3 }
+    ]);
+
+    // 2. Find matching Categories (distinct)
+    // Checking both category and subCategory fields
+    const catMatches = await Product.aggregate([
+      {
+        $match: {
+          $or: [{ category: regex }, { subCategory: regex }],
+          isPublished: true
+        }
+      },
+      {
+        $project: {
+          match: {
+            $cond: {
+              if: { $regexMatch: { input: "$category", regex: regex } },
+              then: "$category",
+              else: "$subCategory"
+            }
+          }
+        }
+      },
+      { $group: { _id: { $toLower: "$match" }, original: { $first: "$match" } } },
+      { $limit: 3 }
+    ]);
+
+    // 3. Find specific products (fallback/mix)
+    const productMatches = await Product.find({
+      name: regex,
+      isPublished: true
+    })
+      .select('name brand category images slug')
+      .limit(5)
+      .lean();
+
+    // Format results
+    const results: { type: string; text: string; subText: string; image: string | null; slug?: string }[] = [];
+
+    // Add Brands
+    brandMatches.forEach(b => {
+      results.push({
+        type: 'brand',
+        text: b.original,
+        subText: 'in Brand',
+        image: null // Frontend can show brand icon
+      });
+    });
+
+    // Add Categories
+    catMatches.forEach(c => {
+      results.push({
+        type: 'category',
+        text: c.original,
+        subText: 'in Category',
+        image: null // Frontend can show category icon
+      });
+    });
+
+    // Add Products
+    productMatches.forEach(p => {
+      // Logic for product image
+      let thumb = null;
+      if (p.images && p.images.length > 0) {
+        const first = p.images[0];
+        thumb = typeof first === 'string' ? first : (first as any).url;
+      }
+
+      results.push({
+        type: 'product',
+        text: p.name,
+        subText: `in ${p.category}`,
+        image: thumb,
+        slug: p.slug
+      });
+    });
+
+    // Dedupe slightly by text to avoid redundancy if brand == product name start
+    const uniqueResults = results.filter((item, index, self) =>
+      index === self.findIndex((t) => (
+        t.text.toLowerCase() === item.text.toLowerCase() && t.type === item.type
+      ))
+    );
+
+    res.json(uniqueResults.slice(0, 8)); // Return top 8 mixed suggestions
+  } catch (error) {
+    console.error("Search Suggestion Error:", error);
+    res.status(500).json([]);
   }
 };
 

@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Search } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import ProductCard from '../components/ProductCard';
 import ProductFilters, { SizeFilterMode } from '../components/ProductFilters';
 import Pagination from '../components/Pagination';
+
 
 // Interface for Search Parameters coming from the URL
 interface SearchParams {
@@ -41,7 +43,10 @@ async function getProducts(searchParams: SearchParams): Promise<ProductsApiRespo
   if (searchParams.sort) params.set('sort', searchParams.sort);
   if (searchParams.minPrice) params.set('minPrice', searchParams.minPrice);
   if (searchParams.maxPrice) params.set('maxPrice', searchParams.maxPrice);
-  // Brand, size, color, gender, and search are applied client-side for precise Myntra-like behavior
+  // Brand, size, color, gender are applied client-side for precise Myntra-like behavior
+  // Search is now handled server-side (Amazon-style)
+
+  if (searchParams.search) params.set('q', searchParams.search);
 
   try {
     const res = await fetch(`http://localhost:4000/api/products?${params.toString()}`, {
@@ -60,7 +65,7 @@ type ProductForContext = {
   _id?: string;
   slug?: string | null;
   name?: string | null;
-  category?: string | null;  // This contains articleType (e.g., Tshirts, Shirts)
+  category?: string | null;
   brand?: string | null;
   gender?: string | null;
   masterCategory?: string | null;
@@ -69,7 +74,7 @@ type ProductForContext = {
   variants?: { size?: string | number | null }[] | null;
   price_cents?: number | null;
   price_before_cents?: number | null;
-  images?: (string | { url?: string | null })[] | null;
+  images?: (string | { url?: string })[] | null;
   offer_tag?: string | null;
   rating?: number | null;
   createdAt?: string | null;
@@ -139,13 +144,10 @@ function applyClientFilters(
   const brand = params.brand?.trim().toLowerCase();
   const color = params.color?.trim().toLowerCase();
   const size = params.size?.trim().toLowerCase();
-  const search = params.search?.trim().toLowerCase();
+  // Search is handled by backend now
 
-  // 1. ArticleType (stored as 'category' in DB, backend also applies this, but keep it strict here)
+  // 1. ArticleType
   if (articleType) {
-    // Special-case: Footwear behaves like a master category in the UI,
-    // while products may have more specific categories (e.g. "Casual Shoes").
-    // To avoid hiding all shoes, map "Footwear" to masterCategory.
     if (articleType.toLowerCase() === 'footwear') {
       filtered = filtered.filter(
         (p) => p.masterCategory?.trim().toLowerCase() === 'footwear'
@@ -155,32 +157,16 @@ function applyClientFilters(
     }
   }
 
-  // 2. Gender filter (Men, Women, Kids) - case-insensitive exact match
-  // Database values are normalized to "Men", "Women", "Kids"
+  // 2. Gender filter
   if (gender) {
     const genderNormalized = gender.trim();
     filtered = filtered.filter((p) => {
       const pGender = p.gender?.trim();
-      // Case-insensitive match (database has "Men", "Women", "Kids")
       return pGender && pGender.toLowerCase() === genderNormalized.toLowerCase();
     });
   }
 
-  // 3. Search across name / brand / category (articleType) / subCategory / dominantColor.name
-  if (search) {
-    filtered = filtered.filter((p) => {
-      const fields: Array<string | null | undefined> = [
-        p.name,
-        p.brand,
-        p.category,
-        p.subCategory,
-        p.dominantColor?.name,
-      ];
-      return fields.some(
-        (field) => field && field.toLowerCase().includes(search)
-      );
-    });
-  }
+  // 3. Search (REMOVED - Backend handles it)
 
   // 4. Brand
   if (brand) {
@@ -198,7 +184,7 @@ function applyClientFilters(
     );
   }
 
-  // 6. Size (exact size match inside variants)
+  // 6. Size
   if (size) {
     filtered = filtered.filter((p) =>
       (p.variants || []).some((v) =>
@@ -217,6 +203,8 @@ type ApiMeta = {
 };
 
 type SortKey = 'price_asc' | 'price_desc' | 'new' | 'rating' | undefined;
+
+
 
 export default function ProductsPage() {
   const searchParams = useSearchParams();
@@ -245,7 +233,7 @@ export default function ProductsPage() {
 
   const sortKey = (resolvedSearchParams.sort as SortKey) || undefined;
 
-  // Fetch products whenever URL search params that affect backend query change
+  // Fetch products
   useEffect(() => {
     let isCancelled = false;
 
@@ -307,9 +295,6 @@ export default function ProductsPage() {
 
   const sizeFilterMode = inferSizeFilterMode(filteredProducts);
 
-  // Derive available filter facets strictly from the current result set
-  // Note: We don't show articleType categories in filters when one is already selected
-  // Gender options are always: Men, Women, Kids
   const genders = ['Men', 'Women', 'Kids'];
 
   const brands = useMemo(
@@ -336,7 +321,7 @@ export default function ProductsPage() {
     [filteredProducts]
   );
 
-  // 👇 LOGIC FOR PAGE TITLE & HEADER 👇
+  // Derive Page Title
   let pageTitle = 'All Products';
   if (resolvedSearchParams.search) {
     pageTitle = `Results for "${resolvedSearchParams.search}"`;
@@ -346,7 +331,6 @@ export default function ProductsPage() {
       pageTitle = `${resolvedSearchParams.gender}'s ${resolvedSearchParams.articleType}`;
     }
   }
-  // 👆 END LOGIC 👆
 
   const hasActiveFiltersOrSort =
     !!resolvedSearchParams.gender ||
@@ -415,18 +399,22 @@ export default function ProductsPage() {
 
           <div className="flex-1">
             <div className="mb-6">
-              <h1 className="text-2xl font-bold">
-                {pageTitle} {/* Use the dynamically determined title */}
-              </h1>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                  <h1 className="text-2xl font-bold">
+                    {pageTitle}
+                  </h1>
+
+              </div>
+
               <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-gray-500">
                   {loading
                     ? 'Loading products...'
                     : sortedProducts.length > 0
-                    ? `Showing ${sortedProducts.length} product${
+                    ? `Showing ${sortedProducts.length} result${
                         sortedProducts.length === 1 ? '' : 's'
                       }`
-                    : 'No products found matching your filters'}
+                    : 'No products found'}
                 </p>
 
                 {/* Sort Dropdown */}
@@ -435,7 +423,7 @@ export default function ProductsPage() {
                     Sort by
                   </span>
                   <select
-                    className="border border-gray-200 text-sm rounded-full px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                    className="border border-gray-200 text-sm rounded-full px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent cursor-pointer"
                     value={sortKey || ''}
                     onChange={(e) => handleSortChange(e.target.value)}
                   >

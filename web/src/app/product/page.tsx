@@ -32,19 +32,21 @@ async function getProducts(searchParams: SearchParams): Promise<ProductsApiRespo
   const params = new URLSearchParams();
   if (searchParams.page) params.set('page', searchParams.page);
   // Set limit to 100 products per page (or more if gender filter is active to ensure results after client-side filtering)
-  const baseLimit = 100;
-  // If gender filter is active, fetch more products to ensure we have results after client-side filtering
-  const limit = searchParams.gender ? Math.min(baseLimit * 3, 500) : baseLimit;
+  // Set limit to 24 products per page (standard)
+  const limit = 24;
   params.set('limit', String(limit));
-  // articleType maps to 'category' in backend (articleType is stored as category in DB)
+  
+  // articleType maps to 'category' in backend
   if (searchParams.articleType) params.set('category', searchParams.articleType);
-  // Note: Backend doesn't support gender filter yet, so we'll filter client-side
-  // Fetching more products when gender filter is active ensures we have results after filtering
+  
+  // Pass gender filter to backend
+  if (searchParams.gender) params.set('gender', searchParams.gender);
+  
   if (searchParams.sort) params.set('sort', searchParams.sort);
   if (searchParams.minPrice) params.set('minPrice', searchParams.minPrice);
   if (searchParams.maxPrice) params.set('maxPrice', searchParams.maxPrice);
-  // Brand, size, color, gender are applied client-side for precise Myntra-like behavior
-  // Search is now handled server-side (Amazon-style)
+  // Brand, size, color are applied client-side (legacy legacy but okay)
+  // Search is now handled server-side
 
   if (searchParams.search) params.set('q', searchParams.search);
 
@@ -158,13 +160,8 @@ function applyClientFilters(
   }
 
   // 2. Gender filter
-  if (gender) {
-    const genderNormalized = gender.trim();
-    filtered = filtered.filter((p) => {
-      const pGender = p.gender?.trim();
-      return pGender && pGender.toLowerCase() === genderNormalized.toLowerCase();
-    });
-  }
+  // 2. Gender filter (Handled by Backend)
+
 
   // 3. Search (REMOVED - Backend handles it)
 

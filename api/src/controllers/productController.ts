@@ -180,6 +180,22 @@ export const getProducts = async (req: Request, res: Response) => {
       if (maxPrice) matchStage.price_cents.$lte = Number(maxPrice) * 100;
     }
 
+    // Exclude innerwear logic (Restored)
+    // Only filter when there's no search query (q parameter)
+    if (!q) {
+      // Innerwear terms to exclude (case-insensitive matching)
+      const innerwearTerms = ['briefs', 'bras', 'lingerie', 'underwear', 'innerwear', 'panties', 'thong', 'boxers', 'trunks', 'vest', 'brief'];
+      const innerwearRegex = new RegExp(innerwearTerms.join('|'), 'i');
+
+      // Exclude products where category, subCategory, or masterCategory matches any innerwear term
+      matchStage.$nor = [
+        { category: { $regex: innerwearRegex } },
+        { subCategory: { $regex: innerwearRegex } },
+        { masterCategory: { $regex: innerwearRegex } },
+        { name: { $regex: innerwearRegex } }
+      ];
+    }
+
     // Search Logic (Regex + Scoring)
     let isSearch = false;
     if (q && typeof q === 'string') {

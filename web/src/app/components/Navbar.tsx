@@ -21,9 +21,9 @@ export default function Navbar() {
 
           {/* Links (Same as before) */}
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-700 uppercase tracking-wide">
-            <Link href="/products?category=T-Shirts" className="hover:text-primary transition-colors">Men</Link>
-            <Link href="/products?category=Dresses" className="hover:text-primary transition-colors">Women</Link>
-            <Link href="/products?category=Jeans" className="hover:text-primary transition-colors">Kids</Link>
+            <Link href="/product?gender=Men" className="hover:text-primary transition-colors">Men</Link>
+            <Link href="/product?gender=Women" className="hover:text-primary transition-colors">Women</Link>
+            <Link href="/product?gender=Kids" className="hover:text-primary transition-colors">Kids</Link>
           </div>
 
           {/* Search Bar (REPLACED) */}

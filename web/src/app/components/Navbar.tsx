@@ -1,5 +1,6 @@
 "use client"
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ShoppingBag } from 'lucide-react';
 import ImageSearchModal from './ImageSearchModal';
@@ -8,6 +9,7 @@ import SearchInput from './SearchInput'; // 👈 CRITICAL: Import the new compon
 
 export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchParams = useSearchParams();
 
   return (
     <>
@@ -21,9 +23,40 @@ export default function Navbar() {
 
           {/* Links (Same as before) */}
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-700 uppercase tracking-wide">
-            <Link href="/product?gender=Men" className="hover:text-primary transition-colors">Men</Link>
-            <Link href="/product?gender=Women" className="hover:text-primary transition-colors">Women</Link>
-            <Link href="/product?gender=Kids" className="hover:text-primary transition-colors">Kids</Link>
+            <Link 
+              href="/product?gender=men" 
+              className={`transition-colors border-b-2 hover:text-primary ${
+                searchParams.get('gender')?.toLowerCase() === 'men' 
+                  ? 'text-primary border-primary' 
+                  : 'border-transparent hover:border-primary'
+              }`}
+            >
+              Men
+            </Link>
+            <Link 
+              href="/product?gender=women" 
+              className={`transition-colors border-b-2 hover:text-primary ${
+                searchParams.get('gender')?.toLowerCase() === 'women' 
+                  ? 'text-primary border-primary' 
+                  : 'border-transparent hover:border-primary'
+              }`}
+            >
+              Women
+            </Link>
+            <Link 
+              href="/product?gender=kids" 
+              className={`transition-colors border-b-2 hover:text-primary ${
+                searchParams.get('gender')?.toLowerCase() === 'kids' 
+                  ? 'text-primary border-primary' 
+                  : 'border-transparent hover:border-primary'
+              }`}
+            >
+              Kids
+            </Link>
+            <style jsx>{`
+              /* Ensure the border doesn't cause layout shift by reserving space or using absolute positioning if needed, 
+                 but border-b-2 transparent is robust enough. */
+            `}</style>
           </div>
 
           {/* Search Bar (REPLACED) */}

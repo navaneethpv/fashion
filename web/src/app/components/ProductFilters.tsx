@@ -69,7 +69,7 @@ export default function ProductFilters({
           <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Gender</h3>
           <div className="space-y-2">
             {genders.map((gender) => {
-              const isActive = searchParams.get('gender') === gender;
+              const isActive = searchParams.get('gender')?.toLowerCase() === gender.toLowerCase();
               return (
                 <label key={gender} className="flex items-center gap-2 cursor-pointer group">
                   <input

@@ -39,8 +39,13 @@ async function getProducts(searchParams: SearchParams): Promise<ProductsApiRespo
   // articleType maps to 'category' in backend
   if (searchParams.articleType) params.set('category', searchParams.articleType);
   
-  // Pass gender filter to backend
-  if (searchParams.gender) params.set('gender', searchParams.gender);
+  // Pass gender filter to backend (Normalize to Title Case for API)
+  if (searchParams.gender) {
+    const rawGender = searchParams.gender.trim();
+    // Convert "men" -> "Men", "women" -> "Women", "kids" -> "Kids"
+    const normalizedGender = rawGender.charAt(0).toUpperCase() + rawGender.slice(1).toLowerCase();
+    params.set('gender', normalizedGender);
+  }
   
   if (searchParams.sort) params.set('sort', searchParams.sort);
   if (searchParams.minPrice) params.set('minPrice', searchParams.minPrice);

@@ -212,6 +212,24 @@ export function normalizeCategoryName(aiCategory: string): string {
         return exactMatch;
     }
 
+    // Flipkart-style prefix intent matching for search
+    // Try prefix matching in aliases
+    for (const [alias, validCategory] of Object.entries(CATEGORY_ALIASES)) {
+        if (alias.startsWith(normalized) || normalized.startsWith(alias)) {
+            console.log(`[CATEGORY NORMALIZER] "${aiCategory}" → "${validCategory}" (prefix match alias: "${alias}")`);
+            return validCategory;
+        }
+    }
+
+    // Try prefix matching in valid categories
+    for (const validCat of VALID_CATEGORIES) {
+        const validCatLower = validCat.toLowerCase();
+        if (validCatLower.startsWith(normalized) || normalized.startsWith(validCatLower)) {
+            console.log(`[CATEGORY NORMALIZER] "${aiCategory}" → "${validCat}" (prefix match)`);
+            return validCat;
+        }
+    }
+
     // Default fallback
     console.warn(`[CATEGORY NORMALIZER] Unknown category: "${aiCategory}", defaulting to Tops`);
     return 'Tops';

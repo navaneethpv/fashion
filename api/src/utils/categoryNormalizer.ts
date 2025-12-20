@@ -188,10 +188,10 @@ const CATEGORY_ALIASES: Record<string, string> = {
  * - Case differences (KURTI → Kurtis)
  * - Synonyms (Tee → Tshirts, Purse → Handbags)
  */
-export function normalizeCategoryName(aiCategory: string): string {
+export function normalizeCategoryName(aiCategory: string): string | null {
     if (!aiCategory) {
-        console.warn('[CATEGORY NORMALIZER] Empty category, defaulting to Tops');
-        return 'Tops';
+        console.warn('[CATEGORY NORMALIZER] Empty category, returning null');
+        return null;
     }
 
     const normalized = aiCategory.toLowerCase().trim();
@@ -230,7 +230,7 @@ export function normalizeCategoryName(aiCategory: string): string {
         }
     }
 
-    // Default fallback
-    console.warn(`[CATEGORY NORMALIZER] Unknown category: "${aiCategory}", defaulting to Tops`);
-    return 'Tops';
+    // Prevent showing unrelated products when exact item does not exist
+    console.warn(`[CATEGORY NORMALIZER] Unknown category: "${aiCategory}", returning null (no fallback)`);
+    return null;
 }

@@ -168,7 +168,7 @@ function resolveSearchCategory(query: string): string | null {
   const resolved = normalizeCategoryName(query);
 
   // Check if the resolved category is actually in our valid list
-  if (VALID_CATEGORIES.includes(resolved)) {
+  if (resolved && VALID_CATEGORIES.includes(resolved)) {
     return resolved;
   }
 

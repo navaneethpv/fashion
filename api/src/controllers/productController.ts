@@ -184,64 +184,24 @@ export const getProducts = async (req: Request, res: Response) => {
     const { category, sort, minPrice, maxPrice } = req.query;
     let { q } = req.query;
 
-    // --- Search Intent Parsing (Context-Aware) ---
+    // --- Flipkart-style Intent-Based Search ---
+    // Parse natural language search into structured filters
     let inferredGender: string | null = null;
     let inferredCategory: string | null = null;
 
     if (q && typeof q === 'string') {
-      let tempQ = q; // Work on a copy to clean it
+      const { parseSearchIntent } = require('../utils/searchIntentParser');
+      const intent = parseSearchIntent(q);
 
-      // 1. Detect Gender
-      const genderPatterns = [
-        { key: 'Men', regex: /\b(men|man|male|gentleman|gents)\b/gi },
-        { key: 'Women', regex: /\b(women|woman|female|lady|ladies)\b/gi },
-        { key: 'Kids', regex: /\b(kids|kid|child|children|boy|boys|girl|girls)\b/gi }
-      ];
-
-      for (const p of genderPatterns) {
-        if (p.regex.test(tempQ)) {
-          inferredGender = p.key;
-          tempQ = tempQ.replace(p.regex, '').replace(/\s+/g, ' ').trim(); // Remove keyword
-          break; // Assume single gender intent for simplicity
-        }
+      if (intent.gender) {
+        inferredGender = intent.gender;
+      }
+      if (intent.category) {
+        inferredCategory = intent.category;
       }
 
-      // 2. Detect Category (Common terms)
-      // This list can be expanded or fetched from DB, but hardcoded common ones represent "Intelligence"
-      const categoryPatterns = [
-        { key: 'Watches', regex: /\b(watches|watch)\b/gi },
-        { key: 'Shoes', regex: /\b(shoes|shoe|sneakers|sneaker|boots|sandal|sandals|footwear)\b/gi },
-        { key: 'Handbags', regex: /\b(handbags|handbag|bag|bags|purse)\b/gi },
-        { key: 'Jewellery', regex: /\b(jewellery|jewelry|necklace|earrings|bangle|bangles|ring)\b/gi },
-        { key: 'Sunglasses', regex: /\b(sunglasses|shades)\b/gi },
-        { key: 'Tops', regex: /\b(tops|top|tshirt|t-shirt|shirt|shirts)\b/gi },
-        { key: 'Dresses', regex: /\b(dresses|dress|gown)\b/gi },
-        { key: 'Bottoms', regex: /\b(bottoms|jeans|pants|trousers|shorts)\b/gi },
-        { key: 'Outerwear', regex: /\b(jacket|jackets|coat|coats|blazer)\b/gi }
-      ];
-
-      for (const p of categoryPatterns) {
-        if (p.regex.test(tempQ)) {
-          // If we mapped it to a known Category key, use it.
-          // Note: This assumes DB categories match these Keys (Title Case).
-          inferredCategory = p.key;
-
-          // Should we remove category from query?
-          // "Remove detected gender/category words from the search string" -> YES.
-          // However, keeping it might help partial matches if extraction is imperfect.
-          // But requirement says "Remove... Use remaining text for ranking".
-          tempQ = tempQ.replace(p.regex, '').replace(/\s+/g, ' ').trim();
-          break;
-        }
-      }
-
-      // Update 'q' to be the cleaned version for text matching
-      // If q becomes empty (e.g. "Men Watches"), we rely purely on filters.
-      // But we still need to pass 'isSearch=true' logic if we want partial matching context?? 
-      // Actually, if q is empty, loop below sets isSearch=false unless we force it.
-      // But we want to filter by Inferred Filters AND allow 'q' to match other attributes.
-      // If q="" after cleaning, we effectively turn it into a Browsing request with Filters.
-      q = tempQ;
+      // Clear q since we've extracted intent into structured filters
+      q = '';
     }
 
     const pipeline: any[] = [];

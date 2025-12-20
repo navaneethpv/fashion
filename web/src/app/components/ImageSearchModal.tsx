@@ -384,13 +384,16 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
                         <Link href={`/products/${product.slug}`} onClick={onClose} className="group block">
                           <motion.div 
                             whileHover={{ y: -4, scale: 1.02 }}
-                            className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-white mb-3 shadow-sm group-hover:shadow-lg transition-all duration-300"
+                            transition={{ duration: 0.15, ease: "easeOut" }}
+                            className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-white mb-3 shadow-sm group-hover:shadow-lg transition-all duration-200"
                           >
                             <Image 
                               src={resolveImageUrl(product)} 
                               alt={product.name} 
                               fill 
-                              className="object-cover group-hover:scale-110 transition-transform duration-700" 
+                              quality={95}
+                              sizes="(max-width: 768px) 50vw, (max-width: 1024px) 25vw, 20vw"
+                              className="object-cover group-hover:scale-105 transition-transform duration-400" 
                             />
                             
                             {/* Similarity Badge */}

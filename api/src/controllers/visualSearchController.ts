@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Product } from '../models/Product';
 import { analyzeImageForVisualSearch } from '../utils/visualSearchAI';
 import { calculateColorDistance, distanceToSimilarity } from '../utils/colorMath';
+import { normalizeCategoryName } from '../utils/categoryNormalizer';
 
 /**
  * STEP 2: Visual Analysis (AI – One Time)
@@ -45,10 +46,14 @@ export const getSimilarProducts = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'Category is required' });
         }
 
+        // Normalize AI-detected category to match database categories
+        const normalizedCategory = normalizeCategoryName(category);
+        console.log(`[VISUAL SEARCH] AI Category: "${category}" -> Normalized: "${normalizedCategory}"`);
+
         // Structural attributes are used only for ranking, not filtering
         const query: any = {
             isPublished: { $ne: false },
-            category: { $regex: new RegExp(`^${category}$`, 'i') }
+            category: { $regex: new RegExp(`^${normalizedCategory}$`, 'i') }
         };
 
         // Color and other filters are optional user refinements
@@ -68,6 +73,15 @@ export const getSimilarProducts = async (req: Request, res: Response) => {
         }
 
         const candidates = await Product.find(query).limit(200).lean();
+
+        console.log(`[VISUAL SEARCH] Query:`, JSON.stringify(query));
+        console.log(`[VISUAL SEARCH] Found ${candidates.length} candidates`);
+        if (candidates.length > 0) {
+            console.log(`[VISUAL SEARCH] Sample product:`, {
+                name: candidates[0].name,
+                category: candidates[0].category
+            });
+        }
 
         // Calculate similarity based on tags and optionally color
         let results = candidates.map((product: any) => {

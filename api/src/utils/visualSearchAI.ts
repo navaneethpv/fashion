@@ -97,8 +97,21 @@ export async function analyzeImageForVisualSearch(
                 rgb: hexToRgb(parsed.dominantColor.hex)
             }
         };
-    } catch (err) {
-        console.error("Visual Analysis Error:", err);
-        throw new Error("Failed to analyze image for visual search.");
+    } catch (err: any) {
+        console.error("[VISUAL SEARCH AI] Analysis Error:", err);
+        console.error("[VISUAL SEARCH AI] Error Name:", err.name);
+        console.error("[VISUAL SEARCH AI] Error Message:", err.message);
+
+        // Provide helpful error message
+        let errorMessage = "Failed to analyze image for visual search.";
+        if (err.message?.toLowerCase().includes('api key')) {
+            errorMessage = "Invalid or missing Gemini API key. Please check your .env file.";
+        } else if (err.message?.toLowerCase().includes('quota')) {
+            errorMessage = "Gemini API quota exceeded. Please try again later.";
+        } else if (err.message) {
+            errorMessage = `Analysis failed: ${err.message}`;
+        }
+
+        throw new Error(errorMessage);
     }
 }

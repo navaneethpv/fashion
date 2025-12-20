@@ -106,8 +106,8 @@ export default function ProductFilters({
       <div>
         <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Price</h3>
         <div className="flex gap-2">
-           <button onClick={() => handleFilterChange('maxPrice', '5000')} className="px-3 py-1 border text-xs rounded hover:bg-gray-100">Under $50</button>
-           <button onClick={() => handleFilterChange('minPrice', '10000')} className="px-3 py-1 border text-xs rounded hover:bg-gray-100">$100+</button>
+           <button onClick={() => handleFilterChange('maxPrice', '5000')} className="px-3 py-1 border text-xs rounded hover:bg-gray-100">Under ₹50</button>
+           <button onClick={() => handleFilterChange('minPrice', '10000')} className="px-3 py-1 border text-xs rounded hover:bg-gray-100">₹100+</button>
         </div>
         {(searchParams.get('minPrice') || searchParams.get('maxPrice')) && (
            <button 

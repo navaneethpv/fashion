@@ -66,7 +66,7 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
           
           <div className="grid grid-cols-2 md:grid-cols-4 text-sm">
              <p className="font-bold flex items-center gap-1"><Package className="w-4 h-4 text-primary" /> {order.items.length} Items</p>
-             <p className="font-bold flex items-center gap-1"><DollarSign className="w-4 h-4 text-primary" /> Total: ${(order.total_cents / 100).toFixed(2)}</p>
+             <p className="font-bold flex items-center gap-1"><DollarSign className="w-4 h-4 text-primary" /> Total: ₹{(order.total_cents / 100).toFixed(2)}</p>
              <p className="col-span-2 text-xs text-gray-500 mt-2 md:mt-0">Ship to: {order.shippingAddress.street}, {order.shippingAddress.city}</p>
           </div>
         </div>

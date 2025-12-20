@@ -398,7 +398,7 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
                             
                             {/* Similarity Badge */}
                             <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md text-primary text-[10px] font-black px-2 py-1 rounded-lg border border-primary/10 shadow-sm flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulss" />
                               {product.similarity}% MATCH
                             </div>
     
@@ -413,7 +413,7 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
                           <div className="space-y-1 px-1">
                             <h4 className="font-bold text-sm text-gray-900 truncate leading-none">{product.name}</h4>
                             <div className="flex justify-between items-center">
-                              <p className="text-sm font-black text-primary">${(product.price || 0).toFixed(2)}</p>
+                              <p className="text-sm font-black text-primary">₹{(product.price || 0).toFixed(2)}</p>
                               <p className="text-[10px] text-gray-400 font-medium">{product.brand}</p>
                             </div>
                           </div>

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from '@clerk/nextjs'; // Import this
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 // import "keen-slider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -20,7 +22,10 @@ export default function RootLayout({
     // Wrap with ClerkProvider
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning={true}>
-        <body className={inter.className}>{children}</body>
+        <body className={`${inter.className} flex flex-col min-h-screen`}>
+          {children}
+          <Footer />
+        </body>
       </html>
     </ClerkProvider>
   );

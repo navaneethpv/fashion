@@ -54,6 +54,12 @@ export default function Navbar() {
             >
               Kids
             </Link>
+            <Link 
+              href="/wishlist" 
+              className="transition-colors border-b-2 hover:text-primary border-transparent hover:border-primary"
+            >
+              Wishlist
+            </Link>
             <style jsx>{`
               /* Ensure the border doesn't cause layout shift by reserving space or using absolute positioning if needed, 
                  but border-b-2 transparent is robust enough. */

@@ -5,6 +5,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
+import { Heart } from "lucide-react";
 
 interface Product {
   _id?: string | null;
@@ -26,6 +28,39 @@ const PLACEHOLDER = "https://via.placeholder.com/300x200?text=No+Image";
 
 export default function ProductCard({ product }: ProductCardProps) {
   const [localProduct, setLocalProduct] = useState<Product>(product);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const { user } = useUser();
+
+  const toggleWishlist = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!user || !localProduct._id) return;
+    
+    setWishlistLoading(true);
+    try {
+      if (isWishlisted) {
+        await fetch(`http://localhost:4000/api/wishlist/remove/${localProduct._id}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id }),
+        });
+        setIsWishlisted(false);
+      } else {
+        await fetch('http://localhost:4000/api/wishlist/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, productId: localProduct._id }),
+        });
+        setIsWishlisted(true);
+      }
+    } catch (error) {
+      console.error('Wishlist toggle failed:', error);
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
 
   useEffect(() => {
     const hasImage =
@@ -95,6 +130,23 @@ export default function ProductCard({ product }: ProductCardProps) {
             <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
               {localProduct.offer_tag}
             </span>
+          )}
+          {/* Wishlist Button */}
+          {user && (
+            <button
+              onClick={toggleWishlist}
+              disabled={wishlistLoading}
+              className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:shadow-lg transition disabled:opacity-50"
+              title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            >
+              <Heart 
+                className={`w-5 h-5 transition ${
+                  isWishlisted 
+                    ? 'fill-red-500 text-red-500' 
+                    : 'text-gray-600 hover:text-red-500'
+                }`}
+              />
+            </button>
           )}
         </div>
 

@@ -1,5 +1,6 @@
 import Navbar from './(pages)/components/Navbar';
 import ProductCard from './(pages)/components/ProductCard';
+import AutoBanner from './(pages)/components/AutoBanner';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import OfferSection from '@/components/home/OfferSection';
@@ -26,34 +27,8 @@ export default async function Home() {
     <div className="min-h-screen bg-white font-sans text-gray-900">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative h-[500px] w-full bg-linear-to-r from-violet-100 to-pink-50 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 h-full flex items-center">
-          <div className="max-w-xl z-10">
-            <span className="text-accent font-bold tracking-wider text-sm uppercase mb-2 block">
-              Eyoris Style Studio
-            </span>
-            <h1 className="text-5xl md:text-7xl font-black text-gray-900 leading-tight mb-6">
-              STYLE, <br/> <span className="text-primary">PERFECTED.</span>
-            </h1>
-            <p className="text-lg text-gray-600 mb-8 max-w-md">
-              Discover complete outfits curated intelligently for every moment. 
-              From everyday elegance to statement looks, style comes together effortlessly.
-            </p>
-            <div className="flex gap-4">
-               <Link href="/product" className="bg-gray-900 text-white px-8 py-3.5 rounded-full font-bold hover:bg-gray-800 transition">
-                Enter Style Studio
-              </Link>
-              <button className="bg-white text-gray-900 border border-gray-200 px-8 py-3.5 rounded-full font-bold hover:bg-gray-50 transition flex items-center gap-2">
-                 Explore Collections <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          {/* Abstract Hero Visual */}
-          <div className="absolute right-0 top-0 h-full w-1/2 bg-[url('https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=2070')] bg-cover bg-center opacity-80 mask-image-gradient" />
-          <div className="absolute inset-0 bg-linear-to-r from-violet-100 via-violet-100/80 to-transparent z-0 pointer-events-none" />
-        </div>
-      </section>
+      {/* Auto-Rotating Banner */}
+      <AutoBanner />
 
       {/* Curated Offer / Campaign Section */}
       <OfferSection />

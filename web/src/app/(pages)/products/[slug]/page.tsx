@@ -12,6 +12,9 @@ import AddToCartButton from "../../components/AddToCartButton";
 import { Star, Truck, ShieldCheck } from "lucide-react";
 import ProductSlider from "../../components/ProductSlider";
 
+// Force dynamic rendering for this route
+export const dynamic = "force-dynamic";
+
 // (Your interfaces extended slightly for optional fields)
 interface ImageType {
   url: string;
@@ -292,8 +295,7 @@ export default async function ProductDetailPage({
                               ? { backgroundColor: product.variants[0].color }
                               : undefined
                           }
-                        >
-                        </span>
+                        ></span>
                       </div>
                     ) : (
                       <div className="text-xs text-gray-500">
@@ -319,24 +321,28 @@ export default async function ProductDetailPage({
 
           {/* 3. AI ASSISTANT / OUTFIT SUGGESTION */}
           <div className="mt-8">
-            <OutfitGenerator productId={product._id} productGender={product.gender} />
+            <OutfitGenerator
+              productId={product._id}
+              productGender={product.gender}
+            />
           </div>
 
           {/* 4. CROSS-SELL SLIDERS */}
-          {product.relatedAccessories && product.relatedAccessories.length > 0 && (
-            <div className="mt-12 border-t border-gray-100 pt-8">
-              <ProductSlider 
-                title="Complete the Look" 
-                products={product.relatedAccessories} 
-              />
-            </div>
-          )}
+          {product.relatedAccessories &&
+            product.relatedAccessories.length > 0 && (
+              <div className="mt-12 border-t border-gray-100 pt-8">
+                <ProductSlider
+                  title="Complete the Look"
+                  products={product.relatedAccessories}
+                />
+              </div>
+            )}
 
           {product.similarProducts && product.similarProducts.length > 0 && (
             <div className="mt-4 border-t border-gray-100 pt-8">
-              <ProductSlider 
-                title="You May Also Like" 
-                products={product.similarProducts} 
+              <ProductSlider
+                title="You May Also Like"
+                products={product.similarProducts}
               />
             </div>
           )}

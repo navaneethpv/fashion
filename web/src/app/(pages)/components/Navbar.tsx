@@ -1,13 +1,13 @@
-"use client"
-import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { ShoppingBag } from 'lucide-react';
-import ImageSearchModal from './ImageSearchModal';
+"use client";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { ShoppingBag } from "lucide-react";
+import ImageSearchModal from "./ImageSearchModal";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
-import SearchInput from './SearchInput'; // 👈 CRITICAL: Import the new component
+import SearchInput from "./SearchInput"; // 👈 CRITICAL: Import the new component
 
-export default function Navbar() {
+function NavbarContent() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchParams = useSearchParams();
   const { user } = useUser();
@@ -19,8 +19,10 @@ export default function Navbar() {
           {/* Logo - Clean & Modern */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl opacity-90 group-hover:opacity-100 transition-opacity"></div>
-              <span className="absolute inset-0 flex items-center justify-center text-white font-black text-xl">E</span>
+              <div className="w-10 h-10 bg-linear-to-br from-violet-600 to-purple-600 rounded-xl opacity-90 group-hover:opacity-100 transition-opacity"></div>
+              <span className="absolute inset-0 flex items-center justify-center text-white font-black text-xl">
+                E
+              </span>
             </div>
             <span className="text-2xl font-black tracking-tight text-gray-900">
               Eyoris <span className="font-light text-gray-600">Fashion</span>
@@ -29,32 +31,32 @@ export default function Navbar() {
 
           {/* Links (Same as before) */}
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-700 uppercase tracking-wide">
-            <Link 
-              href="/product?gender=men" 
+            <Link
+              href="/product?gender=men"
               className={`transition-colors border-b-2 hover:text-primary ${
-                searchParams.get('gender')?.toLowerCase() === 'men' 
-                  ? 'text-primary border-primary' 
-                  : 'border-transparent hover:border-primary'
+                searchParams.get("gender")?.toLowerCase() === "men"
+                  ? "text-primary border-primary"
+                  : "border-transparent hover:border-primary"
               }`}
             >
               Men
             </Link>
-            <Link 
-              href="/product?gender=women" 
+            <Link
+              href="/product?gender=women"
               className={`transition-colors border-b-2 hover:text-primary ${
-                searchParams.get('gender')?.toLowerCase() === 'women' 
-                  ? 'text-primary border-primary' 
-                  : 'border-transparent hover:border-primary'
+                searchParams.get("gender")?.toLowerCase() === "women"
+                  ? "text-primary border-primary"
+                  : "border-transparent hover:border-primary"
               }`}
             >
               Women
             </Link>
-            <Link 
-              href="/product?gender=kids" 
+            <Link
+              href="/product?gender=kids"
               className={`transition-colors border-b-2 hover:text-primary ${
-                searchParams.get('gender')?.toLowerCase() === 'kids' 
-                  ? 'text-primary border-primary' 
-                  : 'border-transparent hover:border-primary'
+                searchParams.get("gender")?.toLowerCase() === "kids"
+                  ? "text-primary border-primary"
+                  : "border-transparent hover:border-primary"
               }`}
             >
               Kids
@@ -71,7 +73,6 @@ export default function Navbar() {
 
           {/* Icons & Auth (Same as before) */}
           <div className="flex items-center gap-6">
-            
             <div className="flex items-center">
               <SignedOut>
                 <SignInButton mode="modal">
@@ -81,10 +82,13 @@ export default function Navbar() {
                 </SignInButton>
               </SignedOut>
               <SignedIn>
-                <Link href="/profile" className="flex items-center gap-2 cursor-pointer group">
-                  <img 
-                    src={user?.imageUrl} 
-                    alt="Profile" 
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 cursor-pointer group"
+                >
+                  <img
+                    src={user?.imageUrl}
+                    alt="Profile"
                     className="w-8 h-8 rounded-full object-cover border-2 border-gray-200 group-hover:border-primary transition"
                   />
                 </Link>
@@ -92,18 +96,41 @@ export default function Navbar() {
             </div>
 
             {/* Cart Link */}
-            <Link href="/cart" className="flex flex-col items-center cursor-pointer group">
+            <Link
+              href="/cart"
+              className="flex flex-col items-center cursor-pointer group"
+            >
               <div className="relative">
                 <ShoppingBag className="h-5 w-5 text-gray-600 group-hover:text-black" />
-                <span className="absolute -top-1 -right-2 bg-primary text-white text-[9px] font-bold px-1 rounded-full">2</span>
+                <span className="absolute -top-1 -right-2 bg-primary text-white text-[9px] font-bold px-1 rounded-full">
+                  2
+                </span>
               </div>
-              <span className="text-[10px] font-bold text-gray-600 mt-0.5 group-hover:text-black">Bag</span>
+              <span className="text-[10px] font-bold text-gray-600 mt-0.5 group-hover:text-black">
+                Bag
+              </span>
             </Link>
-
           </div>
         </div>
       </nav>
-      <ImageSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <ImageSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
     </>
+  );
+}
+
+export default function Navbar() {
+  return (
+    <Suspense fallback={
+      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm h-20">
+        <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-center">
+          <div className="text-gray-500">Loading...</div>
+        </div>
+      </nav>
+    }>
+      <NavbarContent />
+    </Suspense>
   );
 }

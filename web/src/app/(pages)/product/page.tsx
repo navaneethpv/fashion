@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import Navbar from "../components/Navbar";
 import ProductCard from "../components/ProductCard";
 import ProductFilters, { SizeFilterMode } from "../components/ProductFilters";
 import Pagination from "../components/Pagination";
+
+export const dynamic = "force-dynamic";
 
 // Interface for Search Parameters coming from the URL
 interface SearchParams {
@@ -212,7 +214,7 @@ type ApiMeta = {
 
 type SortKey = "price_asc" | "price_desc" | "new" | "rating" | undefined;
 
-export default function ProductsPage() {
+function ProductPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -498,5 +500,20 @@ export default function ProductsPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function ProductPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white">
+        <Navbar />
+        <div className="flex justify-center items-center h-[60vh]">
+          <div className="text-gray-500">Loading products...</div>
+        </div>
+      </div>
+    }>
+      <ProductPageContent />
+    </Suspense>
   );
 }

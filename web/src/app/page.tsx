@@ -1,18 +1,20 @@
-import Navbar from './(pages)/components/Navbar';
-import ProductCard from './(pages)/components/ProductCard';
-import AutoBanner from './(pages)/components/AutoBanner';
-import MostViewedSlider from './(pages)/components/MostViewedSlider';
-import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
-import OfferSection from '@/components/home/OfferSection';
+import Navbar from "./(pages)/components/Navbar";
+import ProductCard from "./(pages)/components/ProductCard";
+import AutoBanner from "./(pages)/components/AutoBanner";
+import MostViewedSlider from "./(pages)/components/MostViewedSlider";
+import Link from "next/link";
+import OfferSection from "@/components/home/OfferSection";
 
 // Fetch data directly from backend
 async function getTrendingProducts() {
   try {
-    const res = await fetch('http://localhost:4000/api/products?limit=8&sort=price_desc', { 
-      cache: 'no-store' 
-    });
-    if (!res.ok) throw new Error('Failed to fetch');
+    const res = await fetch(
+      "http://localhost:4000/api/products?limit=8&sort=price_desc",
+      {
+        cache: "no-store",
+      }
+    );
+    if (!res.ok) throw new Error("Failed to fetch");
     const json = await res.json();
     return json.data;
   } catch (err) {
@@ -38,9 +40,14 @@ export default async function Home() {
       <section className="max-w-7xl mx-auto px-4 py-12">
         <div className="flex justify-between items-end mb-8">
           <h2 className="text-3xl font-bold tracking-tight">Trending Now</h2>
-          <Link href="/product" className="text-primary font-semibold hover:underline">View All</Link>
+          <Link
+            href="/product"
+            className="text-primary font-semibold hover:underline"
+          >
+            View All
+          </Link>
         </div>
-        
+
         {products.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 md:gap-8 gap-4">
             {products.map((p: any) => (
@@ -54,7 +61,7 @@ export default async function Home() {
                   price_before_cents: p.price_before_cents,
                   images: p.images,
                   brand: p.brand,
-                  offer_tag: p.offer_tag
+                  offer_tag: p.offer_tag,
                 }}
               />
             ))}

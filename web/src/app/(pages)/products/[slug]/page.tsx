@@ -207,7 +207,7 @@ export default async function ProductDetailPage({
           <div>
             {/* Brand + Title + Rating */}
             <div className="mb-6">
-              <h1 className="text-sm font-bold text-primary uppercase tracking-wider mb-2">
+              <h1 className="text-sm font-bold text-gray-600 uppercase tracking-wider mb-2">
                 {product.brand}
               </h1>
               <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4 leading-tight">

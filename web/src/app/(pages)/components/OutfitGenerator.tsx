@@ -217,7 +217,7 @@ export default function OutfitGenerator({
             <button
               onClick={handleGenerate}
               disabled={loading}
-              className="group relative px-8 py-1 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 text-white font-bold text-sm md:text-base rounded-2xl shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 overflow-hidden"
+              className="group relative px-8 py-1 sm:py-4 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 text-white font-bold text-sm md:text-base rounded-2xl shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 overflow-hidden"
             >
               {/* Animated gradient overlay on hover */}
               <div className="absolute inset-0 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

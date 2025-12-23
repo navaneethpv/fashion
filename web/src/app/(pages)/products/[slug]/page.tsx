@@ -198,7 +198,7 @@ export default async function ProductDetailPage({
         {/* 🛑 TOP SECTION: GALLERY + MAIN INFO 🛑 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">
           {/* Left Column: Gallery */}
-          <div className="sticky top-24 self-start">
+          <div className="scroll self-start">
             {/* Uses your product.images directly */}
             <Gallery images={product.images} name={product.name} />
           </div>

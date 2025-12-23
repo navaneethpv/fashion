@@ -5,9 +5,13 @@ import { ArrowUpRight, ArrowDownRight, MoreHorizontal, DollarSign, ShoppingBag, 
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
-
+  const base =
+  process.env.NEXT_PUBLIC_API_BASE ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:4000";
+const baseUrl = base.replace(/\/$/, "");
   useEffect(() => {
-    fetch('http://localhost:4000/api/admin/stats')
+    fetch(`${baseUrl}/api/admin/stats`)
       .then(res => res.json())
       .then(data => setStats(data))
       .catch(err => console.error(err));

@@ -45,6 +45,11 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const base =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:4000";
+    const baseUrl = base.replace(/\/$/, "");
 
   // Fetch results when analysis, filters, or sortBy changes
   useEffect(() => {
@@ -90,10 +95,11 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
 
     try {
       let res;
-      
+    
+    
       // Use URL-based endpoint if imageUrl is provided
       if (imageUrl.trim()) {
-        res = await fetch('http://localhost:4000/api/ai/visual-search/analyze-url', {
+        res = await fetch(`${baseUrl}/api/ai/visual-search/analyze-url`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ imageUrl: imageUrl.trim() }),
@@ -102,7 +108,7 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
         // Use existing file upload endpoint
         const formData = new FormData();
         formData.append('image', file!);
-        res = await fetch('http://localhost:4000/api/ai/visual-search/analyze', {
+        res = await fetch(`${baseUrl}/api/ai/visual-search/analyze`, {
           method: 'POST',
           body: formData,
         });
@@ -127,7 +133,7 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
     if (!analysis) return;
 
     try {
-      const res = await fetch('http://localhost:4000/api/ai/visual-search/results', {
+      const res = await fetch(`${baseUrl}/api/ai/visual-search/results`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

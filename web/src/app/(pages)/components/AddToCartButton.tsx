@@ -33,6 +33,12 @@ export default function AddToCartButton({ variants = [], productId, price }: Add
   const isLowStock = availableStock > 0 && availableStock <= 10;
   const isAnySizeInStock = variants.some(v => v.stock > 0);
   // --- END STOCK LOGIC ---
+ 
+  const base =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:4000";
+    const baseUrl = base.replace(/\/$/, "");
 
   const handleAddToCart = async () => {
     // 1. Auth Check
@@ -52,7 +58,7 @@ export default function AddToCartButton({ variants = [], productId, price }: Add
 
     try {
       // 3. API Call
-      const res = await fetch('http://localhost:4000/api/cart', {
+      const res = await fetch(`${baseUrl}/api/cart`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

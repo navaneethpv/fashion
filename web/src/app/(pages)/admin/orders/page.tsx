@@ -9,9 +9,14 @@ export default function OrdersPage() {
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [printingOrder, setPrintingOrder] = useState<string | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const base =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:4000";
+    const baseUrl = base.replace(/\/$/, "");
 
   const fetchOrders = () => {
-    fetch('http://localhost:4000/api/orders/all')
+    fetch(`${baseUrl}/api/orders/all`)
       .then(res => res.json())
       .then(data => setOrders(data));
   };
@@ -23,7 +28,7 @@ export default function OrdersPage() {
   const handleStatusChange = async (orderId: string, newOrderStatus: string) => {
     setUpdatingId(orderId);
     try {
-      const res = await fetch(`http://localhost:4000/api/orders/${orderId}/order-status`, {
+      const res = await fetch(`${baseUrl}/api/orders/${orderId}/order-status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderStatus: newOrderStatus })

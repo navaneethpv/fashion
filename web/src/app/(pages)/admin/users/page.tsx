@@ -3,13 +3,17 @@ import { useEffect, useState } from 'react';
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
+  const base =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:4000";
+    const baseUrl = base.replace(/\/$/, "");
 
   useEffect(() => {
-    fetch('http://localhost:4000/api/admin/users')
+    fetch(`${baseUrl}/api/admin/users`)
       .then(res => res.json())
       .then(data => setUsers(data));
   }, []);
-
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Registered Users</h1>

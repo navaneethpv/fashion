@@ -11,12 +11,17 @@ export default function CartPage() {
   const [cart, setCart] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const base =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:4000";
+    const baseUrl = base.replace(/\/$/, "");
   // Fetch Cart
   const fetchCart = async () => {
     if (!user) return;
     try {
       const res = await fetch(
-        `http://localhost:4000/api/cart?userId=${user.id}`
+        `${baseUrl}/api/cart?userId=${user.id}`
       );
       const data = await res.json();
       // normalize so cart.items is always an array
@@ -39,7 +44,7 @@ export default function CartPage() {
       );
       setCart({ ...cart, items: newItems });
 
-      await fetch("http://localhost:4000/api/cart", {
+      await fetch(`${baseUrl}/api/cart`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id, productId, variant }),
@@ -75,7 +80,7 @@ export default function CartPage() {
       // debug: log outgoing payload
       console.log("PATCH /api/cart/quantity ->", { userId: user.id, productId, variant, quantity: newQty });
 
-      const res = await fetch("http://localhost:4000/api/cart/quantity", {
+      const res = await fetch(`${baseUrl}/api/cart/quantity`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

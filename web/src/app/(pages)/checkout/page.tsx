@@ -25,7 +25,12 @@ export default function CheckoutPage() {
     zip: '',
     country: 'US'
   });
-
+ 
+  const base =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:4000";
+    const baseUrl = base.replace(/\/$/, "");
   // 1. Fetch Cart & Pre-fill Email
   useEffect(() => {
     if (!isLoaded || !user) return;
@@ -38,7 +43,7 @@ export default function CheckoutPage() {
       lastName: user.lastName || ''
     }));
 
-    fetch(`http://localhost:4000/api/cart?userId=${user.id}`)
+    fetch(`${baseUrl}/api/cart?userId=${user.id}`)
       .then(res => res.json())
       .then(data => {
         setCart(data);
@@ -70,7 +75,7 @@ export default function CheckoutPage() {
       // Simulate payment processing delay
       await new Promise(r => setTimeout(r, 2000)); 
 
-      const res = await fetch('http://localhost:4000/api/orders', {
+      const res = await fetch(`${baseUrl}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderPayload)

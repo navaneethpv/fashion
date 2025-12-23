@@ -8,6 +8,12 @@ export default function WishlistPage() {
   const { user, isLoaded } = useUser();
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+ 
+  const base =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:4000";
+    const baseUrl = base.replace(/\/$/, "");
 
   // Fetch wishlist on mount
   useEffect(() => {
@@ -20,7 +26,7 @@ export default function WishlistPage() {
 
   const fetchWishlist = async () => {
     try {
-      const response = await fetch(`http://localhost:4000/api/wishlist?userId=${user?.id}`);
+      const response = await fetch(`${baseUrl}/api/wishlist?userId=${user?.id}`);
       const data = await response.json();
       setWishlist(data.wishlist || []);
     } catch (error) {
@@ -32,7 +38,7 @@ export default function WishlistPage() {
 
   const removeFromWishlist = async (productId: string) => {
     try {
-      await fetch(`http://localhost:4000/api/wishlist/remove/${productId}`, {
+      await fetch(`${baseUrl}/api/wishlist/remove/${productId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user?.id }),

@@ -27,11 +27,16 @@ export default function ProductReviews({ productId }: { productId: string }) {
     const [newComment, setNewComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const base =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:4000";
+    const baseUrl = base.replace(/\/$/, "");
     // Fetch Reviews
     const fetchReviews = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(`http://localhost:4000/api/reviews/${productId}`);
+            const res = await fetch(`${baseUrl}/api/reviews/${productId}`);
             const data = await res.json();
             setReviews(data);
         } catch (error) {
@@ -53,7 +58,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
         
         setIsSubmitting(true);
         try {
-            const res = await fetch('http://localhost:4000/api/reviews', {
+            const res = await fetch(`${baseUrl}/api/reviews`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

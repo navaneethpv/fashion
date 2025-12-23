@@ -33,7 +33,13 @@ export default function ProductCard({ product }: ProductCardProps) {
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [burstPosition, setBurstPosition] = useState({ x: 0, y: 0 });
   const { user } = useUser();
-
+  
+  const base =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:4000";
+    const baseUrl = base.replace(/\/$/, "");
+    
   const toggleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -44,7 +50,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     try {
       if (isWishlisted) {
         await fetch(
-          `http://localhost:4000/api/wishlist/remove/${localProduct._id}`,
+          `${baseUrl}/api/wishlist/remove/${localProduct._id}`,
           {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
@@ -53,7 +59,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         );
         setIsWishlisted(false);
       } else {
-        await fetch("http://localhost:4000/api/wishlist/add", {
+        await fetch(`${baseUrl}/api/wishlist/add`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

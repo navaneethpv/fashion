@@ -63,12 +63,17 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
     const [articleTypeInputValue, setArticleTypeInputValue] = useState('');
     
     const genderOptions = ['Men', 'Women', 'Kids'];
-
+    
+    const base =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:4000";
+    const baseUrl = base.replace(/\/$/, "");
     // --- Fetch Product Data & Initialize ---
     const fetchProduct = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:4000/api/products/admin/${productId}`); 
+            const res = await fetch(`${baseUrl}/api/products/admin/${productId}`); 
             if (!res.ok) throw new Error('Product not found or API error');
             const data = await res.json();
             
@@ -148,7 +153,7 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
     useEffect(() => {
         // Fetch articleTypes when masterCategory changes
         if (formData.masterCategory) {
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products?limit=1000`)
+          fetch(`${baseUrl}/api/products?limit=1000`)
             .then((res) => res.json())
             .then((data) => {
               const articleTypesList = Array.from(new Set(
@@ -159,7 +164,7 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
               
               if (articleTypesList.length === 0) {
                  // Try dedicated category endpoint fallback
-                 fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/categories`)
+                 fetch(`${baseUrl}/api/products/categories`)
                   .then((res) => res.json())
                   .then((cats) => {
                     setArticleTypes(cats);
@@ -294,7 +299,7 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
             };
 
             // Use PUT with JSON
-            const res = await fetch(`http://localhost:4000/api/products/${productId}`, { 
+            const res = await fetch(`${baseUrl}api/products/${productId}`, { 
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload) 

@@ -13,13 +13,19 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const base =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:4000";
+    const baseUrl = base.replace(/\/$/, "");
+
   useEffect(() => {
     if (!userId) return;
 
     const fetchOrders = async () => {
       try {
         const res = await fetch(
-          `http://localhost:4000/api/orders?userId=${userId}`
+          `${baseUrl}/api/orders?userId=${userId}`
         );
         const data = await res.json();
         setOrders(data);

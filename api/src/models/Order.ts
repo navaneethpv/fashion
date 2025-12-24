@@ -14,33 +14,33 @@ const OrderSchema = new mongoose.Schema({
   userId: { type: String, required: true },
   items: [OrderItemSchema],
   total_cents: { type: Number, required: true },
-  
+
   // Legacy status field for backward compatibility
-  status: { 
-    type: String, 
-    enum: ['pending', 'paid', 'shipped', 'delivered', 'cancelled'], 
-    default: 'pending' 
+  status: {
+    type: String,
+    enum: ['pending', 'paid', 'shipped', 'delivered', 'cancelled'],
+    default: 'pending'
   },
-  
+
   // New separated status fields
-  paymentStatus: { 
-    type: String, 
-    enum: ['Pending', 'Paid', 'Failed', 'Refunded'], 
-    default: 'Pending' 
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'paid', 'failed', 'refunded'],
+    default: 'pending'
   },
-  
-  orderStatus: { 
-    type: String, 
-    enum: ['Placed', 'Shipped', 'Delivered', 'Cancelled'], 
-    default: 'Placed' 
+
+  orderStatus: {
+    type: String,
+    enum: ['placed', 'confirmed', 'shipped', 'delivered', 'cancelled'],
+    default: 'placed'
   },
-  
+
   paymentInfo: {
     id: String,
     status: String,
     method: String
   },
-  
+
   // More detailed address schema
   shippingAddress: {
     firstName: { type: String, required: true },

@@ -5,16 +5,16 @@ import { Order } from '../models/Order';
 import { Cart } from '../models/Cart';
 import { User } from '../models/User';
 import { Product } from '../models/Product';
-import { 
-  validateCreateOrderRequest, 
-  handleCartError, 
+import {
+  validateCreateOrderRequest,
+  handleCartError,
   calculateOrderTotal,
-  ValidationError 
+  ValidationError
 } from '../utils/validation';
-import { 
-  CreateOrderRequest, 
+import {
+  CreateOrderRequest,
   CreateOrderResponse,
-  OrderStatusUpdateResponse 
+  OrderStatusUpdateResponse
 } from '../types/order';
 
 
@@ -29,11 +29,11 @@ export const createOrder = async (req: Request, res: Response) => {
     const cart = await Cart.findOne({ userId: validatedRequest.userId })
       .populate('items.product', 'name price_cents images')
       .lean();
-    
+
     if (!cart || !cart.items.length) {
-      return res.status(400).json({ 
-        error: 'Validation Error', 
-        message: 'Cart is empty or not found' 
+      return res.status(400).json({
+        error: 'Validation Error',
+        message: 'Cart is empty or not found'
       });
     }
 
@@ -74,9 +74,9 @@ export const createOrder = async (req: Request, res: Response) => {
       items: orderItems,
       total_cents: calculatedTotal,
       shippingAddress: validatedRequest.shippingAddress,
-      status: 'paid' as const, // Legacy field for backward compatibility
-      paymentStatus: 'Paid' as const, // Payment confirmed
-      orderStatus: 'Placed' as const, // Order created, ready for shipping
+      status: 'paid' as const, // Legacy field
+      paymentStatus: 'paid' as const, // Payment confirmed
+      orderStatus: 'placed' as const, // Order created
       paymentInfo: {
         method: 'credit_card',
         status: 'succeeded',
@@ -89,7 +89,7 @@ export const createOrder = async (req: Request, res: Response) => {
 
     // Clear cart after successful order
     await Cart.findOneAndUpdate(
-      { userId: validatedRequest.userId }, 
+      { userId: validatedRequest.userId },
       { $set: { items: [] } }
     );
 
@@ -100,7 +100,7 @@ export const createOrder = async (req: Request, res: Response) => {
     res.status(201).json(savedOrder);
   } catch (error) {
     console.error('Create Order Error:', error);
-    
+
     if (error instanceof ValidationError) {
       return res.status(400).json({
         error: 'Validation Error',
@@ -115,7 +115,10 @@ export const createOrder = async (req: Request, res: Response) => {
 
 export const getUserOrders = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
+    const { userId } = req.query as { userId: string };
+    if (!userId) {
+      return res.status(400).json({ message: "UserId is required" });
+    }
     const orders = await Order.find({ userId }).sort({ createdAt: -1 });
     res.status(200).json(orders);
   } catch (error) {
@@ -140,18 +143,18 @@ export const getDashboardStats = async (req: Request, res: Response) => {
   try {
     // 1. Total Revenue (exclude cancelled orders, use paymentStatus for accuracy)
     const revenueAgg = await Order.aggregate([
-      { $match: { paymentStatus: 'Paid', orderStatus: { $ne: 'Cancelled' } } },
+      { $match: { paymentStatus: 'paid', orderStatus: { $ne: 'cancelled' } } },
       { $group: { _id: null, total: { $sum: '$total_cents' } } }
     ]);
     const totalRevenue = revenueAgg[0]?.total || 0;
 
     // 2. Counts (exclude cancelled)
-    const totalOrders = await Order.countDocuments({ orderStatus: { $ne: 'Cancelled' } });
+    const totalOrders = await Order.countDocuments({ orderStatus: { $ne: 'cancelled' } });
     const totalProducts = await Product.countDocuments();
     const totalUsers = await User.countDocuments();
 
     // 3. Recent Orders (exclude cancelled)
-    const recentOrders = await Order.find({ orderStatus: { $ne: 'Cancelled' } })
+    const recentOrders = await Order.find({ orderStatus: { $ne: 'cancelled' } })
       .sort({ createdAt: -1 }).limit(5);
 
     // 4. Payment Status breakdown
@@ -196,7 +199,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { orderStatus } = req.body;
 
-    const validOrderStatuses = ['Placed', 'Shipped', 'Delivered', 'Cancelled'];
+    const validOrderStatuses = ['placed', 'confirmed', 'shipped', 'delivered', 'cancelled'];
     if (!validOrderStatuses.includes(orderStatus)) {
       return res.status(400).json({ message: 'Invalid order status' });
     }
@@ -206,23 +209,24 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
     // Ensure payment is completed before allowing shipment status changes
-    if (order.paymentStatus !== 'Paid' && orderStatus !== 'Cancelled') {
-      return res.status(400).json({ 
+    if (order.paymentStatus !== 'paid' && orderStatus !== 'cancelled') {
+      // allow if it was 'Paid' (legacy case check?) no, we enforced lowercase.
+      return res.status(400).json({
         message: 'Cannot update shipment status: payment not completed',
-        currentPaymentStatus: order.paymentStatus 
+        currentPaymentStatus: order.paymentStatus
       });
     }
 
     // Update order status (shipment status)
     const updatedOrder = await Order.findByIdAndUpdate(
-      id, 
-      { 
+      id,
+      {
         orderStatus,
         // Update legacy status for backward compatibility
-        status: orderStatus === 'Cancelled' ? 'cancelled' : 
-               orderStatus === 'Shipped' ? 'shipped' :
-               orderStatus === 'Delivered' ? 'delivered' : 'paid'
-      }, 
+        status: orderStatus === 'cancelled' ? 'cancelled' :
+          orderStatus === 'shipped' ? 'shipped' :
+            orderStatus === 'delivered' ? 'delivered' : 'paid'
+      },
       { new: true }
     );
 
@@ -239,14 +243,14 @@ export const updatePaymentStatus = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { paymentStatus } = req.body;
 
-    const validPaymentStatuses = ['Pending', 'Paid', 'Failed', 'Refunded'];
+    const validPaymentStatuses = ['pending', 'paid', 'failed', 'refunded'];
     if (!validPaymentStatuses.includes(paymentStatus)) {
       return res.status(400).json({ message: 'Invalid payment status' });
     }
 
     const order = await Order.findByIdAndUpdate(
-      id, 
-      { paymentStatus }, 
+      id,
+      { paymentStatus },
       { new: true }
     );
 
@@ -273,8 +277,8 @@ export const getMonthlySales = async (req: Request, res: Response) => {
             $gte: new Date(`${year}-01-01`),
             $lt: new Date(`${parseInt(year as string) + 1}-01-01`)
           },
-          paymentStatus: 'Paid',
-          orderStatus: { $ne: 'Cancelled' } // Exclude cancelled orders
+          paymentStatus: 'paid',
+          orderStatus: { $ne: 'cancelled' } // Exclude cancelled orders
         }
       },
       {

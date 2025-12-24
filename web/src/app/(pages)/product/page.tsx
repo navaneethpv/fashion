@@ -457,32 +457,6 @@ function ProductPageContent() {
                 </div>
               </div>
 
-              {/* Filter Button for Desktop too? User asked for "Filter icon/button near product page header". 
-                  Usually nice to have "Open Filters" if sidebar is collapsed, but here sidebar is always visible on desktop.
-                  Let's show it on mobile only as per "Drawer layers... Width: Mobile 100%, Desktop 380px".
-                  User Request Step 2 says Desktop width 380-420. Maybe they want Drawer ON DESKTOP too?
-                  "The existing sidebar filtering on desktop should remain (or use the same logic)."
-                  If user wants drawer on desktop, I should maybe hide sidebar or offer both?
-                  "Implement a modern FILTER DRAWER UI... Mobile & Desktop".
-                  Okay, I will enable button on desktop too, maybe as an alternative or if user prefers drawer.
-                  But standard e-com usually has sidebar.
-                  "Sidebar (Desktop): Changing a filter updates URL immediately (Regression test)." implies sidebar stays.
-                  So Drawer is likely for Mobile usage OR if user clicks the optional button.
-                  I will show button on ALL screens but sidebar is hidden on mobile.
-                  Wait, if Sidebar is present on Desktop, Drawer is redundant on Desktop?
-                  flipkart uses sidebar. Myntra uses sidebar.
-                  Mobile users use drawer.
-                  I will show button ONLY md:hidden (mobile) initially.
-                  BUT prompt says "Button must work on both mobile & desktop" and "Drawer Width: Desktop 380px".
-                  So I will add the button for EVERYONE. But maybe hide sidebar if using drawer?
-                  Or purely Drawer based?
-                  "Product listing page already exists... Product page UI unchanged".
-                  Current UI has sidebar.
-                  If I add drawer, should I remove sidebar?
-                  "The existing sidebar filtering on desktop should remain".
-                  So I'll keep sidebar. Drawer is EXTRA way to filter.
-              */}
-
               <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4">
                   <p className="text-sm text-gray-500">

@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 export default function CheckoutPage() {
   const { user, isLoaded } = useUser();
-  
+
   const [cart, setCart] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -25,12 +25,12 @@ export default function CheckoutPage() {
     zip: '',
     country: 'US'
   });
- 
+
   const base =
     process.env.NEXT_PUBLIC_API_BASE ||
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:4000";
-    const baseUrl = base.replace(/\/$/, "");
+  const baseUrl = base.replace(/\/$/, "");
   // 1. Fetch Cart & Pre-fill Email
   useEffect(() => {
     if (!isLoaded || !user) return;
@@ -73,7 +73,7 @@ export default function CheckoutPage() {
 
     try {
       // Simulate payment processing delay
-      await new Promise(r => setTimeout(r, 2000)); 
+      await new Promise(r => setTimeout(r, 2000));
 
       const res = await fetch(`${baseUrl}/api/orders`, {
         method: 'POST',
@@ -133,26 +133,26 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
       <Navbar />
-      
+
       <main className="max-w-7xl mx-auto px-4 py-8 md:py-12">
         <h1 className="text-3xl font-black mb-8 flex items-center gap-3">
           <ShieldCheck className="w-8 h-8 text-primary" /> Secure Checkout
         </h1>
-        
+
         <div className="flex flex-col lg:flex-row gap-8">
-          
+
           {/* LEFT COLUMN: FORMS */}
           <div className="flex-1 space-y-6">
-            
+
             {/* 1. Contact Info */}
             <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
               <h2 className="text-xl font-bold mb-6">Contact Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">Email Address</label>
-                  <input 
+                  <input
                     name="email"
-                    type="email" 
+                    type="email"
                     required
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
                     value={formData.email}
@@ -161,9 +161,9 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">Phone Number</label>
-                  <input 
+                  <input
                     name="phone"
-                    type="tel" 
+                    type="tel"
                     required
                     placeholder="+1 (555) 000-0000"
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
@@ -177,11 +177,11 @@ export default function CheckoutPage() {
             {/* 2. Shipping Address */}
             <form id="checkout-form" onSubmit={handlePlaceOrder} className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
               <h2 className="text-xl font-bold mb-6">Shipping Address</h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">First Name</label>
-                  <input 
+                  <input
                     name="firstName" type="text" required
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
                     value={formData.firstName} onChange={handleChange}
@@ -189,7 +189,7 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">Last Name</label>
-                  <input 
+                  <input
                     name="lastName" type="text" required
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
                     value={formData.lastName} onChange={handleChange}
@@ -199,7 +199,7 @@ export default function CheckoutPage() {
 
               <div className="mb-6">
                 <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">Street Address</label>
-                <input 
+                <input
                   name="street" type="text" required placeholder="123 Fashion Ave, Apt 4B"
                   className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
                   value={formData.street} onChange={handleChange}
@@ -209,7 +209,7 @@ export default function CheckoutPage() {
               <div className="grid grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">City</label>
-                  <input 
+                  <input
                     name="city" type="text" required
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
                     value={formData.city} onChange={handleChange}
@@ -217,7 +217,7 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">State / Province</label>
-                  <input 
+                  <input
                     name="state" type="text" required
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
                     value={formData.state} onChange={handleChange}
@@ -228,7 +228,7 @@ export default function CheckoutPage() {
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">ZIP Code</label>
-                  <input 
+                  <input
                     name="zip" type="text" required
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
                     value={formData.zip} onChange={handleChange}
@@ -236,8 +236,8 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">Country</label>
-                  <select 
-                    name="country" 
+                  <select
+                    name="country"
                     className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition appearance-none"
                     value={formData.country} onChange={handleChange}
                   >
@@ -275,22 +275,22 @@ export default function CheckoutPage() {
           <div className="w-full lg:w-[400px]">
             <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 sticky top-24">
               <h3 className="font-bold text-xl mb-6">Order Summary</h3>
-              
+
               <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                 {cart.items.map((item: any) => (
                   <div key={`${item.product?._id ?? 'unknown'}-${item.variantSku ?? 'default'}`} className="flex gap-4">
                     <div className="w-12 h-16 bg-gray-100 rounded-md flex-shrink-0 relative overflow-hidden">
-                       <img
-                         src={item.product?.images?.[0]?.url ?? '/images/placeholder.png'}
-                         className="object-cover w-full h-full"
-                         alt={item.product?.name ?? ''}
-                       />
+                      <img
+                        src={item.product?.images?.[0] || item.product?.images?.[0]?.url || '/images/placeholder.png'}
+                        className="object-cover w-full h-full"
+                        alt={item.product?.name ?? ''}
+                      />
                     </div>
                     <div className="flex-1 text-sm">
                       <p className="font-bold text-gray-900 truncate">{item.product.name}</p>
                       <p className="text-gray-900 text-xs">Size: {item.variantSku} | Qty: {item.quantity}</p>
                     </div>
-                    <span className="font-bold text-sm">₹{((item.product.price_cents * item.quantity)/100).toFixed(2)}</span>
+                    <span className="font-bold text-sm">₹{((item.product.price_cents * item.quantity) / 100).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -317,8 +317,8 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 form="checkout-form"
                 disabled={processing}
                 className="w-full bg-black text-white h-14 rounded-xl font-bold hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2 shadow-xl shadow-gray-200 disabled:opacity-70 disabled:hover:scale-100"
@@ -333,7 +333,7 @@ export default function CheckoutPage() {
                   </>
                 )}
               </button>
-              
+
               <div className="text-center mt-4 text-xs text-gray-900">
                 <p>Secure SSL Encryption.</p>
                 <p>30-Day Money Back Guarantee.</p>

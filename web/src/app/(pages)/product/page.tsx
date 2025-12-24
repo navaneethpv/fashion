@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
 import Navbar from "../components/Navbar";
 import ProductCard from "../components/ProductCard";
 import ProductFilters, { SizeFilterMode } from "../components/ProductFilters";
@@ -216,6 +215,12 @@ type ApiMeta = {
 
 type SortKey = "price_asc" | "price_desc" | "new" | "rating" | undefined;
 
+// ... imports
+import { SlidersHorizontal } from "lucide-react";
+import FilterDrawer from "../components/FilterDrawer";
+
+// ... (keep logic above ProductPageContent)
+
 function ProductPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -224,6 +229,7 @@ function ProductPageContent() {
   const [products, setProducts] = useState<ProductForContext[]>([]);
   const [meta, setMeta] = useState<ApiMeta>({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState<boolean>(true);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const resolvedSearchParams: SearchParams = useMemo(
     () => ({
@@ -241,6 +247,20 @@ function ProductPageContent() {
     }),
     [searchParams]
   );
+
+  // Sidebar handler (Immediate update)
+  const handleSidebarFilterChange = (key: string, value: string | undefined) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+    params.set('page', '1');
+    router.push(`/product?${params.toString()}`, { scroll: false });
+  };
+
+  // ... (keep sortKey, useEffect, filteredProducts, sortedProducts, sizeFilterMode, genders, brands, colors, pageTitle logic)
 
   const sortKey = (resolvedSearchParams.sort as SortKey) || undefined;
 
@@ -273,6 +293,7 @@ function ProductPageContent() {
   const sortedProducts = useMemo(() => {
     const list = [...filteredProducts];
 
+    // ... sort logic (keep as is)
     if (!sortKey) return list;
 
     if (sortKey === "price_asc") {
@@ -386,9 +407,21 @@ function ProductPageContent() {
     <div className="min-h-screen bg-white text-gray-800">
       <Navbar />
 
+      {/* Filter Drawer */}
+      <FilterDrawer
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        sizeFilterMode={sizeFilterMode}
+        genders={genders}
+        brands={brands}
+        colors={colors}
+      />
+
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row gap-8">
-          <aside className="w-full md:w-64 flex-shrink-0">
+
+          {/* Desktop Sidebar (Hidden on mobile) */}
+          <aside className="hidden md:block w-full md:w-64 flex-shrink-0">
             <div className="sticky top-24">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold">Filters</h2>
@@ -407,7 +440,8 @@ function ProductPageContent() {
                 genders={genders}
                 brands={brands}
                 colors={colors}
-                activeArticleType={resolvedSearchParams.articleType}
+                values={resolvedSearchParams}
+                onChange={handleSidebarFilterChange}
               />
             </div>
           </aside>
@@ -415,22 +449,71 @@ function ProductPageContent() {
           <div className="flex-1">
             <div className="mb-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                <h1 className="text-2xl font-bold">{pageTitle}</h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold">{pageTitle}</h1>
+                  {/* Mobile/Tablet Filter Trigger */}
+                  <button
+                    onClick={() => setIsFilterOpen(true)}
+                    className="md:hidden p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
+                  >
+                    <SlidersHorizontal className="w-5 h-5 text-gray-800" />
+                  </button>
+                </div>
               </div>
 
-              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-gray-500">
-                  {loading
-                    ? "Loading products..."
-                    : sortedProducts.length > 0
-                      ? `Showing ${sortedProducts.length} result${sortedProducts.length === 1 ? "" : "s"
-                      }`
-                      : "No products found"}
-                </p>
+              {/* Filter Button for Desktop too? User asked for "Filter icon/button near product page header". 
+                  Usually nice to have "Open Filters" if sidebar is collapsed, but here sidebar is always visible on desktop.
+                  Let's show it on mobile only as per "Drawer layers... Width: Mobile 100%, Desktop 380px".
+                  User Request Step 2 says Desktop width 380-420. Maybe they want Drawer ON DESKTOP too?
+                  "The existing sidebar filtering on desktop should remain (or use the same logic)."
+                  If user wants drawer on desktop, I should maybe hide sidebar or offer both?
+                  "Implement a modern FILTER DRAWER UI... Mobile & Desktop".
+                  Okay, I will enable button on desktop too, maybe as an alternative or if user prefers drawer.
+                  But standard e-com usually has sidebar.
+                  "Sidebar (Desktop): Changing a filter updates URL immediately (Regression test)." implies sidebar stays.
+                  So Drawer is likely for Mobile usage OR if user clicks the optional button.
+                  I will show button on ALL screens but sidebar is hidden on mobile.
+                  Wait, if Sidebar is present on Desktop, Drawer is redundant on Desktop?
+                  flipkart uses sidebar. Myntra uses sidebar.
+                  Mobile users use drawer.
+                  I will show button ONLY md:hidden (mobile) initially.
+                  BUT prompt says "Button must work on both mobile & desktop" and "Drawer Width: Desktop 380px".
+                  So I will add the button for EVERYONE. But maybe hide sidebar if using drawer?
+                  Or purely Drawer based?
+                  "Product listing page already exists... Product page UI unchanged".
+                  Current UI has sidebar.
+                  If I add drawer, should I remove sidebar?
+                  "The existing sidebar filtering on desktop should remain".
+                  So I'll keep sidebar. Drawer is EXTRA way to filter.
+              */}
 
-                {/* Sort Dropdown */}
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-4">
+                  <p className="text-sm text-gray-500">
+                    {loading
+                      ? "Loading products..."
+                      : sortedProducts.length > 0
+                        ? `Showing ${sortedProducts.length} result${sortedProducts.length === 1 ? "" : "s"
+                        }`
+                        : "No products found"}
+                  </p>
+
+                  {/* Filter Button (Visible on all sizes logic? Or just mobile?)
+                        Implementation Plan said: "Sidebar (Desktop)... Drawer Integration: Add Filter icon/button".
+                        I'll add it next to sort or title.
+                    */}
+                  <button
+                    onClick={() => setIsFilterOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full shadow-sm hover:shadow-md transition-all text-sm font-medium"
+                  >
+                    <SlidersHorizontal className="w-4 h-4" />
+                    Filters
+                  </button>
+                </div>
+
+                {/* Sort Dropdown & Mobile Filter Trigger? */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 uppercase tracking-wide">
+                  <span className="text-xs text-gray-500 uppercase tracking-wide hidden sm:inline">
                     Sort by
                   </span>
                   <select

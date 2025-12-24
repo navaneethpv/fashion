@@ -2,10 +2,12 @@
 
 import { useState, useEffect, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ArrowLeft, Camera, Search, X, Tag, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Camera, Search, X, Tag, ShoppingBag, Clock, Sparkles } from "lucide-react";
 import Link from "next/link";
 import ProductCard from "../components/ProductCard";
 import ImageSearchModal from "../components/ImageSearchModal";
+import { useRecentSearches } from "../../../hooks/useRecentSearches";
+import { fetchAiSuggestions } from "../../../utils/aiSuggestions";
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -16,12 +18,14 @@ interface Suggestion {
     subText: string;
     image: string | null;
     slug?: string;
+    isAi?: boolean;
 }
 
 function SearchPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const inputRef = useRef<HTMLInputElement>(null);
+    const { recentSearches, addSearch, removeSearch, clearRecentSearches } = useRecentSearches();
 
     const initialQuery = searchParams.get("q") || searchParams.get("search") || "";
     const [query, setQuery] = useState(initialQuery);
@@ -55,22 +59,24 @@ function SearchPageContent() {
 
             setIsFetching(true);
             const API_URL = process.env.NEXT_PUBLIC_API_URL;
-            if (!API_URL) return;
 
             try {
-                const res = await fetch(
-                    `${API_URL}/api/products/suggestions?q=${encodeURIComponent(query)}`
-                );
-                if (res.ok) {
-                    const data = await res.json();
-                    setSuggestions(data);
-                }
+                // Parallel fetch
+                const basicPromise = API_URL
+                    ? fetch(`${API_URL}/api/products/suggestions?q=${encodeURIComponent(query)}`).then(res => res.ok ? res.json() : [])
+                    : Promise.resolve([]);
+
+                const aiPromise = fetchAiSuggestions(query);
+
+                const [basicData, aiData] = await Promise.all([basicPromise, aiPromise]);
+                setSuggestions([...basicData, ...aiData]);
+
             } catch (err) {
                 console.error("Failed to fetch suggestions", err);
             } finally {
                 setIsFetching(false);
             }
-        }, 300);
+        }, 500);
 
         return () => clearTimeout(delayDebounceFn);
     }, [query]);
@@ -78,6 +84,10 @@ function SearchPageContent() {
     const handleSearch = (overrideQuery?: string) => {
         const text = overrideQuery ?? query;
         if (!text.trim()) return;
+
+        // Save to recent
+        addSearch(text.trim());
+
         const params = new URLSearchParams();
         params.set("q", text.trim());
         router.push(`/product?${params.toString()}`);
@@ -96,6 +106,7 @@ function SearchPageContent() {
     };
 
     const renderIcon = (item: Suggestion) => {
+        if (item.isAi) return <Sparkles className="w-5 h-5 text-violet-500 fill-violet-100" />;
         if (item.image) {
             return (
                 <img
@@ -171,7 +182,7 @@ function SearchPageContent() {
                 </button>
             </header>
 
-            {/* Suggestions or Placeholder */}
+            {/* Suggestions or Recent or Placeholder */}
             <main className="px-0 py-2">
                 {query.length >= 2 && suggestions.length > 0 ? (
                     <div className="bg-white">
@@ -179,16 +190,17 @@ function SearchPageContent() {
                             <div
                                 key={index}
                                 onClick={() => handleSuggestionClick(item)}
-                                className="px-4 py-3 border-b border-gray-50 flex items-center gap-4 active:bg-gray-50 cursor-pointer"
+                                className={`px-4 py-3 border-b border-gray-50 flex items-center gap-4 active:bg-gray-50 cursor-pointer ${item.isAi ? 'bg-violet-50/20' : ''}`}
                             >
-                                <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg">
+                                <div className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg ${item.isAi ? 'bg-white' : 'bg-gray-100'}`}>
                                     {renderIcon(item)}
                                 </div>
                                 <div className="flex flex-col flex-1">
-                                    <span className="text-sm text-gray-900 leading-snug">
+                                    <span className="text-sm text-gray-900 leading-snug flex items-center gap-2">
                                         {highlightMatch(item.text, query)}
+                                        {item.isAi && <span className="text-[10px] font-bold text-violet-600 px-1.5 py-0.5 bg-violet-100 rounded-full">New</span>}
                                     </span>
-                                    <span className="text-xs text-blue-600 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                                    <span className={`text-xs font-medium whitespace-nowrap overflow-hidden text-ellipsis ${item.isAi ? 'text-violet-500' : 'text-blue-600'}`}>
                                         {item.subText}
                                     </span>
                                 </div>
@@ -205,6 +217,33 @@ function SearchPageContent() {
                         >
                             See all results for "{query}"
                         </div>
+                    </div>
+                ) : !query && recentSearches.length > 0 ? (
+                    <div className="bg-white">
+                        <div className="px-4 py-3 bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-widest flex justify-between items-center">
+                            <span>Recent Searches</span>
+                            <button onClick={clearRecentSearches} className="text-red-500 hover:underline">Clear</button>
+                        </div>
+                        {recentSearches.map((term) => (
+                            <div
+                                key={term}
+                                onClick={() => handleSearch(term)}
+                                className="px-4 py-3 border-b border-gray-50 flex items-center justify-between active:bg-gray-50 cursor-pointer group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg text-gray-400">
+                                        <Clock className="w-5 h-5" />
+                                    </div>
+                                    <span className="text-sm text-gray-700 font-medium">{term}</span>
+                                </div>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); removeSearch(term); }}
+                                    className="p-2 text-gray-400 hover:text-red-500"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center mt-20 text-center opacity-50 px-4">

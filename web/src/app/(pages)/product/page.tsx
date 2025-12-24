@@ -189,20 +189,18 @@ function applyClientFilters(
 
   // 5. Color
   if (color) {
-    filtered = filtered.filter(
-      (p) =>
-        p.dominantColor?.name && p.dominantColor.name.toLowerCase() === color
+    const selectedColors = color.split(",").map((c) => c.trim().toLowerCase());
+    filtered = filtered.filter((p) =>
+      p.dominantColor?.name && selectedColors.includes(p.dominantColor.name.toLowerCase())
     );
   }
 
   // 6. Size
   if (size) {
+    const selectedSizes = size.split(",").map((s) => s.trim().toLowerCase());
     filtered = filtered.filter((p) =>
-      (p.variants || []).some(
-        (v) =>
-          String(v.size ?? "")
-            .trim()
-            .toLowerCase() === size
+      (p.variants || []).some((v) =>
+        selectedSizes.includes(String(v.size ?? "").trim().toLowerCase())
       )
     );
   }

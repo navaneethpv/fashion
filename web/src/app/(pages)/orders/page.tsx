@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { Order } from "../../../types/order";
 import Navbar from "../components/Navbar";
 import { Package, Truck, CheckCircle, Clock, XCircle, RefreshCw } from "lucide-react";
@@ -13,6 +13,7 @@ const POLLING_INTERVAL = 5000;
 
 export default function OrdersPage() {
     const { user, isLoaded } = useUser();
+    const { getToken } = useAuth();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -20,9 +21,15 @@ export default function OrdersPage() {
     const fetchOrders = async () => {
         if (!user) return;
         try {
+            const token = await getToken();
             const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-            // Using query param as per backend fix
-            const res = await fetch(`${API_URL}/api/orders?userId=${user.id}`);
+
+            const res = await fetch(`${API_URL}/api/orders/my`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
             if (res.ok) {
                 const data = await res.json();
                 setOrders(data);

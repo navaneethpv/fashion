@@ -1,17 +1,19 @@
 
 import { Router } from 'express';
-import { 
-  createOrder, 
-  getUserOrders, 
-  getAllOrders, 
-  updateOrderStatus, 
-  updatePaymentStatus 
+import {
+  createOrder,
+  getUserOrders,
+  getAllOrders,
+  updateOrderStatus,
+  updatePaymentStatus
 } from '../controllers/orderController';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
 router.post('/', createOrder);
-router.get('/', getUserOrders);
+router.get('/my', requireAuth, getUserOrders); // Protected route for user orders
+router.get('/', getUserOrders); // Kept for backward compat (controller handles auth check)
 router.get('/all', getAllOrders);
 
 // Updated: Separate shipment and payment status updates

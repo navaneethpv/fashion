@@ -115,10 +115,12 @@ export const createOrder = async (req: Request, res: Response) => {
 
 export const getUserOrders = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.query as { userId: string };
+    const userId = (req as any).auth?.userId;
+
     if (!userId) {
-      return res.status(400).json({ message: "UserId is required" });
+      return res.status(401).json({ message: "Unauthorized" });
     }
+
     const orders = await Order.find({ userId }).sort({ createdAt: -1 });
     res.status(200).json(orders);
   } catch (error) {
@@ -196,9 +198,6 @@ export const getDashboardStats = async (req: Request, res: Response) => {
 // PATCH /api/orders/:id/order-status (Admin - Update shipment status only)
 export const updateOrderStatus = async (req: Request, res: Response) => {
   try {
-    console.log("params:", req.params);
-    console.log("body:", req.body);
-
     const id = req.params.id ?? req.params.orderId;
 
     const rawStatus =
@@ -221,8 +220,8 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
     // Ensure payment is completed before allowing shipment status changes
+    // Exception: Admin can always cancel an order
     if (order.paymentStatus !== 'paid' && orderStatus !== 'cancelled') {
-      // allow if it was 'Paid' (legacy case check?) no, we enforced lowercase.
       return res.status(400).json({
         message: 'Cannot update shipment status: payment not completed',
         currentPaymentStatus: order.paymentStatus

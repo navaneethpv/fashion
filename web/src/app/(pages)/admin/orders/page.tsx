@@ -246,17 +246,17 @@ export default function OrdersPage() {
                               <motion.select
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                className={`bg-gray-50 border border-gray-200 text-gray-900 text-xs rounded-lg block w-28 p-2.5 focus:ring-blue-500 focus:border-blue-500 outline-none ${order.paymentStatus !== 'Paid' ? 'opacity-50 cursor-not-allowed' : ''
+                                className={`bg-gray-50 border border-gray-200 text-gray-900 text-xs rounded-lg block w-28 p-2.5 focus:ring-blue-500 focus:border-blue-500 outline-none ${order.paymentStatus?.toLowerCase() !== 'paid' ? 'opacity-50 cursor-not-allowed' : ''
                                   }`}
                                 value={order.orderStatus}
                                 onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                                disabled={order.paymentStatus !== 'Paid'}
+                                disabled={order.paymentStatus?.toLowerCase() !== 'paid'}
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <option value="Placed">Placed</option>
-                                <option value="Shipped">Shipped</option>
-                                <option value="Delivered">Delivered</option>
-                                <option value="Cancelled">Cancelled</option>
+                                <option value="placed">Placed</option>
+                                <option value="shipped">Shipped</option>
+                                <option value="delivered">Delivered</option>
+                                <option value="cancelled">Cancelled</option>
                               </motion.select>
                             )}
                           </div>

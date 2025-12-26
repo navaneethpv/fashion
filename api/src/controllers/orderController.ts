@@ -221,7 +221,11 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 
     // Ensure payment is completed before allowing shipment status changes
     // Exception: Admin can always cancel an order
-    if (order.paymentStatus !== 'paid' && orderStatus !== 'cancelled') {
+    // Ensure payment is completed before allowing shipment status changes
+    // Exception: Admin can always cancel an order
+    const paymentStatusNormalized = order.paymentStatus?.toLowerCase();
+
+    if (paymentStatusNormalized !== 'paid' && orderStatus !== 'cancelled') {
       return res.status(400).json({
         message: 'Cannot update shipment status: payment not completed',
         currentPaymentStatus: order.paymentStatus

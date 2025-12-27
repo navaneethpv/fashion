@@ -44,13 +44,33 @@ export const createOrder = async (req: Request, res: Response) => {
         throw new ValidationError(`Product not found for cart item`);
       }
 
+      // Debug logging
+      console.log('=== IMAGE DEBUG ===');
+      console.log('Product name:', cartItem.product.name);
+      console.log('Product images:', JSON.stringify(cartItem.product.images, null, 2));
+      console.log('First image:', cartItem.product.images?.[0]);
+      console.log('First image type:', typeof cartItem.product.images?.[0]);
+
+      // Extract image URL - images is a string array
+      const images = cartItem.product.images;
+
+      const imageUrl =
+        Array.isArray(images)
+          ? typeof images[0] === 'string'
+            ? images[0]
+            : images[0]?.url || ''
+          : '';
+
+
+      console.log('Extracted imageUrl:', imageUrl);
+
       return {
         productId: cartItem.product._id.toString(),
         name: cartItem.product.name,
         variantSku: cartItem.variantSku,
         quantity: cartItem.quantity,
         price_cents: cartItem.price_at_add, // Use snapshot price from cart
-        image: cartItem.product.images?.[0]?.url || '' // Extract URL string from Cloudinary object
+        image: imageUrl
       };
     });
 

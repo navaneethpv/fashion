@@ -75,70 +75,90 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {orders.map((order) => (
         <div
           key={order._id}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md hover:-translate-y-[1px] transition-all"
+          className="bg-white rounded-xl shadow-md border border-gray-200/60 overflow-hidden hover:shadow-lg transition-all duration-300"
         >
-          <div className="px-6 py-4 border-b border-gray-50 flex flex-wrap gap-4 justify-between items-center bg-gray-50/50">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden relative border border-gray-200 flex-shrink-0">
-                {order.items[0]?.image ? (
-                  <img
-                    src={order.items[0].image}
-                    alt={order.items[0].name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-300">
-                    <Package className="w-6 h-6" />
-                  </div>
-                )}
-              </div>
-              <div className="flex flex-col gap-1">
-                <h3 className="font-semibold text-gray-900 line-clamp-1">
+          {/* Product-Focused Header */}
+          <div className="flex items-start gap-5 p-5 border-b border-gray-100">
+            {/* Large Product Image */}
+            <div className="w-24 h-24 bg-gray-50 rounded-lg overflow-hidden relative border border-gray-200 flex-shrink-0 shadow-sm">
+              {order.items[0]?.image ? (
+                <img
+                  src={order.items[0].image}
+                  alt={order.items[0].name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                  <Package className="w-10 h-10 text-gray-400" />
+                </div>
+              )}
+            </div>
+
+            {/* Product Details */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <h3 className="font-semibold text-base text-gray-900 line-clamp-2 leading-snug">
                   {order.items[0]?.name || "Product"}
                 </h3>
-                <p className="text-xs text-gray-500">
-                  Qty: {order.items[0]?.quantity || 1}
-                  {order.items.length > 1 && ` · +${order.items.length - 1} more item${order.items.length - 1 > 1 ? 's' : ''}`}
-                </p>
-                <div className="text-xs text-gray-500 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {new Date(order.createdAt).toLocaleDateString()}
+                <span
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase whitespace-nowrap ${getStatusColor(
+                    order.status
+                  )}`}
+                >
+                  {order.status}
+                </span>
+              </div>
+
+              {/* Additional Items Badge */}
+              {order.items.length > 1 && (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-medium mb-2">
+                  <Package className="w-3.5 h-3.5" />
+                  +{order.items.length - 1} more item{order.items.length - 1 > 1 ? 's' : ''}
+                </div>
+              )}
+
+              {/* Order Meta */}
+              <div className="flex flex-wrap items-center gap-4 mt-3 text-sm">
+                <div className="flex items-center gap-1.5 text-gray-600">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <span className="text-xs">
+                    {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric'
+                    })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <DollarSign className="w-4 h-4 text-gray-400" />
+                  <span className="text-lg font-bold text-gray-900">
+                    ₹{(order.total_cents / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
                 </div>
               </div>
             </div>
-            <span
-              className={`px-3 py-1 rounded-full border text-xs font-bold uppercase ${getStatusColor(
-                order.status
-              )}`}
-            >
-              {order.status}
-            </span>
           </div>
 
-          <div className="p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <span className="text-xs text-gray-500 block mb-1">Items</span>
-                <p className="font-medium text-gray-900 flex items-center gap-1">
-                  <Package className="w-4 h-4 text-gray-400" />
-                  {order.items.length}
-                </p>
+          {/* Order Details Footer */}
+          <div className="px-5 py-3.5 bg-gray-50/50">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-gray-600">
+              <div className="flex items-center gap-1">
+                <span className="font-medium text-gray-500">Order ID:</span>
+                <span className="font-mono text-gray-700">#{order._id.slice(-8).toUpperCase()}</span>
               </div>
-              <div>
-                <span className="text-xs text-gray-500 block mb-1">Total Amount</span>
-                <p className="text-lg font-bold text-gray-900">
-                  ₹{(order.total_cents / 100).toFixed(2)}
-                </p>
+              <div className="flex items-center gap-1">
+                <span className="font-medium text-gray-500">Items:</span>
+                <span className="font-semibold text-gray-700">{order.items.length}</span>
               </div>
-              <div className="sm:col-span-1">
-                <span className="text-xs text-gray-500 block mb-1">Shipping Address</span>
-                <p className="text-sm text-gray-900">
-                  {order.shippingAddress.street}, {order.shippingAddress.city}
-                </p>
+              <div className="flex items-center gap-1">
+                <span className="font-medium text-gray-500">Shipping:</span>
+                <span className="text-gray-700 truncate max-w-[200px]">
+                  {order.shippingAddress.city}
+                </span>
               </div>
             </div>
           </div>

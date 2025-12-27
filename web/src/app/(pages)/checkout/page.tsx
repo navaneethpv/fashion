@@ -1,17 +1,22 @@
 "use client"
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import Navbar from '../components/Navbar';
 import { Loader2, CheckCircle, Lock, CreditCard, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function CheckoutPage() {
   const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
+  const router = useRouter();
 
   const [cart, setCart] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [orderData, setOrderData] = useState<any>(null);
 
   // Expanded Form State
   const [formData, setFormData] = useState({
@@ -31,6 +36,16 @@ export default function CheckoutPage() {
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:4000";
   const baseUrl = base.replace(/\/$/, "");
+
+  // Helper to get auth headers
+  const authHeaders = async () => {
+    const token = await getToken();
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
   // 1. Fetch Cart & Pre-fill Email
   useEffect(() => {
     if (!isLoaded || !user) return;
@@ -51,6 +66,31 @@ export default function CheckoutPage() {
       })
       .catch(() => setLoading(false));
   }, [isLoaded, user]);
+
+  // 2. Fetch Order Details when orderId is available
+  useEffect(() => {
+    if (!orderId) return;
+
+    // const fetchOrderDetails = async () => {
+    //   try {
+    //     const res = await fetch(`${baseUrl}/api/orders/${orderId}`, {
+    //       headers: await authHeaders(),
+    //     });
+
+    //     if (!res.ok) {
+    //       throw new Error('Failed to fetch order');
+    //     }
+
+    //     const data = await res.json();
+    //     setOrderData(data);
+    //   } catch (err) {
+    //     console.error('Order fetch error:', err);
+    //     router.push('/orders');
+    //   }
+    // };
+
+    // fetchOrderDetails();
+  }, [orderId]);
 
   const subtotal = cart?.items?.reduce((acc: number, item: any) => {
     return acc + (item.product.price_cents * item.quantity);
@@ -77,11 +117,14 @@ export default function CheckoutPage() {
 
       const res = await fetch(`${baseUrl}/api/orders`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
+
         body: JSON.stringify(orderPayload)
       });
 
       if (res.ok) {
+        const data = await res.json();
+        setOrderId(data._id); // Store order ID for fetching details
         setOrderSuccess(true);
       } else {
         const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
@@ -99,6 +142,10 @@ export default function CheckoutPage() {
   if (!isLoaded || loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-primary w-8 h-8" /></div>;
 
   if (orderSuccess) {
+    // Use orderData if available, fallback to formData
+    const displayFirstName = orderData?.shippingAddress?.firstName || formData.firstName;
+    const displayEmail = orderData?.shippingAddress?.email || formData.email;
+
     return (
       <div className="min-h-screen bg-white">
         <Navbar />
@@ -108,7 +155,7 @@ export default function CheckoutPage() {
           </div>
           <h1 className="text-4xl font-black mb-4 text-gray-900">Order Confirmed!</h1>
           <p className="text-gray-900 mb-8 max-w-md text-lg">
-            Thanks {formData.firstName}! We&apos;ve sent a receipt to <b>{formData.email}</b>. Your order is being prepared.
+            Thanks {displayFirstName}! We&apos;ve sent a receipt to <b>{displayEmail}</b>. Your order is being prepared.
           </p>
           <Link href="/product" className="bg-black text-white px-10 py-4 rounded-full font-bold hover:scale-105 transition transform shadow-xl">
             Continue Shopping

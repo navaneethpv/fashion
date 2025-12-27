@@ -8,8 +8,11 @@ import { LayoutDashboard, ShoppingBag, Users, Package, LogOut, Loader2 } from 'l
 import { UserButton } from '@clerk/nextjs';
 import clsx from 'clsx';
 
-// 👇 REPLACE THIS WITH YOUR ACTUAL EMAIL ADDRESS
-const ADMIN_EMAIL = "navaneethpv450@gmail.com";
+// 👇 ADD YOUR ADMIN EMAIL ADDRESSES HERE
+const ADMIN_EMAILS = [
+  "navaneethpv450@gmail.com",
+  "muhammadyaseen1907@gmail.com"  // Add more admin emails here
+];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();
@@ -21,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (isLoaded) {
       const email = user?.primaryEmailAddress?.emailAddress;
 
-      if (!user || email !== ADMIN_EMAIL) {
+      if (!user || !email || !ADMIN_EMAILS.includes(email)) {
         // If not logged in OR email doesn't match, kick them out
         router.push('/');
       }
@@ -31,7 +34,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!isLoaded) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
 
   // Double check to prevent flash of content
-  if (user?.primaryEmailAddress?.emailAddress !== ADMIN_EMAIL) {
+  const email = user?.primaryEmailAddress?.emailAddress;
+  if (!email || !ADMIN_EMAILS.includes(email)) {
     return null;
   }
 

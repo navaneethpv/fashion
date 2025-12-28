@@ -1,9 +1,9 @@
 // web/src/app/(pages)/components/profile/OrderDetailsDrawer.tsx
 "use client";
-import { X, Package, CheckCircle2, Truck, Home, Clock, Ban, RotateCcw } from "lucide-react";
+import { X, Package, CheckCircle2, Truck, Home, Clock, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
-import OrderActionModal from "./OrderActionModal";
+// REMOVED: OrderActionModal (not needed without cancel/return)
 
 interface OrderDetailsDrawerProps {
     order: any;
@@ -19,8 +19,9 @@ export default function OrderDetailsDrawer({
     onOrderUpdate,
 }: OrderDetailsDrawerProps) {
     const { getToken } = useAuth();
-    const [showModal, setShowModal] = useState(false);
-    const [modalType, setModalType] = useState<"cancel" | "return" | null>(null);
+    // REMOVED: Cancel/Return state
+    // const [showModal, setShowModal] = useState(false);
+    // const [modalType, setModalType] = useState<"cancel" | "return" | null>(null);
     // Prevent body scroll when drawer is open
     useEffect(() => {
         if (isOpen) {
@@ -52,81 +53,13 @@ export default function OrderDetailsDrawer({
         "http://localhost:4000";
     const baseUrl = base.replace(/\/$/, "");
 
-    // Check if order can be cancelled (placed or confirmed status)
-    const canCancel = () => {
-        const orderStatus = order.orderStatus || order.status;
-        return orderStatus === "placed" || orderStatus === "confirmed";
-    };
-
-    // Check if order can be returned (delivered and within 7 days)
-    const canReturn = () => {
-        const orderStatus = order.orderStatus || order.status;
-        if (orderStatus !== "delivered") return false;
-
-        const deliveredDate = order.deliveredAt ? new Date(order.deliveredAt) : null;
-        if (!deliveredDate) return false;
-
-        const daysSinceDelivery = (Date.now() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24);
-        return daysSinceDelivery <= 7;
-    };
-
-    // Handle cancel order
-    const handleCancelOrder = async (reason: string) => {
-        const token = await getToken();
-        const response = await fetch(`${baseUrl}/api/orders/${order._id}/cancel`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ reason }),
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || "Failed to cancel order");
-        }
-
-        const updatedOrder = await response.json();
-        // Update local state
-        if (onOrderUpdate) {
-            onOrderUpdate({ ...order, status: "cancelled", orderStatus: "cancelled" });
-        }
-    };
-
-    // Handle return request
-    const handleReturnOrder = async (reason: string) => {
-        const token = await getToken();
-        const response = await fetch(`${baseUrl}/api/orders/${order._id}/return`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ reason }),
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || "Failed to request return");
-        }
-
-        const updatedOrder = await response.json();
-        // Update local state
-        if (onOrderUpdate) {
-            onOrderUpdate({ ...order, status: "return_requested", orderStatus: "return_requested" });
-        }
-    };
-
-    const openModal = (type: "cancel" | "return") => {
-        setModalType(type);
-        setShowModal(true);
-    };
-
-    const closeModal = () => {
-        setShowModal(false);
-        setModalType(null);
-    };
+    // REMOVED: All cancel/return logic
+    // const canCancel = ...
+    // const canReturn = ...
+    // const handleCancelOrder = ...
+    // const handleReturnOrder = ...
+    // const openModal = ...
+    // const closeModal = ...
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -385,32 +318,14 @@ export default function OrderDetailsDrawer({
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
-                        {(canCancel() || canReturn()) && (
+                        {/* REMOVED: Action Buttons section
+                        {(canCancel || canReturn) && (
                             <div className="space-y-3">
-                                <h3 className="text-sm font-semibold text-gray-900">Actions</h3>
-                                <div className="flex flex-col gap-2">
-                                    {canCancel() && (
-                                        <button
-                                            onClick={() => openModal("cancel")}
-                                            className="flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm"
-                                        >
-                                            <Ban className="w-4 h-4" />
-                                            Cancel Order
-                                        </button>
-                                    )}
-                                    {canReturn() && (
-                                        <button
-                                            onClick={() => openModal("return")}
-                                            className="flex items-center justify-center gap-2 px-4 py-3 bg-orange-50 text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors font-medium text-sm"
-                                        >
-                                            <RotateCcw className="w-4 h-4" />
-                                            Request Return
-                                        </button>
-                                    )}
-                                </div>
+                                <h3>Actions</h3>
+                                ... Cancel/Return buttons ...
                             </div>
                         )}
+                        */}
 
                         {/* Order Date */}
                         <div className="text-xs text-gray-500 text-center pb-4">
@@ -427,20 +342,14 @@ export default function OrderDetailsDrawer({
                 </div>
             </div >
 
-            {/* Action Modal */}
-            < OrderActionModal
+            {/* REMOVED: OrderActionModal
+            <OrderActionModal
                 isOpen={showModal}
-                title={modalType === "cancel" ? "Cancel Order" : "Request Return"
-                }
-                description={
-                    modalType === "cancel"
-                        ? "Are you sure you want to cancel this order? This action cannot be undone."
-                        : "Please provide a reason for requesting a return. Our team will review your request within 24-48 hours."
-                }
-                confirmText={modalType === "cancel" ? "Cancel Order" : "Request Return"}
-                onConfirm={modalType === "cancel" ? handleCancelOrder : handleReturnOrder}
+                title={...}
+                onConfirm={...}
                 onClose={closeModal}
             />
+            */}
         </>
     );
 }

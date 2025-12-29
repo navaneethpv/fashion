@@ -7,10 +7,29 @@ import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import SearchInput from "./SearchInput";
 import { useCartCount } from "@/hooks/useCartCount";
 
+import { useSearchParams } from "next/navigation";
+
+const NAV_ITEMS = [
+  { name: "MEN", href: "/product?gender=men", type: "gender", value: "men" },
+  { name: "WOMEN", href: "/product?gender=women", type: "gender", value: "women" },
+  { name: "KIDS", href: "/product?gender=kids", type: "gender", value: "kids" },
+  { name: "SHIRTS", href: "/product?q=shirts", type: "query", value: "shirts" },
+  { name: "JEANS", href: "/product?q=jeans", type: "query", value: "jeans" },
+  { name: "SHOES", href: "/product?q=shoes", type: "query", value: "shoes" },
+  { name: "WATCH", href: "/product?q=watch", type: "query", value: "watch" },
+];
+
 function NavbarContent() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { user } = useUser();
   const cartCount = useCartCount();
+  const searchParams = useSearchParams();
+
+  const isActive = (item: typeof NAV_ITEMS[0]) => {
+    if (item.type === "gender") return searchParams.get("gender") === item.value;
+    if (item.type === "query") return searchParams.get("q") === item.value;
+    return false;
+  };
 
   return (
     <>
@@ -76,19 +95,31 @@ function NavbarContent() {
           </div>
         </div>
 
-        {/* ================= CATEGORY BAR ================= */}
-        <div className="bg-black">
-          <div className="max-w-7xl mx-auto h-[50px] flex items-center justify-center gap-12 text-white text-[13px] tracking-widest uppercase">
-            <NavLink title="MEN" href="/product?gender=men" />
-            <NavLink title="WOMEN" href="/product?gender=women" />
-            <NavLink title="KIDS" href="/product?gender=kids" />
-            <NavLink title="SHIRTS" href="/product?q=shirts" />
-            <NavLink title="JEANS" href="/product?q=jeans" />
-            <NavLink title="SHOES" href="/product?q=shoes" />
-            <NavLink title="WATCH" href="/product?q=watch" />
+        {/* ================= CATEGORY HUB (Pill Style) ================= */}
+        <div className="border-t border-gray-100 bg-gray-100 shadow-sm">
+          <div className="max-w-7xl mx-auto py-2 px-4">
+            <div className="flex items-center justify-start lg:justify-center gap-3 overflow-x-auto scrollbar-hide py-2 px-1">
+              {NAV_ITEMS.map((item) => {
+                const active = isActive(item);
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`
+                      relative px-5 py-2.5 rounded-full text-sm font-semibold tracking-wider transition-all duration-300 whitespace-nowrap
+                      ${active
+                        ? "bg-black text-white shadow-md scale-[1.02]"
+                        : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-black hover:scale-[1.02]"
+                      }
+                    `}
+                  >
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         </div>
-
       </nav>
 
 
@@ -97,17 +128,6 @@ function NavbarContent() {
         onClose={() => setIsSearchOpen(false)}
       />
     </>
-  );
-}
-
-function NavLink({ title, href }: { title: string; href: string }) {
-  return (
-    <Link
-      href={href}
-      className="relative pb-1 after:absolute after:left-0 after:-bottom-1 after:h-[1px] after:w-0 after:bg-white after:transition-all after:duration-300 hover:after:w-full"
-    >
-      {title}
-    </Link>
   );
 }
 

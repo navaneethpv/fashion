@@ -79,28 +79,14 @@ function NavbarContent() {
         {/* ================= CATEGORY BAR ================= */}
         <div className="bg-black">
           <div className="max-w-7xl mx-auto h-[50px] flex items-center justify-center gap-12 text-white text-[13px] tracking-widest uppercase">
-
-            {/* CLOTHES */}
-            <MegaMenu title="Clothes" />
-
-            {/* SHOES */}
-            <MegaMenu title="Shoes" />
-
-            {/* SHIRTS */}
-            <MegaMenu title="Shirts" />
-
-            {/* JEANS */}
-            <MegaMenu title="Jeans" />
-
-            {/* BELT */}
-            <MegaMenu title="Belt" />
-
-            {/* WATCH */}
-            <MegaMenu title="Watch" />
-
-            {/* NEWS */}
-            <MegaMenu title="News" />
-
+            <NavLink title="MEN" href="/product?gender=men" />
+            <NavLink title="WOMEN" href="/product?gender=women" />
+            <NavLink title="KIDS" href="/product?gender=kids" />
+            <NavLink title="SHIRTS" href="/product?q=shirts" />
+            <NavLink title="JEANS" href="/product?q=jeans" />
+            <NavLink title="SHOES" href="/product?q=shoes" />
+            <NavLink title="WATCH" href="/product?q=watch" />
+            <NavLink title="NEWS" href="/product" />
           </div>
         </div>
 
@@ -114,101 +100,15 @@ function NavbarContent() {
     </>
   );
 }
-function MegaMenu({ title }: { title: string }) {
+
+function NavLink({ title, href }: { title: string; href: string }) {
   return (
-    <div className="relative group">
-      {/* Top link */}
-      <Link
-        href={`/product?category=${title.toLowerCase()}`}
-        className="relative pb-1 after:absolute after:left-0 after:-bottom-1 after:h-[1px] after:w-0 after:bg-white after:transition-all after:duration-300 group-hover:after:w-full"
-      >
-        {title}
-      </Link>
-
-      {/* Dropdown */}
-      <div
-        className="
-          absolute left-1/2 -translate-x-1/2 top-full mt-6
-          w-[900px] bg-white text-black
-          opacity-0 invisible translate-y-4
-          group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
-          transition-all duration-300 ease-out
-          shadow-2xl border border-gray-100
-        "
-      >
-        <div className="grid grid-cols-3 gap-14 px-16 py-12 text-sm">
-
-          {/* MEN */}
-          <MenuColumn
-            category={title}
-            title="Men"
-            items={[
-              "Formal Shirts",
-              "Formal Trousers",
-              "Hat",
-              "Loungewear",
-              "Formal Accessories",
-            ]}
-          />
-
-          {/* WOMEN */}
-          <MenuColumn
-            category={title}
-            title="Women"
-            items={[
-              "Jackets & Coats",
-              "Shirts",
-              "Jumpers & Knitwear",
-              "Pyjamas & Nightwear",
-              "Jeans",
-            ]}
-          />
-
-          {/* KIDS */}
-          <MenuColumn
-            category={title}
-            title="Kids"
-            items={[
-              "All Winter Wear",
-              "Sweatshirts & Hoodies",
-              "Coats & Jackets",
-              "Trousers & Pants",
-              "Shorts & Skirts",
-            ]}
-          />
-
-        </div>
-      </div>
-    </div>
-  );
-}
-function MenuColumn({
-  category,
-  title,
-  items,
-}: {
-  category: string;
-  title: string;
-  items: string[];
-}) {
-  return (
-    <div>
-      <Link href={`/product?category=${category.toLowerCase()}&gender=${title.toLowerCase()}`}>
-        <h4 className="font-semibold mb-5 tracking-wide hover:text-gray-600 transition">{title}</h4>
-      </Link>
-      <ul className="space-y-3 text-gray-600">
-        {items.map((item) => (
-          <li key={item}>
-            <Link
-              href={`/product?category=${category.toLowerCase()}&subcategory=${item.replace(/\s+/g, "-").toLowerCase()}&gender=${title.toLowerCase()}`}
-              className="inline-block transition-all duration-200 hover:text-black hover:translate-x-1"
-            >
-              {item}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Link
+      href={href}
+      className="relative pb-1 after:absolute after:left-0 after:-bottom-1 after:h-[1px] after:w-0 after:bg-white after:transition-all after:duration-300 hover:after:w-full"
+    >
+      {title}
+    </Link>
   );
 }
 

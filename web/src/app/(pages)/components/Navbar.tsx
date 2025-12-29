@@ -29,7 +29,10 @@ function NavbarContent() {
 
             {/* Search */}
             <div className="hidden md:flex items-center">
-              <SearchInput onCameraClick={() => setIsSearchOpen(true)} />
+              <SearchInput
+                onCameraClick={() => setIsSearchOpen(true)}
+                className="w-[300px] xl:w-[400px]"
+              />
             </div>
 
             {/* Wishlist */}
@@ -69,36 +72,36 @@ function NavbarContent() {
           </div>
         </div>
 
-{/* ================= CATEGORY BAR ================= */}
-<div className="bg-black">
-  <div className="max-w-7xl mx-auto h-[50px] flex items-center justify-center gap-12 text-white text-[13px] tracking-widest uppercase">
+        {/* ================= CATEGORY BAR ================= */}
+        <div className="bg-black">
+          <div className="max-w-7xl mx-auto h-[50px] flex items-center justify-center gap-12 text-white text-[13px] tracking-widest uppercase">
 
-    {/* CLOTHES */}
-    <MegaMenu title="Clothes" />
+            {/* CLOTHES */}
+            <MegaMenu title="Clothes" />
 
-    {/* SHOES */}
-    <MegaMenu title="Shoes" />
+            {/* SHOES */}
+            <MegaMenu title="Shoes" />
 
-    {/* SHIRTS */}
-    <MegaMenu title="Shirts" />
+            {/* SHIRTS */}
+            <MegaMenu title="Shirts" />
 
-    {/* JEANS */}
-    <MegaMenu title="Jeans" />
+            {/* JEANS */}
+            <MegaMenu title="Jeans" />
 
-    {/* BELT */}
-    <MegaMenu title="Belt" />
+            {/* BELT */}
+            <MegaMenu title="Belt" />
 
-    {/* WATCH */}
-    <MegaMenu title="Watch" />
+            {/* WATCH */}
+            <MegaMenu title="Watch" />
 
-    {/* NEWS */}
-    <MegaMenu title="News" />
+            {/* NEWS */}
+            <MegaMenu title="News" />
 
-  </div>
-</div>
+          </div>
+        </div>
 
       </nav>
-      
+
 
       <ImageSearchModal
         isOpen={isSearchOpen}

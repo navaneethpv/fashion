@@ -62,6 +62,13 @@ app.get("/", (req, res) => {
 // Start server after DB connection
 const startServer = async () => {
   try {
+    if (!process.env.CLERK_PUBLISHABLE_KEY) {
+      console.error("❌ CLERK_PUBLISHABLE_KEY is missing from environment variables");
+    }
+    if (!process.env.CLERK_SECRET_KEY) {
+      console.error("❌ CLERK_SECRET_KEY is missing from environment variables");
+    }
+
     await connectDB();
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);

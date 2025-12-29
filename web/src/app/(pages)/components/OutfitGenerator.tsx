@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Sparkles, Loader2, Zap, ChevronDown, Sparkle } from "lucide-react";
 import AddToCartButton from "./AddToCartButton";
@@ -74,6 +74,7 @@ export default function OutfitGenerator({
   productId,
   productGender,
 }: OutfitGeneratorProps) {
+  // Simple Phase 1 State
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<OutfitResult | null>(null);
   const [styleVibe, setStyleVibe] = useState(STYLE_VIBES[0].value);
@@ -128,10 +129,7 @@ export default function OutfitGenerator({
 
     const userPreferences = {
       gender: normalizedGender,
-      styleVibe,
-      avoidColors: ["neon green", "bright yellow"],
-      preferredBrightness: "medium",
-      maxItems: 4,
+      styleVibe, // We keep styleVibe passed to backend, but backend might ignore it in Phase 1
     };
 
     try {
@@ -140,6 +138,7 @@ export default function OutfitGenerator({
         throw new Error("NEXT_PUBLIC_API_URL is not configured");
       }
 
+      // Pure simple fetch - no exclusions
       const res = await fetch(`${API_URL}/api/ai/outfit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -161,17 +160,11 @@ export default function OutfitGenerator({
       const data = await res.json();
       console.log("Outfit API Response:", data);
 
-      // ensure outfitItems is always an array to avoid runtime map errors
       if (!data || typeof data !== "object") {
         console.warn("Invalid response format:", data);
         setResult(null);
       } else {
         data.outfitItems = data.outfitItems ?? [];
-        console.log(
-          `Received ${data.outfitItems.length} outfit items, ${
-            data.outfitItems.filter((item: any) => item.product).length
-          } with products`
-        );
         setResult(data);
       }
     } catch (e) {

@@ -114,8 +114,8 @@ export async function generateAIOutfits(inputData: any) {
       config: {
         responseMimeType: "application/json",
         responseSchema: OUTFIT_OUTPUT_SCHEMA,
-        systemInstruction: OUTFIT_GENERATION_RULES,
-        temperature: 0.5,
+        systemInstruction: OUTFIT_GENERATION_RULES + "\n\nIMPORTANT: Do NOT be conservative. Suggest BOLD, CONTRASTING color combinations. It is okay to clash slightly. Prioritize variety and Exploration.",
+        temperature: 0.8,
       },
     });
 

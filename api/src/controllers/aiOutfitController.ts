@@ -1,11 +1,9 @@
-// /api/src/controllers/aiOutfitController.ts
 
 import { Request, Response } from 'express';
 import { Product } from '../models/Product';
 import { generateAIOutfits } from '../utils/aiOutfitGenerator';
-import { generateOutfitExplanation } from '../utils/aiOutfitExplanation';
 
-// Categories where AI outfit suggestions are NOT allowed at all
+// Categories where AI outfit suggestions are NOT allowed (optional check)
 const EXCLUDED_AI_CATEGORIES = [
   "Personal Care",
   "Cosmetics",
@@ -15,527 +13,110 @@ const EXCLUDED_AI_CATEGORIES = [
   "Hair Care",
 ];
 
-// Subcategories where AI outfit IS allowed (Shirts, Pants, Accessories etc.)
-const ALLOWED_AI_SUBCATEGORIES = [
-  // Tops
-  "Shirts",
-  "T-Shirts",
-  "Tops",
-  "Kurtis",
-  "Hoodies",
-  "Sweaters",
-  "Jackets",
+// --- SIMPLE PHASE 1: LOGIC RESET ---
 
-  // Bottoms
-  "Jeans",
-  "Pants",
-  "Trousers",
-  "Joggers",
-  "Skirts",
-  "Shorts",
-
-  // Accessories
-  "Watches",
-  "Belts",
-  "Bags",
-  "Handbags",
-  "Jewelry",
-];
-
-// Map AI roles to DB subCategory groups
 const ROLE_TO_SUBCATEGORY: Record<string, string[]> = {
-  top: ["Shirts", "T-Shirts", "Tops", "Kurtis", "Hoodies", "Sweaters", "Jackets"],
-  bottom: ["Jeans", "Pants", "Trousers", "Joggers", "Skirts", "Shorts"],
-  shoes: ["Shoes", "Sneakers", "Heels", "Sandals", "Boots"],
-  accessories: ["Watches", "Belts", "Bags", "Handbags", "Jewelry"],
+  top: ["Topwear", "Shirts", "T-Shirts", "Sweatshirts", "Jackets", "Blazers", "Coats", "Suits"],
+  bottom: ["Bottomwear", "Jeans", "Trousers", "Shorts", "Track Pants", "Skirts"],
+  footwear: ["Footwear", "Shoes", "Sneakers", "Boots", "Sandals", "Flats", "Heels"],
+  accessory: ["Watches", "Accessories", "Belts", "Wallets", "Bags", "Jewellery", "Sunglasses"],
 };
 
-// 🎨 Deterministic color compatibility map (fashion color harmony rules)
-// Maps base colors to compatible outfit colors
-const COLOR_COMPATIBILITY: Record<string, string[]> = {
-  // Navy Blue family
-  "navy blue": ["white", "grey", "beige", "khaki", "light blue", "cream"],
-  "navy": ["white", "grey", "beige", "khaki", "light blue", "cream"],
-  "dark blue": ["white", "grey", "beige", "khaki", "light blue", "cream"],
-  
-  // Black family
-  "black": ["white", "grey", "beige", "red", "navy blue", "cream", "pink"],
-  
-  // White family
-  "white": ["black", "navy blue", "grey", "beige", "brown", "red", "blue", "green", "pink"],
-  "cream": ["navy blue", "black", "brown", "beige", "grey"],
-  "ivory": ["navy blue", "black", "brown", "beige", "grey"],
-  
-  // Grey family
-  "grey": ["white", "black", "navy blue", "beige", "red", "pink"],
-  "gray": ["white", "black", "navy blue", "beige", "red", "pink"],
-  "charcoal": ["white", "beige", "navy blue", "red"],
-  
-  // Beige/Khaki family
-  "beige": ["white", "navy blue", "brown", "black", "grey", "olive"],
-  "khaki": ["white", "navy blue", "brown", "black", "grey"],
-  "tan": ["white", "navy blue", "brown", "black", "grey"],
-  "camel": ["white", "navy blue", "brown", "black", "grey"],
-  
-  // Brown family
-  "brown": ["beige", "white", "navy blue", "black", "cream", "khaki"],
-  "chocolate": ["beige", "white", "cream", "navy blue"],
-  "cognac": ["beige", "white", "cream", "navy blue"],
-  
-  // Red family
-  "red": ["white", "black", "navy blue", "grey", "beige"],
-  "burgundy": ["white", "black", "navy blue", "grey", "beige"],
-  "maroon": ["white", "black", "navy blue", "grey", "beige"],
-  
-  // Blue family
-  "blue": ["white", "grey", "beige", "navy blue", "black"],
-  "light blue": ["white", "navy blue", "grey", "beige", "black"],
-  "sky blue": ["white", "navy blue", "grey", "beige"],
-  
-  // Green family
-  "green": ["white", "beige", "navy blue", "black", "brown"],
-  "olive": ["beige", "white", "brown", "navy blue"],
-  "forest green": ["white", "beige", "brown", "navy blue"],
-  
-  // Pink family
-  "pink": ["white", "black", "navy blue", "grey", "beige"],
-  "rose": ["white", "black", "navy blue", "grey"],
-  
-  // Purple family
-  "purple": ["white", "black", "grey", "beige"],
-  "lavender": ["white", "grey", "beige", "navy blue"],
-  
-  // Yellow family
-  "yellow": ["white", "navy blue", "black", "grey"],
-  "mustard": ["white", "navy blue", "black", "brown"],
-  
-  // Orange family
-  "orange": ["white", "navy blue", "black", "beige"],
-  "coral": ["white", "navy blue", "black", "beige"],
-};
-
-// Normalize color name for lookup (case-insensitive, trim whitespace)
-function normalizeColorName(color: string | null | undefined): string {
-  if (!color) return "";
-  return color.trim().toLowerCase();
+// Simple shuffle helper
+function shuffleArray<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
 }
 
-// Get compatible colors for a given base color
-function getCompatibleColors(baseColor: string | null | undefined): string[] {
-  const normalized = normalizeColorName(baseColor);
-  if (!normalized) return [];
-  
-  // Direct lookup
-  if (COLOR_COMPATIBILITY[normalized]) {
-    return COLOR_COMPATIBILITY[normalized];
-  }
-  
-  // Try partial matches (e.g., "navy blue" matches "navy")
-  for (const [key, values] of Object.entries(COLOR_COMPATIBILITY)) {
-    if (normalized.includes(key) || key.includes(normalized)) {
-      return values;
-    }
-  }
-  
-  return [];
-}
-
-// Helper to classify base subCategory as top/bottom/accessory
-function classifyBaseRole(subCategory: string): "top" | "bottom" | "accessory" | "other" {
-  const sub = (subCategory || "").toLowerCase();
-
-  if (
-    ["shirts", "t-shirts", "tops", "kurtis", "hoodies", "sweaters", "jackets"].some((s) =>
-      sub.includes(s.toLowerCase()),
-    )
-  ) {
-    return "top";
-  }
-  if (
-    ["jeans", "pants", "trousers", "joggers", "skirts", "shorts"].some((s) =>
-      sub.includes(s.toLowerCase()),
-    )
-  ) {
-    return "bottom";
-  }
-  if (
-    ["watches", "belts", "bags", "handbags", "jewelry"].some((s) =>
-      sub.includes(s.toLowerCase()),
-    )
-  ) {
-    return "accessory";
-  }
-  return "other";
-}
-
-// Filter outfitItems if AI misbehaves and sends unwanted roles
-function filterOutfitRolesForBase(
-  baseRole: "top" | "bottom" | "accessory" | "other",
-  items: any[],
-) {
-  if (baseRole === "top") {
-    // base is shirt/top → only show bottom, shoes, accessories
-    return items.filter((i) => !["top"].includes((i.role || "").toLowerCase()));
-  }
-  if (baseRole === "bottom") {
-    // base is pant/jeans → only top, shoes, accessories
-    return items.filter((i) => !["bottom"].includes((i.role || "").toLowerCase()));
-  }
-  if (baseRole === "accessory") {
-    // base is accessory → only top, bottom, shoes
-    return items.filter((i) => !["accessories"].includes((i.role || "").toLowerCase()));
-  }
-  return items; // other = no extra restriction
-}
-
-// 🧠 Add gender-aware filters to MongoDB query (no gender field in DB, so we use heuristics)
-function applyGenderFilterToQuery(query: any, userGender?: string | null) {
-  if (!userGender) return query;
-
-  const malePattern = /(men|man's|men's|boy|boys|gents)/i;
-  const femalePattern = /(women|woman|girls|girl|ladies|lady|female)/i;
-
-  query.$and = query.$and || [];
-
-  if (userGender === "female") {
-    // Avoid clearly male-only items
-    query.$and.push({
-      $nor: [{ name: malePattern }, { description: malePattern }],
-    });
-  } else if (userGender === "male") {
-    // Avoid clearly women-only items
-    query.$and.push({
-      $nor: [{ name: femalePattern }, { description: femalePattern }],
-    });
-  }
-
-  // Neutral products (no gender words) are allowed.
-  return query;
-}
-
-// 🔁 Helper: pick a random element from an array
-function pickRandom<T>(arr: T[]): T | null {
-  if (!arr.length) return null;
-  const index = Math.floor(Math.random() * arr.length);
-  return arr[index];
-}
-
-// Find a matching product for a given AI suggestion, respecting user gender,
-// color compatibility, and avoiding duplicates within the same outfit.
+// Phase 1: Simple Random Matching
 async function findMatchingProduct(
   suggested: any,
   baseProductId: string,
-  userGender: string | null,
-  usedProductIds: Set<string>,
-  baseProductColor: string | null | undefined,
-  baseProductGender: string | null | undefined,
+  userGender: string | null
 ) {
   const role = (suggested.role || "").toLowerCase();
-  const colorSuggestion = suggested.colorSuggestion as string | undefined;
-
   const allowedSubCategories = ROLE_TO_SUBCATEGORY[role] || [];
+
   if (allowedSubCategories.length === 0) {
-    console.log(`[findMatchingProduct] No allowed subcategories for role: ${role}`);
     return null;
   }
 
-  let query: any = {
+  const query: any = {
     isPublished: true,
-    isFashionItem: true, // Ensure we only get fashion items
+    isFashionItem: true,
     _id: { $ne: baseProductId },
     $or: [
       { subCategory: { $in: allowedSubCategories } },
       { category: { $in: allowedSubCategories } },
-      { masterCategory: { $in: allowedSubCategories } },
-    ],
+      { masterCategory: { $in: allowedSubCategories } }
+    ]
   };
 
-  // Match gender from base product if available (preferred)
-  // Use $in to allow multiple gender values or null if gender field is flexible
-  if (baseProductGender) {
-    query.gender = baseProductGender;
-  } else if (userGender) {
-    // Fallback to user gender preference if base product doesn't have gender
+  // Basic Gender Filter
+  if (userGender) {
     const genderMap: Record<string, string> = {
       male: "Men",
       female: "Women",
     };
-    const mappedGender = genderMap[userGender];
-    if (mappedGender) {
-      query.gender = mappedGender;
-    }
-  }
-  // If no gender specified, don't filter by gender (allow unisex/neutral items)
-
-  if (colorSuggestion) {
-    query['variants.color'] = new RegExp(colorSuggestion, 'i');
-  }
-
-  // Apply additional gender filter based on userPreferences.gender (heuristic fallback)
-  query = applyGenderFilterToQuery(query, userGender);
-
-  // 1) Try with color + gender + subCategory
-  let candidates = await Product.find(query).lean();
-  console.log(`[findMatchingProduct] Found ${candidates.length} candidates for role ${role} with initial query`);
-
-  // Remove already used product IDs (avoid same dress/shoe within same outfit)
-  candidates = candidates.filter((p: any) => !usedProductIds.has(String(p._id)));
-
-  // 2) Apply deterministic color compatibility filtering if base color exists
-  if (baseProductColor && candidates.length > 0) {
-    const compatibleColors = getCompatibleColors(baseProductColor);
-    if (compatibleColors.length > 0) {
-      const colorFiltered = candidates.filter((p: any) => {
-        const candidateColor = normalizeColorName(
-          p.dominantColor?.name || p.aiTags?.dominant_color_name
-        );
-        if (!candidateColor) return false;
-        
-        // Check if candidate color matches any compatible color
-        return compatibleColors.some((compatColor) => {
-          const normalizedCompat = normalizeColorName(compatColor);
-          return candidateColor.includes(normalizedCompat) || 
-                 normalizedCompat.includes(candidateColor) ||
-                 candidateColor === normalizedCompat;
-        });
-      });
-      
-      // Only use color-filtered results if we have matches
-      if (colorFiltered.length > 0) {
-        candidates = colorFiltered;
-      }
-      // If no color matches, fallback to original candidates (graceful degradation)
+    if (genderMap[userGender]) {
+      query.gender = genderMap[userGender];
     }
   }
 
-  // 3) If still none, drop color filter and retry (original fallback behavior)
-  if (!candidates.length) {
-    delete query['variants.color'];
-    candidates = await Product.find(query).lean();
-    console.log(`[findMatchingProduct] Found ${candidates.length} candidates after dropping color filter`);
-    candidates = candidates.filter((p: any) => !usedProductIds.has(String(p._id)));
-    
-    // Re-apply color compatibility if base color exists (second attempt)
-    if (baseProductColor && candidates.length > 0) {
-      const compatibleColors = getCompatibleColors(baseProductColor);
-      if (compatibleColors.length > 0) {
-        const colorFiltered = candidates.filter((p: any) => {
-          const candidateColor = normalizeColorName(
-            p.dominantColor?.name || p.aiTags?.dominant_color_name
-          );
-          if (!candidateColor) return false;
-          
-          return compatibleColors.some((compatColor) => {
-            const normalizedCompat = normalizeColorName(compatColor);
-            return candidateColor.includes(normalizedCompat) || 
-                   normalizedCompat.includes(candidateColor) ||
-                   candidateColor === normalizedCompat;
-          });
-        });
-        
-        if (colorFiltered.length > 0) {
-          candidates = colorFiltered;
-        }
-      }
-    }
+  // Fetch ALL matching items (Simple Pool)
+  let candidates = await Product.find(query).select('name brand price_cents images variants subCategory category').lean();
+
+  if (candidates.length === 0) {
+    console.log(`[Phase 1] No items found for role: ${role}`);
+    return null;
   }
 
-  // 4) Final fallback: If still no candidates and gender filter is active, try without gender filter
-  if (!candidates.length && (baseProductGender || userGender)) {
-    console.log(`[findMatchingProduct] Trying without gender filter as final fallback`);
-    const fallbackQuery: any = {
-      isPublished: true,
-      isFashionItem: true,
-      _id: { $ne: baseProductId },
-      $or: [
-        { subCategory: { $in: allowedSubCategories } },
-        { category: { $in: allowedSubCategories } },
-        { masterCategory: { $in: allowedSubCategories } },
-      ],
-    };
-    
-    candidates = await Product.find(fallbackQuery).lean();
-    candidates = candidates.filter((p: any) => !usedProductIds.has(String(p._id)));
-    console.log(`[findMatchingProduct] Found ${candidates.length} candidates without gender filter`);
-  }
-
-  const picked = pickRandom(candidates);
-  if (picked) {
-    console.log(`[findMatchingProduct] Selected: ${picked.name} (${picked.subCategory || picked.category}) for role ${role}`);
-  } else {
-    console.log(`[findMatchingProduct] No product selected for role ${role} after all fallbacks`);
-  }
-  return picked || null;
+  // Pure Random Selection
+  const shuffled = shuffleArray(candidates);
+  return shuffled[0]; // Pick first after shuffle
 }
 
-// MAIN CONTROLLER: POST /api/ai/outfit
 export const generateOutfit = async (req: Request, res: Response) => {
   try {
     const { productId, userPreferences } = req.body;
 
     if (!productId) {
-      return res.status(400).json({ message: "productId required" });
+      return res.status(400).json({ message: "Product ID is required" });
     }
 
+    // 1. Fetch Base Product
     const baseProduct = await Product.findById(productId).lean();
     if (!baseProduct) {
-      return res.status(404).json({ message: "Base product not found." });
+      return res.status(404).json({ message: "Product not found" });
     }
 
-    // 1) BLOCK cosmetics / personal care by category
-    if (EXCLUDED_AI_CATEGORIES.includes(baseProduct.category)) {
-      return res.status(400).json({
-        message: "AI outfit suggestions are not available for cosmetic or personal care products.",
-      });
-    }
+    const gender = userPreferences?.gender || (baseProduct as any).gender === "Men" ? "male" : "female";
 
-    // 2) Validate fashion item (allow all fashion items, not just a restricted list)
-    if (baseProduct.isFashionItem !== true) {
-      return res.status(400).json({
-        message: "AI outfit suggestions are only available for fashion items.",
-      });
-    }
+    // 2. Call AI to get structure (e.g. "I need a Top, Bottom, and Shoes")
+    const outfitPlan = await generateAIOutfits(baseProduct, { ...userPreferences, gender });
 
-    const baseSub = baseProduct.subCategory || baseProduct.category || "";
-    if (!baseSub) {
-      return res.status(400).json({
-        message: "Base product must have a category or subCategory.",
-      });
-    }
+    // 3. Simple Fill
+    const filledItems = await Promise.all(
+      outfitPlan.outfitItems.map(async (item: any) => {
+        const product = await findMatchingProduct(item, productId, gender);
+        return { ...item, product }; // Attach real product or null
+      })
+    );
 
-    const baseRole = classifyBaseRole(baseSub);
-    const userGender: string | null =
-      userPreferences?.gender === "male" || userPreferences?.gender === "female"
-        ? userPreferences.gender
-        : null;
+    // Filter out items where we found no product
+    const finalItems = filledItems.filter(i => i.product);
 
-    // 3) Prepare input for AI
-    const inputData = {
-      baseItem: {
-        id: baseProduct._id.toString(),
-        category: baseSub, // use subCategory so rules understand it's shirt/pant/accessory
-        color: baseProduct.variants?.[0]?.color,
-        colorHex: baseProduct.dominantColor?.hex,
-      },
-      userPreferences: userPreferences || {},
-    };
-
-    // 4) Call Gemini
-    const aiResult = await generateAIOutfits(inputData);
-    console.log(`[generateOutfit] AI returned ${aiResult?.outfitItems?.length || 0} outfit items`);
-
-    // 5) Safeguard: filter roles locally as well
-    let outfitItems = Array.isArray(aiResult.outfitItems) ? aiResult.outfitItems : [];
-    outfitItems = filterOutfitRolesForBase(baseRole, outfitItems);
-    console.log(`[generateOutfit] After filtering roles: ${outfitItems.length} outfit items`);
-
-    // 6) Attach real products from DB (gender-aware, color-compatible, non-repeating)
-    const matchedItems: any[] = [];
-    const usedProductIds = new Set<string>();
-    
-    // Extract base product color for deterministic color matching
-    const baseProductColor = (baseProduct as any).dominantColor?.name || 
-                             (baseProduct as any).aiTags?.dominant_color_name || 
-                             null;
-    
-    // Extract base product gender
-    const baseProductGender = (baseProduct as any).gender || null;
-
-    for (const item of outfitItems) {
-      const product = await findMatchingProduct(
-        item,
-        baseProduct._id.toString(),
-        userGender,
-        usedProductIds,
-        baseProductColor,
-        baseProductGender,
-      );
-
-      if (product) {
-        usedProductIds.add(String(product._id));
-        console.log(`[generateOutfit] Matched product: ${product.name} (${product.subCategory || product.category}) for role ${item.role}`);
-      } else {
-        console.log(`[generateOutfit] No product found for role ${item.role}, color: ${item.colorSuggestion}`);
-      }
-
-      matchedItems.push({
-        ...item,
-        product,
-      });
-    }
-    
-    console.log(`[generateOutfit] Total matched items: ${matchedItems.length}, with products: ${matchedItems.filter(m => m.product).length}`);
-    
-    // Log details of matched items for debugging
-    matchedItems.forEach((item, idx) => {
-      if (item.product) {
-        console.log(`[generateOutfit] Item ${idx + 1}: ${item.role} - ${item.product.name} (${item.product.subCategory || item.product.category})`);
-      } else {
-        console.log(`[generateOutfit] Item ${idx + 1}: ${item.role} - NO PRODUCT MATCHED`);
-      }
+    return res.status(200).json({
+      outfitTitle: outfitPlan.outfitTitle || "Stylish Look",
+      overallStyleExplanation: outfitPlan.overallStyleExplanation || "A fresh combination just for you.",
+      outfitItems: finalItems
     });
 
-    // 7) Optional AI explanation layer (does NOT affect outfit selection logic)
-    let explanationResult: {
-      explanation: string;
-      styleTips: string[];
-      occasion: string;
-    } | null = null;
-
-    try {
-      const baseProductForExplanation = {
-        name: baseProduct.name,
-        category: baseProduct.subCategory || baseProduct.category,
-        color:
-          (baseProduct.variants && baseProduct.variants[0]?.color) ||
-          baseProduct.dominantColor?.name ||
-          "",
-        gender: (baseProduct as any).gender || "",
-      };
-
-      const outfitItemsForExplanation = matchedItems
-        .filter((item) => item.product)
-        .map((item) => {
-          const product = item.product as any;
-          return {
-            name: product.name,
-            category: product.subCategory || product.category,
-            color:
-              (product.variants && product.variants[0]?.color) ||
-              product.dominantColor?.name ||
-              "",
-          };
-        });
-
-      if (outfitItemsForExplanation.length > 0) {
-        explanationResult = await generateOutfitExplanation(
-          baseProductForExplanation,
-          outfitItemsForExplanation,
-        );
-      }
-    } catch (explanationError) {
-      // If the explanation layer fails, we still return the normal outfit response.
-      console.error("AI Outfit Explanation Error:", explanationError);
-      explanationResult = null;
-    }
-
-    // 8) Final response (backward compatible; AI fields are optional)
-    const responseBody: any = {
-      base: baseProduct,
-      outfitTitle: aiResult.outfitTitle,
-      outfitItems: matchedItems,
-      overallStyleExplanation: aiResult.overallStyleExplanation,
-    };
-
-    if (explanationResult) {
-      responseBody.aiExplanation = explanationResult.explanation;
-      responseBody.styleTips = explanationResult.styleTips;
-      responseBody.occasion = explanationResult.occasion;
-    }
-
-    return res.json(responseBody);
   } catch (error) {
-    console.error("AI Outfit Error:", error);
-    return res.status(500).json({ message: "Failed to generate AI outfit." });
+    console.error("Outfit Generation Error:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };

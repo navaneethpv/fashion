@@ -96,7 +96,7 @@ export const generateOutfit = async (req: Request, res: Response) => {
     const gender = userPreferences?.gender || (baseProduct as any).gender === "Men" ? "male" : "female";
 
     // 2. Call AI to get structure (e.g. "I need a Top, Bottom, and Shoes")
-    const outfitPlan = await generateAIOutfits(baseProduct, { ...userPreferences, gender });
+    const outfitPlan = await generateAIOutfits({ baseItem: baseProduct, userPreferences: { ...userPreferences, gender } });
 
     // 3. Simple Fill
     const filledItems = await Promise.all(

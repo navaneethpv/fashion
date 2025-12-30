@@ -22,24 +22,25 @@ interface Product {
 
 interface ProductCardProps {
   product: Product;
+  isPremium?: boolean;
 }
 
 const PLACEHOLDER = "https://via.placeholder.com/300x200?text=No+Image";
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, isPremium = false }: ProductCardProps) {
   const [localProduct, setLocalProduct] = useState<Product>(product);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [burstPosition, setBurstPosition] = useState({ x: 0, y: 0 });
   const { user } = useUser();
-  
+
   const base =
     process.env.NEXT_PUBLIC_API_BASE ||
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:4000";
-    const baseUrl = base.replace(/\/$/, "");
-    
+  const baseUrl = base.replace(/\/$/, "");
+
   const toggleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -137,69 +138,85 @@ export default function ProductCard({ product }: ProductCardProps) {
   }
 
   const imageUrl = resolveImageUrl(localProduct);
-  const href = `/products/${localProduct.slug}${
-    localProduct._id ? `?id=${localProduct._id}` : ""
-  }`;
+  const href = `/products/${localProduct.slug}${localProduct._id ? `?id=${localProduct._id}` : ""
+    }`;
 
   return (
-    <Link href={href} className="group">
-      <div className="bg-white rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-        <div className="relative">
-          <img
-            src={imageUrl}
-            alt={localProduct.name}
-            className="w-full h-48 object-cover"
-            onError={(e) => {
-              const t = e.currentTarget as HTMLImageElement;
-              if (t.src !== PLACEHOLDER) t.src = PLACEHOLDER;
-            }}
-          />
+    <Link href={href} className="group block h-full">
+      <div
+        className={`bg-white transition-all duration-300 overflow-hidden h-full flex flex-col ${isPremium
+          ? "rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1"
+          : "rounded-lg shadow-sm hover:shadow-lg"
+          }`}
+      >
+        <div className="relative overflow-hidden w-full">
+          <div className={isPremium ? "aspect-[3/4]" : "aspect-[4/5] h-48 sm:h-auto"}>
+            <img
+              src={imageUrl}
+              alt={localProduct.name}
+              className={`w-full h-full object-cover transition-transform duration-700 ${isPremium ? "group-hover:scale-110" : "group-hover:scale-105"
+                }`}
+              onError={(e) => {
+                const t = e.currentTarget as HTMLImageElement;
+                if (t.src !== PLACEHOLDER) t.src = PLACEHOLDER;
+              }}
+            />
+          </div>
+
           {localProduct.offer_tag && (
-            <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+            <span className={`absolute top-2 left-2 bg-red-500 text-white font-bold px-2 py-1 rounded ${isPremium ? "text-xs px-2.5 py-1" : "text-xs"
+              }`}>
               {localProduct.offer_tag}
             </span>
           )}
-          {/* Wishlist Button - Instagram Style (Heart Only) */}
+
+          {/* Subtle Gradient Overlay for Premium Cards */}
+          {isPremium && (
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+          )}
+
+          {/* Wishlist Button */}
           {user && (
             <button
               onClick={toggleWishlist}
               disabled={wishlistLoading}
-              className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20 group transition-transform duration-200 hover:scale-125 disabled:opacity-50"
+              className={`absolute z-20 group/heart transition-transform duration-200 hover:scale-125 disabled:opacity-50 ${isPremium ? "top-3 right-3 p-2 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/40" : "top-2 right-2 sm:top-3 sm:right-3"
+                }`}
               title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
               <Heart
-                className={`w-6 h-6 sm:w-7 sm:h-7 transition-all duration-300 drop-shadow-lg ${
-                  isWishlisted
+                className={`transition-all duration-300 drop-shadow-sm ${isPremium ? "w-5 h-5" : "w-6 h-6 sm:w-7 sm:h-7"
+                  } ${isWishlisted
                     ? "fill-red-500 text-red-500 scale-110 animate-bounce-once"
-                    : "fill-white/90 text-gray-800 stroke-[2.5] hover:fill-red-500 hover:text-red-500"
-                }`}
+                    : "fill-transparent text-gray-800 stroke-[2] hover:text-red-500"
+                  }`}
               />
             </button>
           )}
         </div>
 
-        <div className="p-3 sm:p-4">
-          <h3 className="text-xs sm:text-sm font-semibold text-gray-800 truncate group-hover:text-blue-600">
+        <div className={`flex flex-col flex-grow ${isPremium ? "p-4" : "p-3 sm:p-4"}`}>
+          <h3 className={`font-semibold text-gray-800 truncate group-hover:text-black transition-colors ${isPremium ? "text-base mb-1" : "text-xs sm:text-sm"
+            }`}>
             {localProduct.name}
           </h3>
-          <p className="text-xs text-gray-500">{localProduct.brand}</p>
+          <p className="text-xs text-gray-500 mb-2">{localProduct.brand}</p>
 
-          <div className="mt-2 flex items-baseline">
-            <span className="text-base sm:text-lg font-bold text-gray-900">
+          <div className="mt-auto flex items-baseline gap-2">
+            <span className={`font-bold text-gray-900 ${isPremium ? "text-lg" : "text-base sm:text-lg"}`}>
               ₹{((localProduct.price_cents ?? 0) / 100).toFixed(0)}
             </span>
             {localProduct.price_before_cents ? (
-              <span className="ml-2 text-xs sm:text-sm text-gray-400 line-through">
+              <span className="text-xs text-gray-400 line-through">
                 ₹{((localProduct.price_before_cents ?? 0) / 100).toFixed(0)}
               </span>
             ) : null}
+            {localProduct.price_before_cents && (
+              <span className="text-xs text-orange-500 font-medium">
+                ({Math.round((((localProduct.price_before_cents - (localProduct.price_cents || 0)) / localProduct.price_before_cents) * 100))}% OFF)
+              </span>
+            )}
           </div>
-
-          {localProduct.rating ? (
-            <div className="mt-1 text-xs text-gray-600">
-              Rating: {localProduct.rating.toFixed(1)} ★
-            </div>
-          ) : null}
         </div>
       </div>
     </Link>

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Navbar from "./(pages)/components/Navbar";
-import ProductCard from "./(pages)/components/ProductCard";
+import TrendingSlider from "./(pages)/components/TrendingSlider";
 import AutoBanner from "./(pages)/components/AutoBanner";
 import MostViewedSlider from "./(pages)/components/MostViewedSlider";
 import Link from "next/link";
@@ -74,28 +74,7 @@ export default function Home() {
             Loading products...
           </div>
         ) : products.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-12 gap-y-16">
-            {products.map((p: any, index: number) => (
-              <div
-                key={p._id || p.id}
-                className="opacity-0 animate-fade-up"
-                style={{ animationDelay: `${index * 70}ms` }}
-              >
-                <ProductCard
-                  product={{
-                    _id: p._id,
-                    slug: p.slug,
-                    name: p.name,
-                    price_cents: p.price_cents,
-                    price_before_cents: p.price_before_cents,
-                    images: p.images,
-                    brand: p.brand,
-                    offer_tag: p.offer_tag,
-                  }}
-                />
-              </div>
-            ))}
-          </div>
+          <TrendingSlider products={products} />
         ) : (
           <div className="py-24 text-center text-gray-500 border border-dashed border-gray-300">
             No products found. Please ensure the API server is running at{" "}

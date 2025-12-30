@@ -22,7 +22,7 @@ const originalOffers = [
     {
         title: "Dark Color Picks",
         subtitle: "Black, charcoal & night-ready fits",
-        image: "https://images.unsplash.com/photo-1550614000-4b9519e09d9f?q=80&w=800&auto=format&fit=crop",
+        image: "https://images.unsplash.com/photo-1759772238511-61d666754843?q=80&w=709&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         link: "/product?color=Black",
     },
     {

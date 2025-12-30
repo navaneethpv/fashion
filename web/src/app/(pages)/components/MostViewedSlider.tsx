@@ -10,191 +10,138 @@ interface MostViewedSliderProps {
 
 export default function MostViewedSlider({ products }: MostViewedSliderProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  const [velocity, setVelocity] = useState(0);
-  const [lastX, setLastX] = useState(0);
-  const [lastMoveTime, setLastMoveTime] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
-  // Check scroll position to enable/disable arrows
+  // Auto-scroll logic
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    let animationFrameId: number;
+
+    const animate = () => {
+      if (!isPaused) {
+        // Slow drift
+        scrollContainer.scrollLeft += 0.5;
+
+        // Loop back if reached end (simple reset for now, or bi-directional loop if needed later)
+        if (scrollContainer.scrollLeft >= scrollContainer.scrollWidth - scrollContainer.clientWidth) {
+          scrollContainer.scrollLeft = 0;
+        }
+      }
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isPaused]);
+
+  // Check scroll buttons
   const checkScrollPosition = () => {
     if (scrollRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-      setCanScrollLeft(scrollLeft > 5); // Small threshold to account for rounding
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5);
+      setCanScrollLeft(scrollLeft > 10);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
     }
   };
 
-  // Monitor scroll position
   useEffect(() => {
-    const scrollElement = scrollRef.current;
-    if (scrollElement) {
-      checkScrollPosition();
-      scrollElement.addEventListener("scroll", checkScrollPosition);
-      return () =>
-        scrollElement.removeEventListener("scroll", checkScrollPosition);
+    const el = scrollRef.current;
+    if (el) {
+      el.addEventListener('scroll', checkScrollPosition);
+      return () => el.removeEventListener('scroll', checkScrollPosition);
     }
   }, []);
 
-  // Momentum scrolling
-  useEffect(() => {
-    if (!isDragging && Math.abs(velocity) > 0.5) {
-      const momentum = setInterval(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollLeft += velocity;
-          setVelocity((v) => v * 0.95); // Deceleration
-
-          if (Math.abs(velocity) < 0.5) {
-            clearInterval(momentum);
-          }
-        }
-      }, 16);
-
-      return () => clearInterval(momentum);
-    }
-  }, [isDragging, velocity]);
-
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
-      const scrollAmount = 320;
-      const newScrollLeft =
-        scrollRef.current.scrollLeft +
-        (direction === "right" ? scrollAmount : -scrollAmount);
-      scrollRef.current.scrollTo({ left: newScrollLeft, behavior: "smooth" });
+      const scrollAmount = 300;
+      scrollRef.current.scrollBy({
+        left: direction === "right" ? scrollAmount : -scrollAmount,
+        behavior: "smooth"
+      });
     }
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!scrollRef.current) return;
-    setIsDragging(true);
-    setStartX(e.pageX - scrollRef.current.offsetLeft);
-    setScrollLeft(scrollRef.current.scrollLeft);
-    setLastX(e.pageX);
-    setLastMoveTime(Date.now());
-    setVelocity(0);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !scrollRef.current) return;
-    e.preventDefault();
-
-    const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX) * 2.5; // Increased sensitivity for smoother feel
-    scrollRef.current.scrollLeft = scrollLeft - walk;
-
-    // Calculate velocity for momentum
-    const currentTime = Date.now();
-    const timeDelta = currentTime - lastMoveTime;
-    if (timeDelta > 0) {
-      const newVelocity = ((lastX - e.pageX) / timeDelta) * 16; // Normalize to 60fps
-      setVelocity(newVelocity);
-    }
-    setLastX(e.pageX);
-    setLastMoveTime(currentTime);
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleMouseLeave = () => {
-    setIsDragging(false);
-  };
-
-  // Prevent text selection while dragging
-  useEffect(() => {
-    if (isDragging) {
-      document.body.style.userSelect = "none";
-    } else {
-      document.body.style.userSelect = "";
-    }
-    return () => {
-      document.body.style.userSelect = "";
-    };
-  }, [isDragging]);
+  if (!products || products.length === 0) return null;
 
   return (
-    <section className="py-12 bg-gradient-to-r from-purple-50 via-pink-50 to-violet-50 relative">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-1">
-              🔥 Most Viewed
-            </h2>
-            <p className="text-gray-600">Popular picks everyone's loving</p>
-          </div>
-          <Link
-            href="/product"
-            className="text-primary font-bold hover:underline text-sm md:text-base"
-          >
-            See All →
-          </Link>
+    <section className="py-20 bg-gradient-to-b from-purple-50/50 to-white relative overflow-hidden">
+      <div className="max-w-[1400px] mx-auto px-6 mb-12 flex items-end justify-between">
+        <div>
+          <h2 className="text-3xl md:text-5xl font-serif font-bold text-gray-900 mb-2">
+            Most Viewed
+          </h2>
+          <p className="text-gray-500 font-medium tracking-wide">
+            Styles the world is falling for
+          </p>
         </div>
+        <Link
+          href="/product"
+          className="hidden md:flex items-center gap-2 px-6 py-2 rounded-full border border-gray-200 text-sm font-bold hover:bg-black hover:text-white transition-all duration-300"
+        >
+          VIEW ALL
+          <ChevronRight className="w-4 h-4" />
+        </Link>
+      </div>
 
-        {/* Slider Container */}
-        <div className="relative group">
-          {/* Left Arrow */}
-          <button
-            onClick={() => scroll("left")}
-            disabled={!canScrollLeft}
-            className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-300 -translate-x-1/2 ${canScrollLeft
-                ? "opacity-0 group-hover:opacity-100 hover:bg-gray-50 hover:scale-110 cursor-pointer"
-                : "opacity-30 cursor-not-allowed"
-              }`}
-            aria-label="Scroll left"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
+      <div
+        className="relative group w-full"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={() => setIsPaused(true)}
+        onTouchEnd={() => setIsPaused(false)}
+      >
+        {/* Navigation Buttons */}
+        <button
+          onClick={() => scroll("left")}
+          disabled={!canScrollLeft}
+          className={`absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/80 backdrop-blur-md border border-white/40 rounded-full flex items-center justify-center shadow-xl text-gray-900 transition-all duration-300 ${!canScrollLeft ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100 hover:scale-110"
+            }`}
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
 
-          {/* Scrollable Container */}
-          <div
-            ref={scrollRef}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseLeave}
-            className={`flex gap-3 sm:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth ${isDragging ? "cursor-grabbing select-none" : "cursor-grab"
-              }`}
-            style={{
-              scrollBehavior: isDragging ? "auto" : "smooth",
-            }}
-          >
-            {products.slice(0, 8).map((p: any) => (
-              <div
-                key={p._id}
-                className="flex-shrink-0 w-64 snap-start transform transition-transform duration-200 hover:scale-[1.02]"
-              >
-                <ProductCard
-                  product={{
-                    _id: p._id,
-                    slug: p.slug,
-                    name: p.name,
-                    price_cents: p.price_cents,
-                    price_before_cents: p.price_before_cents,
-                    images: p.images,
-                    brand: p.brand,
-                    offer_tag: p.offer_tag,
-                  }}
-                />
-              </div>
-            ))}
-          </div>
+        <button
+          onClick={() => scroll("right")}
+          disabled={!canScrollRight}
+          className={`absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/80 backdrop-blur-md border border-white/40 rounded-full flex items-center justify-center shadow-xl text-gray-900 transition-all duration-300 ${!canScrollRight ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100 hover:scale-110"
+            }`}
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
 
-          {/* Right Arrow */}
-          <button
-            onClick={() => scroll("right")}
-            disabled={!canScrollRight}
-            className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-300 translate-x-1/2 ${canScrollRight
-                ? "opacity-0 group-hover:opacity-100 hover:bg-gray-50 hover:scale-110 cursor-pointer"
-                : "opacity-30 cursor-not-allowed"
-              }`}
-            aria-label="Scroll right"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
+        {/* Slider */}
+        <div
+          ref={scrollRef}
+          className={`flex gap-6 overflow-x-auto pb-12 px-6 no-scrollbar ${isPaused ? "snap-x snap-mandatory" : ""
+            }`}
+          style={{ scrollbarWidth: 'none' }}
+        >
+          {products.slice(0, 10).map((p, i) => (
+            <div
+              key={p._id || i}
+              className="snap-center shrink-0 w-[75vw] sm:w-[320px] md:w-[360px]"
+            >
+              <ProductCard
+                product={{
+                  _id: p._id,
+                  slug: p.slug,
+                  name: p.name,
+                  price_cents: p.price_cents,
+                  price_before_cents: p.price_before_cents,
+                  images: p.images,
+                  brand: p.brand,
+                  offer_tag: p.offer_tag,
+                }}
+                isPremium={true}
+              />
+            </div>
+          ))}
+          {/* Spacer */}
+          <div className="w-8 shrink-0" />
         </div>
       </div>
     </section>

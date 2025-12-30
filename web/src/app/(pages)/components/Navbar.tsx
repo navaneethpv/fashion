@@ -6,8 +6,9 @@ import ImageSearchModal from "./ImageSearchModal";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import SearchInput from "./SearchInput";
 import { useCartCount } from "@/hooks/useCartCount";
+import { useParams, useSearchParams } from "next/navigation";
+import { useWishlistCount } from "@/hooks/useWishlistCount";
 
-import { useSearchParams } from "next/navigation";
 
 const NAV_ITEMS = [
   { name: "MEN", href: "/product?gender=men", type: "gender", value: "men" },
@@ -24,6 +25,7 @@ function NavbarContent() {
   const { user } = useUser();
   const cartCount = useCartCount();
   const searchParams = useSearchParams();
+  const wishlistCount = useWishlistCount();
 
   const isActive = (item: typeof NAV_ITEMS[0]) => {
     if (item.type === "gender") return searchParams.get("gender") === item.value;
@@ -58,12 +60,13 @@ function NavbarContent() {
               />
             </div>
 
-            {/* Wishlist */}
             <Link href="/wishlist" className="relative group">
               <Heart className="w-5 h-5 text-gray-700 group-hover:text-black transition" />
-              <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] px-1 rounded-full">
-                0
-              </span>
+              {wishlistCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] px-1 rounded-full">
+                  {wishlistCount}
+                </span>
+              )}
             </Link>
 
             {/* Cart */}

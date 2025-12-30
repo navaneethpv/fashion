@@ -3,17 +3,18 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { Heart, ShoppingBag, Star } from 'lucide-react';
+import Navbar from '../components/Navbar';
 
 export default function WishlistPage() {
   const { user, isLoaded } = useUser();
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
- 
+
   const base =
     process.env.NEXT_PUBLIC_API_BASE ||
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:4000";
-    const baseUrl = base.replace(/\/$/, "");
+  const baseUrl = base.replace(/\/$/, "");
 
   // Fetch wishlist on mount
   useEffect(() => {
@@ -43,7 +44,7 @@ export default function WishlistPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user?.id }),
       });
-      
+
       // Remove from local state
       setWishlist(prev => prev.filter(item => item.productId._id !== productId));
     } catch (error) {
@@ -62,6 +63,7 @@ export default function WishlistPage() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Navbar />
         <div className="text-center">
           <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign in to view your wishlist</h2>
@@ -73,6 +75,7 @@ export default function WishlistPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
+      <Navbar />
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
@@ -121,7 +124,7 @@ export default function WishlistPage() {
                         {product.name}
                       </h3>
                     </Link>
-                    
+
                     <p className="text-xs text-gray-500 mb-2">{product.brand}</p>
 
                     {/* Price */}

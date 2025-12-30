@@ -23,6 +23,7 @@ export default function AddToCartButton({ variants = [], productId, price, compa
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string>("");
 
@@ -82,6 +83,41 @@ export default function AddToCartButton({ variants = [], productId, price, compa
       alert("Something went wrong");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleWishlistToggle = async () => {
+    if (!isLoaded || !user) {
+      clerk.openSignIn();
+      return;
+    }
+    setWishlistLoading(true);
+    try {
+      // 1. Try Add
+      const res = await fetch(`${baseUrl}/api/wishlist/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, productId })
+      });
+
+      if (res.ok) {
+        window.dispatchEvent(new Event("wishlist-updated"));
+        // Optional: show toast/alert
+      } else if (res.status === 400) {
+        // 2. If duplicate, Try Remove
+        const resDel = await fetch(`${baseUrl}/api/wishlist/remove/${productId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id })
+        });
+        if (resDel.ok) {
+          window.dispatchEvent(new Event("wishlist-updated"));
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setWishlistLoading(false);
     }
   };
 
@@ -165,12 +201,14 @@ export default function AddToCartButton({ variants = [], productId, price, compa
             </>
           )}
         </button>
-        {/* Wishlist Button - Hide in compact to save space, or make small */}
-        {!compact && (
-          <button className="w-14 h-14 flex items-center justify-center border border-gray-200 rounded-xl hover:bg-gray-50 transition">
-            <Heart className="w-6 h-6 text-gray-600" />
-          </button>
-        )}
+        {/* Wishlist Button */}
+        <button
+          onClick={handleWishlistToggle}
+          disabled={wishlistLoading}
+          className={`flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 transition ${compact ? "w-9 h-9" : "w-14 h-14 rounded-xl"}`}
+        >
+          <Heart className={`${compact ? "w-4 h-4" : "w-6 h-6"} ${wishlistLoading ? "text-gray-300 animate-pulse" : "text-gray-600"}`} />
+        </button>
       </div>
     </div>
   );

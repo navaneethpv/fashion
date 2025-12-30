@@ -2,9 +2,11 @@
 import { useState, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import Navbar from '../components/Navbar';
-import { Loader2, CheckCircle, Lock, CreditCard, ShieldCheck } from 'lucide-react';
+import { Loader2, CheckCircle, Lock, CreditCard, ShieldCheck, MapPin, Plus, ChevronRight, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import AddressBook from '../components/profile/AddressBook';
+import AddressForm from '../components/profile/AddressForm';
 
 export default function CheckoutPage() {
   const { user, isLoaded } = useUser();
@@ -18,19 +20,11 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderData, setOrderData] = useState<any>(null);
 
-  // Expanded Form State
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    street: '',
-    city: '',
-    state: '',
-    zip: '',
-
-    country: 'India'
-  });
+  // Address Management State
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<any>(null);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const base =
     process.env.NEXT_PUBLIC_API_BASE ||
@@ -47,48 +41,49 @@ export default function CheckoutPage() {
     };
   };
 
-  // 1. Fetch Cart & Pre-fill Email
+  // 1. Fetch Data
   useEffect(() => {
     if (!isLoaded || !user) return;
 
-    // Pre-fill email/name from Clerk if available
-    setFormData(prev => ({
-      ...prev,
-      email: user.primaryEmailAddress?.emailAddress || '',
-      firstName: user.firstName || '',
-      lastName: user.lastName || ''
-    }));
+    const fetchData = async () => {
+      try {
+        const token = await getToken();
+        const headers = { Authorization: `Bearer ${token}` };
 
-    fetch(`${baseUrl}/api/cart?userId=${user.id}`)
-      .then(res => res.json())
-      .then(data => {
-        setCart(data);
+        // Fetch Cart
+        const cartRes = await fetch(`${baseUrl}/api/cart?userId=${user.id}`);
+        if (cartRes.ok) setCart(await cartRes.json());
+
+        // Fetch Addresses
+        const addrRes = await fetch(`${baseUrl}/api/user/addresses`, { headers });
+        if (addrRes.ok) {
+          const addrs = await addrRes.json();
+          setAddresses(addrs);
+          // Auto-select default or first
+          const def = addrs.find((a: any) => a.isDefault) || addrs[0];
+          if (def) setSelectedAddress(def);
+        }
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      } catch (e) {
+        console.error("Fetch error", e);
+        setLoading(false);
+      }
+    }
+    fetchData();
   }, [isLoaded, user]);
 
-  // 2. Fetch Order Details when orderId is available
-  useEffect(() => {
-    if (!orderId) return;
-  }, [orderId]);
 
   const subtotal = cart?.items?.reduce((acc: number, item: any) => {
     return acc + (item.product.price_cents * item.quantity);
   }, 0) || 0;
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
 
 
   // 2. Handle Payment
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate phone length
-    if (formData.phone.length !== 10) {
-      alert("Please enter a valid 10-digit Indian mobile number.");
+    if (!selectedAddress) {
+      alert("Please add or select a shipping address.");
       return;
     }
 
@@ -97,8 +92,16 @@ export default function CheckoutPage() {
     const orderPayload = {
       userId: user?.id,
       shippingAddress: {
-        ...formData,
-        phone: `+91${formData.phone}` // Prepend +91 enforced
+        firstName: user?.firstName || '',
+        lastName: user?.lastName || '',
+        email: user?.primaryEmailAddress?.emailAddress || '',
+        phone: selectedAddress.phone,
+        street: selectedAddress.street,
+        city: selectedAddress.city,
+        district: selectedAddress.district,
+        state: selectedAddress.state,
+        zip: selectedAddress.zip,
+        country: selectedAddress.country
       }
     };
 
@@ -109,13 +112,13 @@ export default function CheckoutPage() {
       const res = await fetch(`${baseUrl}/api/orders`, {
         method: 'POST',
         headers: await authHeaders(),
-
         body: JSON.stringify(orderPayload)
       });
 
       if (res.ok) {
         const data = await res.json();
         setOrderId(data._id); // Store order ID for fetching details
+        setOrderData(data); // Assuming backend returns order object
         setOrderSuccess(true);
       } else {
         const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
@@ -130,12 +133,28 @@ export default function CheckoutPage() {
     }
   };
 
+  const refreshAddresses = async () => {
+    const token = await getToken();
+    const res = await fetch(`${baseUrl}/api/user/addresses`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (res.ok) {
+      const addrs = await res.json();
+      setAddresses(addrs);
+      // If we just added the first address, select it
+      if (!selectedAddress) {
+        const def = addrs.find((a: any) => a.isDefault) || addrs[0];
+        setSelectedAddress(def);
+      }
+    }
+  };
+
+
   if (!isLoaded || loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-primary w-8 h-8" /></div>;
 
   if (orderSuccess) {
-    // Use orderData if available, fallback to formData
-    const displayFirstName = orderData?.shippingAddress?.firstName || formData.firstName;
-    const displayEmail = orderData?.shippingAddress?.email || formData.email;
+    const displayFirstName = orderData?.shippingAddress?.firstName || user?.firstName;
+    const displayEmail = orderData?.shippingAddress?.email || user?.primaryEmailAddress?.emailAddress;
 
     return (
       <div className="min-h-screen bg-white">
@@ -179,128 +198,55 @@ export default function CheckoutPage() {
 
         <div className="flex flex-col lg:flex-row gap-8">
 
-          {/* LEFT COLUMN: FORMS */}
+          {/* LEFT COLUMN: INFO & PAYMENT */}
           <div className="flex-1 space-y-8">
 
-            {/* 1. Contact Info */}
+            {/* 1. SHIPPING ADDRESS SECTION */}
             <div className="bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 transition-all hover:shadow-2xl hover:shadow-gray-200/60">
-              <h2 className="text-xl font-bold mb-8 text-gray-900">Contact Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Email Address</label>
-                  <input
-                    name="email"
-                    type="email"
-                    required
-                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all placeholder:text-gray-300 font-medium text-gray-900"
-                    placeholder="you@example.com"
-                    value={formData.email}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Phone Number</label>
-                  <div className="relative flex items-center">
-                    <span className="absolute left-4 text-gray-400 font-bold select-none">+91</span>
-                    <input
-                      name="phone"
-                      type="tel"
-                      required
-                      placeholder="98765 43210"
-                      className={`w-full p-4 pl-14 bg-white border rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all placeholder:text-gray-300 font-medium text-gray-900 tracking-wide ${formData.phone && formData.phone.length !== 10 ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200'
-                        }`}
-                      value={formData.phone}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                        setFormData({ ...formData, phone: val });
-                      }}
-                    />
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-gray-400" /> Shipping Address
+                </h2>
+                {addresses.length > 0 && (
+                  <button
+                    onClick={() => setShowAddressModal(true)}
+                    className="text-xs font-bold text-primary border border-primary px-4 py-2 rounded-full hover:bg-primary hover:text-white transition-all uppercase tracking-wide"
+                  >
+                    Change
+                  </button>
+                )}
+              </div>
+
+              {selectedAddress ? (
+                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="px-2.5 py-1 bg-white border border-gray-200 text-gray-600 text-[10px] font-bold rounded uppercase tracking-wide">
+                      {selectedAddress.type}
+                    </span>
+                    <span className="font-bold text-gray-900">{user?.fullName}</span>
+                    <span className="text-gray-400 text-sm font-medium">{selectedAddress.phone}</span>
                   </div>
-                  {formData.phone && formData.phone.length > 0 && formData.phone.length < 10 && (
-                    <p className="text-xs text-red-500 font-medium mt-1">Enter a valid 10-digit Indian mobile number</p>
-                  )}
+                  <p className="text-gray-700 font-medium leading-relaxed">
+                    {selectedAddress.street}, {selectedAddress.city}, {selectedAddress.district}, {selectedAddress.state} - <span className="text-black font-bold">{selectedAddress.zip}</span>
+                  </p>
                 </div>
-              </div>
+              ) : (
+                <div className="text-center py-8">
+                  <button
+                    onClick={() => setShowAddForm(true)}
+                    className="bg-black text-white px-8 py-4 rounded-xl font-bold flex items-center gap-2 mx-auto hover:scale-105 transition-transform shadow-lg"
+                  >
+                    <Plus className="w-5 h-5" /> Add New Address
+                  </button>
+                </div>
+              )}
             </div>
-
-            {/* 2. Shipping Address */}
-            <form id="checkout-form" onSubmit={handlePlaceOrder} className="bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 transition-all hover:shadow-2xl hover:shadow-gray-200/60">
-              <h2 className="text-xl font-bold mb-8 text-gray-900">Shipping Address</h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">First Name</label>
-                  <input
-                    name="firstName" type="text" required
-                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all font-medium text-gray-900"
-                    value={formData.firstName} onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Last Name</label>
-                  <input
-                    name="lastName" type="text" required
-                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all font-medium text-gray-900"
-                    value={formData.lastName} onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div className="mb-8 space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Street Address</label>
-                <input
-                  name="street" type="text" required placeholder="House No, Building, Area"
-                  className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all placeholder:text-gray-300 font-medium text-gray-900"
-                  value={formData.street} onChange={handleChange}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-8 mb-8">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">City</label>
-                  <input
-                    name="city" type="text" required
-                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all font-medium text-gray-900"
-                    value={formData.city} onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">State</label>
-                  <input
-                    name="state" type="text" required
-                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all font-medium text-gray-900"
-                    value={formData.state} onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-8">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">ZIP Code</label>
-                  <input
-                    name="zip" type="text" required
-                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all font-medium text-gray-900"
-                    value={formData.zip} onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Country</label>
-                  <input
-                    name="country"
-                    type="text"
-                    disabled
-                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-bold cursor-not-allowed select-none"
-                    value="India"
-                  />
-                </div>
-              </div>
-            </form>
 
             {/* 3. Payment Method */}
             <div className="bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 transition-all hover:shadow-2xl hover:shadow-gray-200/60">
               <h2 className="text-xl font-bold mb-8 text-gray-900">Payment Method</h2>
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-5 p-5 border border-purple-200 bg-purple-50/30 rounded-2xl cursor-pointer transition-all shadow-sm">
+                <div className="flex items-center gap-5 p-5 border border-purple-200 bg-purple-50/30 rounded-2xl cursor-pointer transition-all shadow-sm ring-1 ring-purple-500/20">
                   <div className="w-5 h-5 rounded-full border-[5px] border-purple-600 bg-white shadow-sm" />
                   <div className="p-2 bg-white rounded-lg shadow-sm">
                     <CreditCard className="w-6 h-6 text-purple-600" />
@@ -365,9 +311,8 @@ export default function CheckoutPage() {
               </div>
 
               <button
-                type="submit"
-                form="checkout-form"
-                disabled={processing}
+                onClick={handlePlaceOrder}
+                disabled={processing || !selectedAddress}
                 className="w-full bg-black text-white h-14 rounded-xl font-bold hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2 shadow-xl shadow-gray-200 disabled:opacity-70 disabled:hover:scale-100"
               >
                 {processing ? (
@@ -390,6 +335,43 @@ export default function CheckoutPage() {
           </div>
         </div>
       </main>
+
+      {/* ADDRESS SELECTION MODAL */}
+      {showAddressModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-xl font-black text-gray-900">Select Delivery Address</h3>
+              <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+              <AddressBook
+                clerkUser={user}
+                onSelect={(addr: any) => {
+                  setSelectedAddress(addr);
+                  setShowAddressModal(false);
+                }}
+                selectedId={selectedAddress?._id}
+              />
+            </div>
+            <div className="p-4 border-t border-gray-100 bg-gray-50 text-center">
+              <button onClick={() => setShowAddForm(true)} className="text-primary font-bold text-sm hover:underline">
+                + Add New Address
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD NEW ADDRESS FORM MODAL (Overlay) */}
+      <AddressForm
+        isOpen={showAddForm}
+        onClose={() => setShowAddForm(false)}
+        onSuccess={refreshAddresses}
+      />
+
     </div>
   );
 }

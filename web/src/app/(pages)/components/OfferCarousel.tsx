@@ -17,14 +17,14 @@ const offers = [
     {
         title: "Winter Collection",
         subtitle: "Premium jackets & sweatshirts",
-        image: "https://images.unsplash.com/photo-1551028919-ac7675cf5c63?q=80&w=800&auto=format&fit=crop",
+        image: "https://images.unsplash.com/photo-1574784619102-f7e342f21aa0?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         link: "/product?category=Jackets",
     },
     {
         title: "Dark Color Picks",
         subtitle: "Black, charcoal & night-ready fits",
         image: "https://images.unsplash.com/photo-1483118714900-540cf339fd63?q=80&w=800&auto=format&fit=crop",
-        link: "/product?colors=Black",
+        link: "/product?color=Black",
     },
     {
         title: "Premium Styles",
@@ -42,14 +42,14 @@ const offers = [
     {
         title: "Winter Collection",
         subtitle: "Premium jackets & sweatshirts",
-        image: "https://images.unsplash.com/photo-1551028919-ac7675cf5c63?q=80&w=800&auto=format&fit=crop",
+        image: "https://images.unsplash.com/photo-1574784619102-f7e342f21aa0?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         link: "/product?category=Jackets",
     },
     {
         title: "Dark Color Picks",
         subtitle: "Black, charcoal & night-ready fits",
         image: "https://images.unsplash.com/photo-1483118714900-540cf339fd63?q=80&w=800&auto=format&fit=crop",
-        link: "/product?colors=Black",
+        link: "/product?color=Black",
     },
     {
         title: "Premium Styles",
@@ -72,7 +72,7 @@ export default function OfferCarousel() {
                 x: ["0%", "-50%"],
                 transition: {
                     ease: "linear",
-                    duration: 10, // Adjust speed here
+                    duration: 5, // Adjust speed here
                     repeat: Infinity,
                 },
             });

@@ -82,12 +82,21 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
             baseQuery.gender = gender;
         }
 
-        // Define roles to fill
-        const rolesToFill = [ROLES.TOP, ROLES.BOTTOM, ROLES.FOOTWEAR];
+        // Define roles and limits
+        const roleConfig = [
+            { role: ROLES.TOP, limit: 3 },
+            { role: ROLES.BOTTOM, limit: 3 },
+            { role: ROLES.FOOTWEAR, limit: 2 }
+        ];
+
         const suggestions: any[] = [];
 
-        // Helper to get random product for role
-        const getProductForRole = async (targetRole: string, useExclusions: boolean = true) => {
+        // Track local exclusions for this request to prevent duplicates within the same outfit
+        // Initialize with the exclusions sent from frontend
+        const currentExclusionList: mongoose.Types.ObjectId[] = [...exclusionList];
+
+        // Helper to get random products for role
+        const getProductsForRole = async (targetRole: string, limit: number, useExclusions: boolean = true): Promise<any[]> => {
             let roleQuery: any = {};
 
             switch (targetRole) {
@@ -120,13 +129,13 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
             const queryWithExclusion = { ...baseQuery, ...roleQuery };
 
             // Add exclusion if requested and list is not empty
-            if (useExclusions && exclusionList.length > 0) {
-                queryWithExclusion._id = { $nin: [...exclusionList, baseProduct._id] };
+            if (useExclusions && currentExclusionList.length > 0) {
+                queryWithExclusion._id = { $nin: [...currentExclusionList, baseProduct._id] };
             }
 
             const products = await Product.aggregate([
                 { $match: queryWithExclusion },
-                { $sample: { size: 1 } },
+                { $sample: { size: limit } },
                 {
                     $project: {
                         name: 1, slug: 1, price_cents: 1, brand: 1, category: 1, subCategory: 1, images: { $slice: ["$images", 1] }, variants: 1
@@ -134,38 +143,57 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
                 }
             ]);
 
-            return products[0];
+            return products;
         };
 
-        // fill missing roles
-        for (const role of rolesToFill) {
-            if (role === baseRole) continue;
+        // fill roles
+        for (const config of roleConfig) {
+            if (config.role === baseRole) continue;
 
             // Try with exclusions first
-            let product = await getProductForRole(role, true);
+            let products = await getProductsForRole(config.role, config.limit, true);
 
-            // If no product found and we had exclusions, try without exclusions (fallback)
-            if (!product && exclusionList.length > 0) {
-                console.log(`[OUTFIT DEBUG] Fallback triggered for role: ${role}`);
-                // Fallback: ignore recent exclusions, but still exclude baseProduct (handled in getProductForRole default logic)
-                product = await getProductForRole(role, false);
+            // If found fewer than limit, try to fill the gap without exclusions (fallback)
+            if (products.length < config.limit && exclusionList.length > 0) {
+                const missingCount = config.limit - products.length;
+                console.log(`[OUTFIT DEBUG] Fallback triggered for role: ${config.role}, missing: ${missingCount}`);
+
+                // We only want to fetch *additional* items, but $sample is random. 
+                // Simple strategy: fetch enough items without exclusions, filter out duplicates, and take what we need.
+                // However, simpler for Phase 3: just fetch a batch without exclusions and append unique ones.
+                const fallbackProducts = await getProductsForRole(config.role, config.limit + 2, false); // fetch a bit more to ensure unique
+
+                for (const fb of fallbackProducts) {
+                    if (products.length >= config.limit) break;
+                    // Check if already in products or currentExclusionList (from this request)
+                    const isDuplicate = products.some(p => p._id.toString() === fb._id.toString()) ||
+                        currentExclusionList.some(id => id.toString() === fb._id.toString());
+
+                    if (!isDuplicate) {
+                        products.push(fb);
+                    }
+                }
             }
 
-            if (product) {
+            // Add found products to suggestions and update local exclusion list
+            for (const product of products) {
                 suggestions.push({
-                    role: role,
+                    role: config.role,
                     suggestedType: product.subCategory || product.category,
                     colorSuggestion: 'Matching',
                     colorHexSuggestion: '#000000',
                     reason: `Matches your ${baseRole}`,
                     product: product
                 });
+
+                // Add to local exclusion so next roles/iterations don't pick it (unlikely but safe)
+                currentExclusionList.push(product._id);
             }
         }
 
         res.json({
-            outfitTitle: "Style Studio Pick",
-            overallStyleExplanation: "A curated selection based on your item.",
+            outfitTitle: "Style Studio Collection",
+            overallStyleExplanation: "A curated collection of options based on your item.",
             outfitItems: suggestions
         });
 

@@ -27,7 +27,7 @@ const getProductRole = (product: IProduct): string => {
     const name = (product.name || '').toLowerCase();
 
     // Footwear
-    if (cat === 'shoes' || sub.includes('shoe') || sub.includes('sneaker') || sub.includes('boots') || sub.includes('sandal') || sub.includes('heels') || sub.includes('flats')) {
+    if (cat === 'shoes' || sub.includes('shoe') || sub.includes('sneaker') || sub.includes('boots') || sub.includes('sandal') || sub.includes('heels') || sub.includes('flats') || sub.includes('flip') || sub.includes('flop') || sub.includes('slipper') || sub.includes('slide')) {
         return ROLES.FOOTWEAR;
     }
 

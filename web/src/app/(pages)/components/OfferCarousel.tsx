@@ -58,7 +58,7 @@ export default function OfferCarousel() {
             controls.start({
                 x: -width,
                 transition: {
-                    duration: 20, // Adjust speed here (seconds for one full loop of the original set)
+                    duration: 10, // Adjust speed here (seconds for one full loop of the original set)
                     ease: "linear",
                     repeat: Infinity,
                     repeatType: "loop",
@@ -73,26 +73,11 @@ export default function OfferCarousel() {
             controls.stop();
         } else {
             if (width > 0) {
-                // Must resume from current position logic is tricky with simple declative animate.
-                // However, Framer Motion's simple 'animate' prop handles this if we just re-run it?
-                // Actually, 'controls.stop()' stops it in place. 'controls.start' restarts.
-                // For a true pause/resume without jumping reset, we generally need more complex handling
-                // or just accept the jump, or use 'animation-play-state' via CSS, or
-                // use motion value listeners.
-                //
-                // SIMPLEST ROBUST FIX:
-                // Instead of controls.stop(), we can just use the hover to set duration to huge or 
-                // use a motionValue x and manually step it? No.
-                // 
-                // Let's try the simple re-start approach first. If it resets, we might need a better trick.
-                // Actually, framer-motion `stop` freezes it. `start` will start from current `x`?
-                // No, `start` with a target will animate FROM current to target.
-                // If we want it to be seamless loop, we need to animate to -width.
 
                 controls.start({
                     x: -width,
                     transition: {
-                        duration: 20, // This needs to be calculated based on remaining distance to keep speed constant
+                        duration: 10, // This needs to be calculated based on remaining distance to keep speed constant
                         ease: "linear",
                         repeat: Infinity,
                         repeatType: "loop",

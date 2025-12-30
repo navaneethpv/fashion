@@ -5,7 +5,7 @@ import ProductCard from "./(pages)/components/ProductCard";
 import AutoBanner from "./(pages)/components/AutoBanner";
 import MostViewedSlider from "./(pages)/components/MostViewedSlider";
 import Link from "next/link";
-import OfferSection from "@/components/home/OfferSection";
+import OfferCarousel from "./(pages)/components/OfferCarousel";
 
 export default function Home() {
   const [products, setProducts] = useState([]);
@@ -44,8 +44,8 @@ export default function Home() {
       {/* HERO */}
       <AutoBanner />
 
-      {/* OFFERS (Dark / Premium) */}
-      <OfferSection />
+      {/* NEW: OFFER CAROUSEL */}
+      <OfferCarousel />
 
       {/* TRENDING PRODUCTS */}
       <section className="max-w-7xl mx-auto px-6 py-24">

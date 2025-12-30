@@ -11,6 +11,15 @@ const ROLES = {
     OTHER: 'Other'
 };
 
+const MOOD_KEYWORDS: Record<string, string[]> = {
+    casual: ["tshirt", "tee", "polo", "hoodie", "sweater", "casual", "shirt"],
+    formal: ["shirt", "blazer", "suit", "formal", "trouser", "coat"],
+    party: ["printed", "party", "shimmer", "jacket", "dress", "fashion"],
+
+    streetwear: ["oversized", "hoodie", "street", "cargo", "baggy", "jacket", "printed"],
+    business: ["blazer", "formal", "office", "chino", "shirt", "trouser", "polo"]
+};
+
 // Helper: Classify product into a role
 const getProductRole = (product: IProduct): string => {
     const cat = (product.category || '').toLowerCase();
@@ -43,7 +52,7 @@ const getProductRole = (product: IProduct): string => {
 // POST /api/outfit/simple
 export const generateSimpleOutfit = async (req: Request, res: Response) => {
     try {
-        const { productId, excludeIds = [], preset = 'casual' } = req.body; // Changed from baseProductId to productId to match frontend call
+        const { productId, excludeIds = [], mood = 'casual' } = req.body;
 
         if (!productId) {
             return res.status(400).json({ message: 'Product ID is required.' });
@@ -86,7 +95,8 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
         const roleConfig = [
             { role: ROLES.TOP, limit: 3 },
             { role: ROLES.BOTTOM, limit: 3 },
-            { role: ROLES.FOOTWEAR, limit: 2 }
+            { role: ROLES.FOOTWEAR, limit: 2 },
+            { role: ROLES.ACCESSORY, limit: 2 }
         ];
 
         const suggestions: any[] = [];
@@ -96,111 +106,50 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
         const currentExclusionList: mongoose.Types.ObjectId[] = [...exclusionList];
 
         // Helper to get random products for role
-        const getProductsForRole = async (targetRole: string, limit: number, useExclusions: boolean = true): Promise<any[]> => {
+        const getProductsForRole = async (targetRole: string, limit: number, enforceMood: boolean, useExclusions: boolean = true): Promise<any[]> => {
             let roleQuery: any = {};
-            const cleanPreset = (preset || '').toLowerCase();
 
+            // 1. Generic Role Definitions (Broad)
             switch (targetRole) {
                 case ROLES.TOP:
-                    if (cleanPreset === 'formal') {
-                        roleQuery = {
-                            $or: [{ category: 'Shirts' }, { subCategory: { $regex: /shirt|blouse|coat|blazer|jacket/i } }]
-                        };
-                    } else if (cleanPreset === 'sporty') {
-                        roleQuery = {
-                            subCategory: { $regex: /tee|tank|hoodie|sweat/i }
-                        };
-                    } else if (cleanPreset === 'party') {
-                        roleQuery = {
-                            subCategory: { $regex: /jacket|top|dress|shimmer|party/i }
-                        };
-                    } else if (cleanPreset === 'streetwear') {
-                        roleQuery = {
-                            subCategory: { $regex: /hoodie|sweat|oversize|tee|jacket/i }
-                        };
-                    } else if (cleanPreset === 'business') {
-                        roleQuery = {
-                            $or: [{ category: 'Shirts' }, { subCategory: { $regex: /shirt|polo|blouse/i } }]
-                        };
-                    } else { // Casual (default)
-                        roleQuery = {
-                            $or: [
-                                { category: 'Shirts' },
-                                { subCategory: { $regex: /shirt|top|tee|polo|sweater|hoodie/i } }
-                            ]
-                        };
-                    }
+                    roleQuery = { $or: [{ category: 'Shirts' }, { subCategory: { $regex: /shirt|top|tee|polo|blouse|jacket|coat|sweater|hoodie/i } }] };
                     break;
                 case ROLES.BOTTOM:
-                    if (cleanPreset === 'formal') {
-                        roleQuery = {
-                            subCategory: { $regex: /trouser|pant|skirt/i }
-                        };
-                    } else if (cleanPreset === 'sporty') {
-                        roleQuery = {
-                            subCategory: { $regex: /jogger|track|short|legging/i }
-                        };
-                    } else if (cleanPreset === 'party') {
-                        roleQuery = {
-                            subCategory: { $regex: /skirt|trouser|jean/i }
-                        };
-                    } else if (cleanPreset === 'streetwear') {
-                        roleQuery = {
-                            subCategory: { $regex: /cargo|jogger|baggy|jean|trouser/i }
-                        };
-                    } else if (cleanPreset === 'business') {
-                        roleQuery = {
-                            subCategory: { $regex: /trouser|chino|pant|skirt/i }
-                        };
-                    } else { // Casual
-                        roleQuery = {
-                            $or: [
-                                { category: 'Jeans' },
-                                { subCategory: { $regex: /jean|pant|short|legging|jogger/i } }
-                            ]
-                        };
-                    }
+                    roleQuery = { $or: [{ category: 'Jeans' }, { subCategory: { $regex: /jean|pant|trouser|legging|jogger|short|skirt/i } }] };
                     break;
                 case ROLES.FOOTWEAR:
-                    if (cleanPreset === 'formal') {
-                        roleQuery = {
-                            subCategory: { $regex: /shoe|boot|heel|oxford|formal/i }
-                        };
-                    } else if (cleanPreset === 'sporty') {
-                        roleQuery = {
-                            subCategory: { $regex: /sneaker|run|sport/i }
-                        };
-                    } else if (cleanPreset === 'party') {
-                        roleQuery = {
-                            subCategory: { $regex: /heel|boot|shoe|party/i }
-                        };
-                    } else if (cleanPreset === 'streetwear') {
-                        roleQuery = {
-                            subCategory: { $regex: /sneaker|boot|high|canvas/i }
-                        };
-                    } else if (cleanPreset === 'business') {
-                        roleQuery = {
-                            subCategory: { $regex: /shoe|loafer|heel|boot/i }
-                        };
-                    } else { // Casual
-                        roleQuery = {
-                            $or: [
-                                { category: 'Shoes' },
-                                { subCategory: { $regex: /sneaker|sandal|flat|canvas|boot/i } }
-                            ]
-                        };
-                    }
+                    roleQuery = { $or: [{ category: 'Shoes' }, { subCategory: { $regex: /shoe|sneaker|boot|sandal|heel|flat/i } }] };
+                    break;
+                case ROLES.ACCESSORY:
+                    const g = (gender || '').toLowerCase();
+                    if (g === 'men') roleQuery = { subCategory: { $regex: /watch|belt|wallet|sunglass/i } };
+                    else if (g === 'women') roleQuery = { subCategory: { $regex: /handbag|purse|earring|necklace|jewelry|watch|bag/i } };
+                    else roleQuery = { subCategory: { $regex: /accessory|watch|bag/i } };
                     break;
             }
 
-            const queryWithExclusion = { ...baseQuery, ...roleQuery };
+            // 2. Apply Mood Filter (Only for Top/Bottom)
+            const cleanMood = (mood || '').toLowerCase();
+            const keywords = MOOD_KEYWORDS[cleanMood];
 
-            // Add exclusion if requested and list is not empty
+            if (enforceMood && keywords && (targetRole === ROLES.TOP || targetRole === ROLES.BOTTOM)) {
+                const moodRegex = new RegExp(keywords.join('|'), 'i');
+                // Intersect strict role definition with mood keywords on Name OR SubCategory OR Description
+                roleQuery = {
+                    $and: [
+                        roleQuery,
+                        { $or: [{ name: { $regex: moodRegex } }, { subCategory: { $regex: moodRegex } }, { description: { $regex: moodRegex } }] }
+                    ]
+                };
+            }
+
+            // 3. Exclusions
+            const queryWithExclusion = { ...baseQuery, ...roleQuery };
             if (useExclusions && currentExclusionList.length > 0) {
                 queryWithExclusion._id = { $nin: [...currentExclusionList, baseProduct._id] };
             }
 
-            const products = await Product.aggregate([
+            return await Product.aggregate([
                 { $match: queryWithExclusion },
                 { $sample: { size: limit } },
                 {
@@ -209,36 +158,30 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
                     }
                 }
             ]);
-
-            return products;
         };
 
         // fill roles
         for (const config of roleConfig) {
             if (config.role === baseRole) continue;
 
-            // Try with exclusions first
-            let products = await getProductsForRole(config.role, config.limit, true);
+            // Step A: Try with Exclusion AND Mood
+            let products = await getProductsForRole(config.role, config.limit, true, true);
 
-            // If found fewer than limit, try to fill the gap without exclusions (fallback)
+            // Step B: If empty? Try with Exclusion but NO Mood (Mood fallback)
+            if (products.length === 0) {
+                console.log(`[OUTFIT DEBUG] Mood fallback triggered for ${config.role} (${mood})`);
+                products = await getProductsForRole(config.role, config.limit, false, true);
+            }
+
+            // Step C: If still not enough items? Try ignoring exclusions (Repetition fallback)
             if (products.length < config.limit && exclusionList.length > 0) {
-                const missingCount = config.limit - products.length;
-                console.log(`[OUTFIT DEBUG] Fallback triggered for role: ${config.role}, missing: ${missingCount}`);
-
-                // We only want to fetch *additional* items, but $sample is random. 
-                // Simple strategy: fetch enough items without exclusions, filter out duplicates, and take what we need.
-                // However, simpler for Phase 3: just fetch a batch without exclusions and append unique ones.
-                const fallbackProducts = await getProductsForRole(config.role, config.limit + 2, false); // fetch a bit more to ensure unique
-
-                for (const fb of fallbackProducts) {
+                const fallback = await getProductsForRole(config.role, config.limit + 2, false, false); // Fetch generic, No Exclusions
+                for (const fb of fallback) {
                     if (products.length >= config.limit) break;
-                    // Check if already in products or currentExclusionList (from this request)
-                    const isDuplicate = products.some(p => p._id.toString() === fb._id.toString()) ||
+                    // Avoid duplicates
+                    const exists = products.some(p => p._id.toString() === fb._id.toString()) ||
                         currentExclusionList.some(id => id.toString() === fb._id.toString());
-
-                    if (!isDuplicate) {
-                        products.push(fb);
-                    }
+                    if (!exists) products.push(fb);
                 }
             }
 

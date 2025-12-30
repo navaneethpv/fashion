@@ -283,6 +283,7 @@ export default function OutfitGenerator({
                           productId={item.product._id}
                           price={item.product.price_cents}
                           variants={item.product.variants}
+                          compact={true}
                         />
                       </div>
                     </>

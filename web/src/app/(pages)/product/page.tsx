@@ -184,7 +184,8 @@ function applyClientFilters(
         (p) => p.masterCategory?.trim().toLowerCase() === "footwear"
       );
     } else {
-      filtered = filtered.filter((p) => p.category?.trim() === articleType);
+      // Backend handles normalization (e.g. "shirt" -> "Shirts"), so we don't strict filter here
+      // filtered = filtered.filter((p) => p.category?.trim() === articleType);
     }
   }
 

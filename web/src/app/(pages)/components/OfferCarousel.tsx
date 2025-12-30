@@ -11,7 +11,7 @@ const originalOffers = [
         title: "Men’s Shirts Under ₹999",
         subtitle: "Smart casual shirts for work & weekends",
         image: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?q=80&w=800&auto=format&fit=crop",
-        link: "/product?gender=men&category=shirts",
+        link: "/product?gender=men&category=shirts&maxPrice=999",
     },
     {
         title: "Winter Collection",
@@ -33,23 +33,14 @@ const originalOffers = [
     },
 ];
 
-interface OfferCarouselProps {
-    products?: any[];
-}
+interface OfferCarouselProps { }
 
-export default function OfferCarousel({ products: dynamicProducts }: OfferCarouselProps) {
+export default function OfferCarousel() {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isPaused, setIsPaused] = useState(false);
 
     // Prepare data
-    const baseOffers = (dynamicProducts && dynamicProducts.length > 0)
-        ? dynamicProducts.map(p => ({
-            title: p.name,
-            subtitle: p.brand || "Premium Selection",
-            image: (p.images && p.images[0]) || "https://via.placeholder.com/600x800",
-            link: `/products/${p.slug}?id=${p._id}`
-        }))
-        : originalOffers;
+    const baseOffers = originalOffers;
 
     // 5 Sets for infinite looping
     const offers = [...baseOffers, ...baseOffers, ...baseOffers, ...baseOffers, ...baseOffers];

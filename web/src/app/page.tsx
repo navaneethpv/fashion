@@ -51,7 +51,7 @@ export default function Home() {
       <AutoBanner />
 
       {/* NEW: OFFER CAROUSEL */}
-      <OfferCarousel products={homeData.offers} />
+      <OfferCarousel />
 
       {/* TRENDING PRODUCTS */}
       <section className="max-w-7xl mx-auto px-6 py-24">

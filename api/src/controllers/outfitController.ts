@@ -43,7 +43,7 @@ const getProductRole = (product: IProduct): string => {
 // POST /api/outfit/simple
 export const generateSimpleOutfit = async (req: Request, res: Response) => {
     try {
-        const { productId } = req.body; // Changed from baseProductId to productId to match frontend call
+        const { productId, excludeIds = [] } = req.body; // Changed from baseProductId to productId to match frontend call
 
         if (!productId) {
             return res.status(400).json({ message: 'Product ID is required.' });
@@ -64,10 +64,19 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
             stock: { $gt: 0 },
         };
 
+        // Use excludeIds if provided (safely cast to ObjectId or ignore invalid ones)
+        // We assume excludeIds is an array of strings.
+        const exclusionList: any[] = [];
+        if (Array.isArray(excludeIds) && excludeIds.length > 0) {
+            excludeIds.forEach((id: string) => {
+                if (mongoose.Types.ObjectId.isValid(id)) {
+                    exclusionList.push(new mongoose.Types.ObjectId(id));
+                }
+            });
+        }
+
         // Strict gender matching if available
         if (gender) {
-            // Handle "Men"/"Male" normalization if needed, but assuming DB is consistent for now or using text match
-            // Or simpler: match exact string first.
             baseQuery.gender = gender;
         }
 
@@ -76,7 +85,7 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
         const suggestions: any[] = [];
 
         // Helper to get random product for role
-        const getProductForRole = async (targetRole: string) => {
+        const getProductForRole = async (targetRole: string, useExclusions: boolean = true) => {
             let roleQuery: any = {};
 
             switch (targetRole) {
@@ -106,8 +115,15 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
                     break;
             }
 
+            const queryWithExclusion = { ...baseQuery, ...roleQuery };
+
+            // Add exclusion if requested and list is not empty
+            if (useExclusions && exclusionList.length > 0) {
+                queryWithExclusion._id = { $nin: [...exclusionList, baseProduct._id] };
+            }
+
             const products = await Product.aggregate([
-                { $match: { ...baseQuery, ...roleQuery } },
+                { $match: queryWithExclusion },
                 { $sample: { size: 1 } },
                 {
                     $project: {
@@ -121,10 +137,17 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
 
         // fill missing roles
         for (const role of rolesToFill) {
-            if (role === baseRole) continue; // Don't duplicate role (e.g. don't suggest Top if base is Top)
-            // Actually, for simplicity Phase 1, let's just do it.
+            if (role === baseRole) continue;
 
-            const product = await getProductForRole(role);
+            // Try with exclusions first
+            let product = await getProductForRole(role, true);
+
+            // If no product found and we had exclusions, try without exclusions (fallback)
+            if (!product && exclusionList.length > 0) {
+                // Fallback: ignore recent exclusions, but still exclude baseProduct (handled in getProductForRole default logic)
+                product = await getProductForRole(role, false);
+            }
+
             if (product) {
                 suggestions.push({
                     role: role,

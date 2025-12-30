@@ -115,6 +115,12 @@ export default function OutfitGenerator({
     }
   };
 
+  // Exclusion Memory using useRef (persists across re-renders but resets on reload)
+  const excludedIdsRef = useRef<Set<string>>(new Set());
+
+  // Reset exclusions only on mount or strict conditions (User requested NOT to reset on base product change)
+  // so we initialize once.
+
   const handleGenerate = async () => {
     setLoading(true);
     setResult(null);
@@ -125,10 +131,13 @@ export default function OutfitGenerator({
         throw new Error("NEXT_PUBLIC_API_URL is not configured");
       }
 
+      // Convert Set to Array for API
+      const excludeIds = Array.from(excludedIdsRef.current);
+
       const res = await fetch(`${API_URL}/api/outfit/simple`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId }),
+        body: JSON.stringify({ productId, excludeIds }),
       });
 
       if (!res.ok) {
@@ -150,8 +159,15 @@ export default function OutfitGenerator({
         console.warn("Invalid response format:", data);
         setResult(null);
       } else {
-        data.outfitItems = data.outfitItems ?? [];
-        setResult(data);
+        const items = data.outfitItems ?? [];
+        setResult({ ...data, outfitItems: items });
+
+        // Update exclusion memory with new items
+        items.forEach((item: any) => {
+          if (item.product && item.product._id) {
+            excludedIdsRef.current.add(item.product._id);
+          }
+        });
       }
     } catch (e) {
       console.error("Fetch error:", e);

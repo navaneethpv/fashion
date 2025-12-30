@@ -1,13 +1,11 @@
 "use client";
 
-import { motion, useAnimationControls } from "framer-motion";
-import { useEffect, useState, useRef } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 
-// Static data as requested
-// Static data as requested
+// Static data
 const originalOffers = [
     {
         title: "Men’s Shirts Under ₹999",
@@ -24,7 +22,7 @@ const originalOffers = [
     {
         title: "Dark Color Picks",
         subtitle: "Black, charcoal & night-ready fits",
-        image: "https://images.unsplash.com/photo-1550614000-4b9519e09d9f?q=80&w=800&auto=format&fit=crop", // Replaced with reliable dark theme image
+        image: "https://images.unsplash.com/photo-1550614000-4b9519e09d9f?q=80&w=800&auto=format&fit=crop",
         link: "/product?color=Black",
     },
     {
@@ -35,140 +33,141 @@ const originalOffers = [
     },
 ];
 
-// Triple buffer for seamless looping (Start -> Middle -> End)
+// 3 Sets for infinite looping (Prev | Current | Next)
 const offers = [...originalOffers, ...originalOffers, ...originalOffers];
 
 export default function OfferCarousel() {
-    const [width, setWidth] = useState(0);
     const scrollRef = useRef<HTMLDivElement>(null);
-    const controls = useAnimationControls();
     const [isPaused, setIsPaused] = useState(false);
 
+    // Auto-scroll logic
     useEffect(() => {
-        if (scrollRef.current) {
-            // Measure the total scrollable width and divide by 3 (since we have 3 sets)
-            // This gives us the exact length of one original set including gaps
-            const totalWidth = scrollRef.current.scrollWidth;
-            setWidth(totalWidth / 3);
-        }
-    }, []);
+        const scrollContainer = scrollRef.current;
+        if (!scrollContainer) return;
 
-    useEffect(() => {
-        if (width > 0) {
-            controls.start({
-                x: -width,
-                transition: {
-                    duration: 10, // Adjust speed here (seconds for one full loop of the original set)
-                    ease: "linear",
-                    repeat: Infinity,
-                    repeatType: "loop",
-                },
-            });
-        }
-    }, [width, controls]);
+        let animationFrameId: number;
 
-    // Handle pause/resume
-    useEffect(() => {
-        if (isPaused) {
-            controls.stop();
-        } else {
-            if (width > 0) {
-
-                controls.start({
-                    x: -width,
-                    transition: {
-                        duration: 10, // This needs to be calculated based on remaining distance to keep speed constant
-                        ease: "linear",
-                        repeat: Infinity,
-                        repeatType: "loop",
-                    },
-                });
+        // Initial scroll position: Start at the middle set
+        // We do this inside a timeout to ensure layout is ready or check if scrollLeft is 0
+        const initScroll = () => {
+            const oneSetWidth = scrollContainer.scrollWidth / 3;
+            if (scrollContainer.scrollLeft < 10) {
+                scrollContainer.scrollLeft = oneSetWidth;
             }
-        }
-    }, [isPaused, width, controls]);
+        };
+        // Run init on mount
+        initScroll();
+
+        const animate = () => {
+            if (!isPaused) {
+                scrollContainer.scrollLeft += 0.8; // Speed of auto-scroll
+            }
+
+            // Infinite loop check
+            const oneSetWidth = scrollContainer.scrollWidth / 3;
+
+            // If scrolled past the second set (into the third), jump back to first
+            if (scrollContainer.scrollLeft >= oneSetWidth * 2) {
+                scrollContainer.scrollLeft = oneSetWidth;
+            }
+            // If scrolled backward past the first set (into "zero"), jump forward to second
+            else if (scrollContainer.scrollLeft <= 0) {
+                scrollContainer.scrollLeft = oneSetWidth;
+            }
+
+            animationFrameId = requestAnimationFrame(animate);
+        };
+
+        animationFrameId = requestAnimationFrame(animate);
+
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [isPaused]);
 
     return (
-        <section className="py-16 bg-white overflow-hidden">
-            <div className="max-w-7xl mx-auto px-6 mb-10">
-                <span className="text-xs uppercase tracking-[4px] text-gray-500 font-bold">
-                    Shop by Mood
-                </span>
-                <h2 className="text-3xl md:text-4xl font-semibold text-gray-900 mt-2">
-                    Curated offers for how you dress today
-                </h2>
+        <section className="py-20 bg-white">
+            <div className="max-w-[1400px] mx-auto px-6 mb-12 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <span className="text-sm font-bold tracking-[6px] text-gray-400 uppercase mb-3 block">
+                        Editorial Picks
+                    </span>
+                    <h2 className="text-4xl md:text-5xl font-serif text-gray-900 tracking-tight">
+                        Curated Styles
+                    </h2>
+                </div>
+                <div className="hidden md:flex gap-2">
+                    {/* Decorative line or controls could go here */}
+                    <div className="h-px w-32 bg-gray-200 self-center"></div>
+                </div>
             </div>
 
+            {/* Carousel Container */}
             <div
-                className="w-full relative"
+                className="w-full overflow-hidden"
                 onMouseEnter={() => setIsPaused(true)}
                 onMouseLeave={() => setIsPaused(false)}
                 onTouchStart={() => setIsPaused(true)}
                 onTouchEnd={() => setIsPaused(false)}
             >
-                {/* Mask container to hide overflow */}
-                <div className="overflow-hidden">
-                    <motion.div
-                        ref={scrollRef}
-                        className="flex gap-6 w-max px-6" // w-max ensures it takes full horizontal width
-                        initial={{ x: 0 }}
-                        animate={controls}
-                    >
-                        {offers.map((offer, index) => (
+                <div
+                    ref={scrollRef}
+                    className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-12 px-6 no-scrollbar"
+                    style={{
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none'
+                    }}
+                >
+                    {offers.map((offer, index) => (
+                        <div
+                            key={index}
+                            className="snap-center shrink-0 first:pl-2 last:pr-2"
+                        >
                             <Link
-                                key={index}
                                 href={offer.link}
-                                className="relative group w-[280px] h-[380px] md:w-[320px] md:h-[420px] flex-shrink-0 cursor-pointer overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300"
+                                className="group relative block w-[85vw] md:w-[400px] aspect-[3/4] overflow-hidden rounded-[2rem] shadow-sm transition-all duration-500 hover:shadow-2xl hover:scale-[1.02]"
                                 draggable="false"
                             >
-                                {/* Background Image using next/image */}
-                                <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-110">
-                                    <Image
-                                        src={offer.image}
-                                        alt={offer.title}
-                                        fill
-                                        className="object-cover"
-                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                        priority={index < 4}
-                                        draggable="false"
-                                    />
-                                </div>
+                                {/* Image */}
+                                <Image
+                                    src={offer.image}
+                                    alt={offer.title}
+                                    fill
+                                    className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                                    sizes="(max-width: 768px) 85vw, 400px"
+                                    priority={index >= 4 && index < 8} // Prioritize the middle set
+                                    draggable="false"
+                                />
 
-                                {/* Gradient Overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-90" />
+                                {/* Dark Gradient Overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 transition-opacity duration-300 group-hover:opacity-90" />
 
-                                {/* Content */}
-                                <div className="absolute inset-0 p-6 flex flex-col justify-between">
-                                    {/* Badge */}
-                                    <div className="self-start">
-                                        <span className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md border border-white/20 text-white text-[10px] uppercase font-bold px-3 py-1 rounded-full">
-                                            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                                            Limited Time
-                                        </span>
-                                    </div>
+                                {/* Glass Content Box */}
+                                <div className="absolute inset-0 p-8 flex flex-col justify-end">
+                                    <div className="transform transition-transform duration-500 translate-y-4 group-hover:translate-y-0">
 
-                                    {/* Text & CTA */}
-                                    <div>
-                                        <h3 className="text-2xl font-bold text-white mb-2 leading-tight">
+                                        {/* Floating Badge */}
+                                        <div className="mb-4 opacity-0 transform -translate-y-4 transition-all duration-500 delay-100 group-hover:opacity-100 group-hover:translate-y-0">
+                                            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/10 text-white text-xs font-bold tracking-wider uppercase">
+                                                Featured Collection
+                                            </span>
+                                        </div>
+
+                                        <h3 className="text-3xl font-bold text-white mb-2 leading-tight">
                                             {offer.title}
                                         </h3>
-                                        <p className="text-sm text-gray-300 mb-6 line-clamp-2">
+                                        <p className="text-gray-300 text-sm md:text-base font-medium mb-6 line-clamp-2 opacity-90">
                                             {offer.subtitle}
                                         </p>
 
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 text-xs font-medium text-white/80 group-hover:text-white transition-colors">
-                                                View curated styles <ChevronRight className="w-3 h-3" />
-                                            </div>
-
-                                            <button className="bg-white text-black text-xs font-bold px-5 py-2.5 rounded-full hover:bg-gray-200 transition-colors shadow-lg hover:shadow-white/20 flex items-center gap-1">
-                                                SHOP NOW
-                                            </button>
+                                        {/* CTA Button */}
+                                        <div className="inline-flex items-center gap-2 bg-white text-black px-6 py-3 rounded-full text-sm font-bold tracking-wide transition-all duration-300 hover:bg-gray-100 hover:gap-3">
+                                            SHOP NOW
+                                            <ChevronRight className="w-4 h-4" />
                                         </div>
                                     </div>
                                 </div>
                             </Link>
-                        ))}
-                    </motion.div>
+                        </div>
+                    ))}
                 </div>
             </div>
         </section>

@@ -43,7 +43,7 @@ const getProductRole = (product: IProduct): string => {
 // POST /api/outfit/simple
 export const generateSimpleOutfit = async (req: Request, res: Response) => {
     try {
-        const { productId, excludeIds = [] } = req.body; // Changed from baseProductId to productId to match frontend call
+        const { productId, excludeIds = [], preset = 'casual' } = req.body; // Changed from baseProductId to productId to match frontend call
 
         if (!productId) {
             return res.status(400).json({ message: 'Product ID is required.' });
@@ -98,31 +98,98 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
         // Helper to get random products for role
         const getProductsForRole = async (targetRole: string, limit: number, useExclusions: boolean = true): Promise<any[]> => {
             let roleQuery: any = {};
+            const cleanPreset = (preset || '').toLowerCase();
 
             switch (targetRole) {
                 case ROLES.TOP:
-                    roleQuery = {
-                        $or: [
-                            { category: 'Shirts' },
-                            { subCategory: { $regex: /shirt|top|tee|polo|blouse|jacket|coat|sweater|hoodie/i } }
-                        ]
-                    };
+                    if (cleanPreset === 'formal') {
+                        roleQuery = {
+                            $or: [{ category: 'Shirts' }, { subCategory: { $regex: /shirt|blouse|coat|blazer|jacket/i } }]
+                        };
+                    } else if (cleanPreset === 'sporty') {
+                        roleQuery = {
+                            subCategory: { $regex: /tee|tank|hoodie|sweat/i }
+                        };
+                    } else if (cleanPreset === 'party') {
+                        roleQuery = {
+                            subCategory: { $regex: /jacket|top|dress|shimmer|party/i }
+                        };
+                    } else if (cleanPreset === 'streetwear') {
+                        roleQuery = {
+                            subCategory: { $regex: /hoodie|sweat|oversize|tee|jacket/i }
+                        };
+                    } else if (cleanPreset === 'business') {
+                        roleQuery = {
+                            $or: [{ category: 'Shirts' }, { subCategory: { $regex: /shirt|polo|blouse/i } }]
+                        };
+                    } else { // Casual (default)
+                        roleQuery = {
+                            $or: [
+                                { category: 'Shirts' },
+                                { subCategory: { $regex: /shirt|top|tee|polo|sweater|hoodie/i } }
+                            ]
+                        };
+                    }
                     break;
                 case ROLES.BOTTOM:
-                    roleQuery = {
-                        $or: [
-                            { category: 'Jeans' },
-                            { subCategory: { $regex: /jean|pant|trouser|legging|jogger|short|skirt/i } }
-                        ]
-                    };
+                    if (cleanPreset === 'formal') {
+                        roleQuery = {
+                            subCategory: { $regex: /trouser|pant|skirt/i }
+                        };
+                    } else if (cleanPreset === 'sporty') {
+                        roleQuery = {
+                            subCategory: { $regex: /jogger|track|short|legging/i }
+                        };
+                    } else if (cleanPreset === 'party') {
+                        roleQuery = {
+                            subCategory: { $regex: /skirt|trouser|jean/i }
+                        };
+                    } else if (cleanPreset === 'streetwear') {
+                        roleQuery = {
+                            subCategory: { $regex: /cargo|jogger|baggy|jean|trouser/i }
+                        };
+                    } else if (cleanPreset === 'business') {
+                        roleQuery = {
+                            subCategory: { $regex: /trouser|chino|pant|skirt/i }
+                        };
+                    } else { // Casual
+                        roleQuery = {
+                            $or: [
+                                { category: 'Jeans' },
+                                { subCategory: { $regex: /jean|pant|short|legging|jogger/i } }
+                            ]
+                        };
+                    }
                     break;
                 case ROLES.FOOTWEAR:
-                    roleQuery = {
-                        $or: [
-                            { category: 'Shoes' },
-                            { subCategory: { $regex: /shoe|sneaker|boot|sandal|heel|flat/i } }
-                        ]
-                    };
+                    if (cleanPreset === 'formal') {
+                        roleQuery = {
+                            subCategory: { $regex: /shoe|boot|heel|oxford|formal/i }
+                        };
+                    } else if (cleanPreset === 'sporty') {
+                        roleQuery = {
+                            subCategory: { $regex: /sneaker|run|sport/i }
+                        };
+                    } else if (cleanPreset === 'party') {
+                        roleQuery = {
+                            subCategory: { $regex: /heel|boot|shoe|party/i }
+                        };
+                    } else if (cleanPreset === 'streetwear') {
+                        roleQuery = {
+                            subCategory: { $regex: /sneaker|boot|high|canvas/i }
+                        };
+                    } else if (cleanPreset === 'business') {
+                        roleQuery = {
+                            subCategory: { $regex: /shoe|loafer|heel|boot/i }
+                        };
+                    } else { // Casual
+                        roleQuery = {
+                            $or: [
+                                { category: 'Shoes' },
+                                { subCategory: { $regex: /sneaker|sandal|flat|canvas|boot/i } }
+                            ]
+                        };
+                    }
                     break;
             }
 

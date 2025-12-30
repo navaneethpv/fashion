@@ -21,10 +21,12 @@ interface OutfitResult {
 }
 
 const STYLE_VIBES = [
-  { value: "simple_elegant", label: "Simple & Elegant" },
-  { value: "street_casual", label: "Street & Casual" },
-  { value: "office_formal", label: "Office & Formal" },
-  { value: "party_bold", label: "Party & Bold" },
+  { value: "casual", label: "Casual", icon: "☕" },
+  { value: "formal", label: "Formal", icon: "💼" },
+  { value: "party", label: "Party", icon: "✨" },
+  { value: "sporty", label: "Sporty", icon: "🏃" },
+  { value: "streetwear", label: "Streetwear", icon: "🛹" },
+  { value: "business", label: "Business", icon: "📊" },
 ];
 
 const PLACEHOLDER_IMAGE = "https://via.placeholder.com/300x200?text=No+Image";
@@ -138,7 +140,7 @@ export default function OutfitGenerator({
       const res = await fetch(`${API_URL}/api/outfit/simple`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId, excludeIds }),
+        body: JSON.stringify({ productId, excludeIds, preset: styleVibe }),
       });
 
       if (!res.ok) {
@@ -344,6 +346,45 @@ export default function OutfitGenerator({
                 )}
               </span>
             </button>
+          </div>
+
+
+          {/* Style Vibe Control - Premium Pills */}
+          <div className="mb-8">
+            <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block mb-3 flex items-center gap-2">
+              <Sparkle className="w-3.5 h-3.5 text-violet-500" />
+              Choose Style Mood
+            </label>
+
+            <div className="flex flex-wrap gap-2 md:gap-3">
+              {STYLE_VIBES.map((v) => {
+                const isSelected = styleVibe === v.value;
+                return (
+                  <button
+                    key={v.value}
+                    onClick={() => setStyleVibe(v.value)}
+                    disabled={loading}
+                    className={`
+                      relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 border
+                      ${isSelected
+                        ? 'bg-gray-900 text-white border-gray-900 shadow-lg shadow-gray-200 scale-105'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300 hover:bg-violet-50'
+                      }
+                      disabled:opacity-50 disabled:cursor-not-allowed
+                    `}
+                  >
+                    <span className="text-base">{v.icon}</span>
+                    <span>{v.label}</span>
+                    {isSelected && (
+                      <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-violet-500"></span>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Loading State with Horizontal Skeletons */}

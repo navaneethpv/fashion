@@ -181,7 +181,7 @@ export default function CheckoutPage() {
         <Navbar />
         <div className="text-center py-20">
           <h2 className="text-2xl font-bold">Your bag is empty</h2>
-          <Link href="/products" className="text-primary underline mt-2 inline-block">Go Shopping</Link>
+          <Link href="/product" className="text-primary underline mt-2 inline-block">Go Shopping</Link>
         </div>
       </div>
     );

@@ -122,9 +122,15 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
                     break;
                 case ROLES.ACCESSORY:
                     const g = (gender || '').toLowerCase();
-                    if (g === 'men') roleQuery = { subCategory: { $regex: /watch|belt|wallet|sunglass/i } };
-                    else if (g === 'women') roleQuery = { subCategory: { $regex: /handbag|purse|earring|necklace|jewelry|watch|bag/i } };
-                    else roleQuery = { subCategory: { $regex: /accessory|watch|bag/i } };
+                    if (g === 'men') {
+                        roleQuery = { subCategory: { $regex: /watch|belt|wallet|cap|sunglass/i } };
+                    } else if (g === 'women') {
+                        roleQuery = { subCategory: { $regex: /earring|bracelet|necklace|handbag|clutch|watch|sunglass/i } };
+                    } else if (g === 'kids') {
+                        roleQuery = { subCategory: { $regex: /cap|watch|bag|backpack/i } };
+                    } else {
+                        roleQuery = { subCategory: { $regex: /accessory|watch|bag/i } };
+                    }
                     break;
             }
 

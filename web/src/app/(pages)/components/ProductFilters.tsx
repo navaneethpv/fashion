@@ -290,29 +290,36 @@ export default function ProductFilters({
         <div className="pt-4 border-t border-gray-100">
           <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Color</h3>
           <div className="flex flex-wrap gap-3">
-            {colors.map((color) => {
+            {Array.from(new Set(colors.map(c => c.trim().toLowerCase()))).map((normalizedColor) => {
+              // Find original casing for display/value if needed, or just use Title Case
+              // We prefer Title Case for display
+              const displayColor = normalizedColor.charAt(0).toUpperCase() + normalizedColor.slice(1);
+              const colorValue = displayColor; // Send Title Case to backend to match regex expected
+
               const activeRef = getActiveList('color');
-              const isActive = activeRef.includes(color);
+              // Check if "Black" or "black" is in active list (case-insensitive check)
+              const isActive = activeRef.some(acc => acc.toLowerCase() === normalizedColor);
 
               const colorMap: Record<string, string> = {
                 'red': '#ef4444', 'blue': '#3b82f6', 'green': '#22c55e',
                 'yellow': '#eab308', 'black': '#000000', 'white': '#ffffff',
-                'pink': '#ec4899', 'purple': '#a855f7', 'grey': '#6b7280', 'orange': '#f97316',
-                'navy': '#1e3a8a', 'beige': '#f5f5dc', 'maroon': '#800000', 'cream': '#fffdd0'
+                'pink': '#ec4899', 'purple': '#a855f7', 'grey': '#6b7280', 'gray': '#6b7280', 'orange': '#f97316',
+                'navy': '#1e3a8a', 'beige': '#f5f5dc', 'maroon': '#800000', 'cream': '#fffdd0',
+                'brown': '#8B4513', 'silver': '#C0C0C0', 'gold': '#FFD700', 'olive': '#808000'
               };
-              const bg = colorMap[color.toLowerCase()] || '#e5e7eb';
+              const bg = colorMap[normalizedColor] || '#e5e7eb';
               const isWhite = bg === '#ffffff' || bg === '#fffdd0' || bg === '#f5f5dc';
 
               return (
                 <button
-                  key={color}
+                  key={normalizedColor}
                   type="button"
-                  title={color}
+                  title={displayColor}
                   className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${isActive
                     ? 'border-gray-900 scale-110 shadow-sm'
                     : 'border-transparent hover:border-gray-300'
                     }`}
-                  onClick={() => updateFilter('color', color)}
+                  onClick={() => updateFilter('color', colorValue)}
                 >
                   <div
                     className="w-full h-full rounded-full border border-black/10"

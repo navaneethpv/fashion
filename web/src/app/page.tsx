@@ -1,14 +1,17 @@
 "use client";
 import { useEffect, useState } from "react";
 import Navbar from "./(pages)/components/Navbar";
-import ProductCard from "./(pages)/components/ProductCard";
+import TrendingSlider from "./(pages)/components/TrendingSlider";
 import AutoBanner from "./(pages)/components/AutoBanner";
 import MostViewedSlider from "./(pages)/components/MostViewedSlider";
 import Link from "next/link";
-import OfferSection from "@/components/home/OfferSection";
+import OfferCarousel from "./(pages)/components/OfferCarousel";
 
 export default function Home() {
-  const [products, setProducts] = useState([]);
+  const [homeData, setHomeData] = useState<{ trending: any[], offers: any[] }>({
+    trending: [],
+    offers: []
+  });
   const [loading, setLoading] = useState(true);
 
   const base =
@@ -18,23 +21,24 @@ export default function Home() {
   const baseUrl = base.replace(/\/$/, "");
 
   useEffect(() => {
-    async function getTrendingProducts() {
+    async function getHomeData() {
       try {
-        const res = await fetch(
-          `${baseUrl}/api/products?limit=8&sort=price_desc`
-        );
-        if (!res.ok) throw new Error("Failed to fetch");
+        const res = await fetch(`${baseUrl}/api/products/home`);
+        if (!res.ok) throw new Error("Failed to fetch home data");
         const json = await res.json();
-        setProducts(json.data || []);
+
+        setHomeData({
+          trending: json.trending || [],
+          offers: json.offers || []
+        });
       } catch (err) {
-        console.error("Failed to fetch products:", err);
-        setProducts([]);
+        console.error("Failed to fetch home products:", err);
       } finally {
         setLoading(false);
       }
     }
 
-    getTrendingProducts();
+    getHomeData();
   }, []);
 
   return (
@@ -44,8 +48,8 @@ export default function Home() {
       {/* HERO */}
       <AutoBanner />
 
-      {/* OFFERS (Dark / Premium) */}
-      <OfferSection />
+      {/* NEW: OFFER CAROUSEL */}
+      <OfferCarousel />
 
       {/* TRENDING PRODUCTS */}
       <section className="max-w-7xl mx-auto px-6 py-24">
@@ -73,39 +77,18 @@ export default function Home() {
           <div className="py-24 text-center text-gray-500">
             Loading products...
           </div>
-        ) : products.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-12 gap-y-16">
-            {products.map((p: any, index: number) => (
-              <div
-                key={p._id || p.id}
-                className="opacity-0 animate-fade-up"
-                style={{ animationDelay: `${index * 70}ms` }}
-              >
-                <ProductCard
-                  product={{
-                    _id: p._id,
-                    slug: p.slug,
-                    name: p.name,
-                    price_cents: p.price_cents,
-                    price_before_cents: p.price_before_cents,
-                    images: p.images,
-                    brand: p.brand,
-                    offer_tag: p.offer_tag,
-                  }}
-                />
-              </div>
-            ))}
-          </div>
+        ) : homeData.trending.length > 0 ? (
+          <TrendingSlider products={homeData.trending} />
         ) : (
-          <div className="py-24 text-center text-gray-500 border border-dashed border-gray-300">
-            No products found. Please ensure the API server is running at{" "}
-            <code>http://localhost:4000</code>.
+          <div className="py-24 text-center "> {/* Cleaned up empty state */}
+            {/* Silent fallback or simple message */}
           </div>
         )}
       </section>
 
       {/* MOST VIEWED SLIDER */}
-      <MostViewedSlider products={products} />
+      {/* MOST VIEWED SLIDER */}
+      <MostViewedSlider />
 
       {/* PAGE ANIMATION */}
       <style jsx>{`

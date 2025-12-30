@@ -2,18 +2,20 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
-import { Heart, ShoppingBag, Star } from 'lucide-react';
+import { Heart, ShoppingBag, Trash2, ArrowRight } from 'lucide-react';
+import Navbar from '../components/Navbar';
+import AddToCartButton from '../components/AddToCartButton';
 
 export default function WishlistPage() {
   const { user, isLoaded } = useUser();
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
- 
+
   const base =
     process.env.NEXT_PUBLIC_API_BASE ||
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:4000";
-    const baseUrl = base.replace(/\/$/, "");
+  const baseUrl = base.replace(/\/$/, "");
 
   // Fetch wishlist on mount
   useEffect(() => {
@@ -43,116 +45,169 @@ export default function WishlistPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user?.id }),
       });
-      
+
       // Remove from local state
       setWishlist(prev => prev.filter(item => item.productId._id !== productId));
+      // Dispatch event to update navbar count
+      window.dispatchEvent(new Event("wishlist-updated"));
     } catch (error) {
       console.error('Failed to remove from wishlist:', error);
     }
   };
 
+  // Loading Skeleton
   if (!isLoaded || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-white">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <div className="h-8 w-48 bg-gray-100 rounded-lg mb-8 animate-pulse" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="aspect-[4/5] bg-gray-100 rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
+  // Not Signed In
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign in to view your wishlist</h2>
-          <p className="text-gray-600">Save your favorite products for later!</p>
+      <div className="min-h-screen bg-white">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-6 py-24 text-center">
+          <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Heart className="w-8 h-8 text-gray-300" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-3 tracking-tight">Sign in to view your wishlist</h2>
+          <p className="text-gray-500 mb-8 font-medium">Save items you love to create your dream collection.</p>
+          {/* Clerk handles the actual sign-in modal/redirect, button is cosmetic trigger here if needed, 
+               but usually Navbar has the main Sign In. 
+               We can render nothing or a generic message. */}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Heart className="w-8 h-8 text-primary" />
-            My Wishlist
+    <div className="min-h-screen bg-white pb-24">
+      <Navbar />
+
+      <div className="max-w-7xl mx-auto px-6 pt-8 md:pt-12">
+        {/* Header Section */}
+        <div className="mb-12 text-center md:text-left">
+          <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-2">
+            Your Wishlist
           </h1>
-          <p className="text-gray-600 mt-2">
-            {wishlist.length} {wishlist.length === 1 ? 'item' : 'items'} saved
-          </p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <p className="text-gray-500 font-medium text-lg">
+              {wishlist.length} {wishlist.length === 1 ? 'item' : 'saved styles'}
+            </p>
+            <div className="h-[1px] flex-1 bg-gray-100 mx-6 hidden md:block"></div>
+          </div>
         </div>
 
         {/* Wishlist Grid */}
         {wishlist.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
-            <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Your wishlist is empty</h3>
-            <p className="text-gray-600 mb-6">Start adding products you love!</p>
+          // Empty State
+          <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in duration-500">
+            <div className="w-24 h-24 bg-gray-50 rounded-3xl flex items-center justify-center mb-6 rotate-3 shadow-sm">
+              <Heart className="w-10 h-10 text-gray-300 fill-gray-50" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Your collection is empty</h3>
+            <p className="text-gray-500 mb-8 max-w-sm mx-auto">
+              Tap the heart on any product to save it here. Start building your personal wardrobe!
+            </p>
             <Link
               href="/products"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-bold rounded-lg hover:bg-violet-700 transition"
+              className="group relative inline-flex items-center justify-center gap-2 px-8 py-4 bg-gray-900 text-white rounded-full font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
             >
-              <ShoppingBag className="w-5 h-5" />
-              Browse Products
+              <span>Explore Collection</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          // Product Grid
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-y-10 gap-x-6">
             {wishlist.map((item) => {
               const product = item.productId;
+              // Fallback for deleted products
+              if (!product) return null;
+
               return (
-                <div key={item._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-lg transition">
-                  {/* Product Image */}
-                  <Link href={`/products/${product.slug}`} className="relative block aspect-square overflow-hidden bg-gray-100">
-                    <img
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                    />
-                  </Link>
-
-                  {/* Product Info */}
-                  <div className="p-4">
-                    <Link href={`/products/${product.slug}`}>
-                      <h3 className="font-bold text-gray-900 text-sm mb-1 line-clamp-2 hover:text-primary transition">
-                        {product.name}
-                      </h3>
+                <div
+                  key={item._id}
+                  className="group relative flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700"
+                >
+                  {/* Image Card */}
+                  <div className="relative aspect-[4/5] bg-gray-100 rounded-2xl overflow-hidden mb-4 shadow-sm group-hover:shadow-xl transition-all duration-500">
+                    <Link href={`/products/${product.slug}`} className="block h-full w-full">
+                      <img
+                        src={product.images?.[0] || "https://via.placeholder.com/400"}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 will-change-transform"
+                      />
                     </Link>
-                    
-                    <p className="text-xs text-gray-500 mb-2">{product.brand}</p>
 
-                    {/* Price */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-lg font-bold text-gray-900">
-                        ₹{(product.price_cents / 100).toFixed(2)}
-                      </span>
-                      {product.price_before_cents && (
-                        <span className="text-sm text-gray-400 line-through">
-                          ₹{(product.price_before_cents / 100).toFixed(2)}
+                    {/* Remove Action - Top Right */}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        removeFromWishlist(product._id);
+                      }}
+                      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-white shadow-sm transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0"
+                      title="Remove from wishlist"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+
+                    {/* Move to Bag - Bottom Overlay (Desktop Hover) */}
+                    <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300 hidden md:block">
+                      <AddToCartButton
+                        productId={product._id}
+                        price={product.price_cents}
+                        variants={product.variants || []}
+                        compact={true}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex flex-col flex-1 px-1">
+                    <div className="flex justify-between items-start gap-4 mb-1">
+                      <div>
+                        <p className="text-[10px] font-bold tracking-widest uppercase text-gray-500 mb-1">
+                          {product.brand || 'Brand'}
+                        </p>
+                        <Link href={`/products/${product.slug}`}>
+                          <h3 className="font-semibold text-gray-900 text-sm leading-tight hover:text-black transition-colors line-clamp-2">
+                            {product.name}
+                          </h3>
+                        </Link>
+                      </div>
+                      <div className="text-right">
+                        <span className="block font-bold text-gray-900 text-sm">
+                          ₹{(product.price_cents / 100).toFixed(0)}
                         </span>
-                      )}
+                        {product.price_before_cents && (
+                          <span className="block text-[10px] text-gray-400 line-through">
+                            ₹{(product.price_before_cents / 100).toFixed(0)}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Rating */}
-                    {product.rating && (
-                      <div className="flex items-center gap-1 mb-3">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-medium text-gray-700">{product.rating}</span>
-                        <span className="text-xs text-gray-500">({product.reviewsCount || 0})</span>
-                      </div>
-                    )}
-
-                    {/* Remove Button */}
-                    <button
-                      onClick={() => removeFromWishlist(product._id)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 border-2 border-red-200 text-red-600 font-bold rounded-lg hover:bg-red-50 transition"
-                    >
-                      <Heart className="w-4 h-4 fill-current" />
-                      Remove
-                    </button>
+                    {/* Mobile Only: Add to Bag (since hover doesn't work well) */}
+                    <div className="mt-4 md:hidden">
+                      <AddToCartButton
+                        productId={product._id}
+                        price={product.price_cents}
+                        variants={product.variants || []}
+                        compact={true}
+                      />
+                    </div>
                   </div>
                 </div>
               );

@@ -254,8 +254,25 @@ export const getProducts = async (req: Request, res: Response) => {
     }
 
     if (req.query.masterCategory) matchStage.masterCategory = new RegExp(`^${req.query.masterCategory}$`, 'i');
-    if (req.query.brand) matchStage.brand = new RegExp(`^${req.query.brand}$`, 'i');
-    if (req.query.size) matchStage.sizes = req.query.size;
+
+    // Multi-Select: Brand
+    if (req.query.brand) {
+      const brands = (req.query.brand as string).split(',').map(b => new RegExp(`^${b.trim()}$`, 'i'));
+      matchStage.brand = { $in: brands };
+    }
+
+    // Multi-Select: Size
+    if (req.query.size) {
+      const sizes = (req.query.size as string).split(',').map(s => new RegExp(`^${s.trim()}$`, 'i'));
+      matchStage["variants.size"] = { $in: sizes };
+    }
+
+    // Multi-Select: Color
+    if (req.query.color) {
+      const colors = (req.query.color as string).split(',').map(c => new RegExp(`^${c.trim()}$`, 'i'));
+      matchStage["dominantColor.name"] = { $in: colors };
+    }
+
     // articleType is handled via finalCategory above
 
     if (minPrice || maxPrice) {
@@ -540,7 +557,11 @@ export const getSearchSuggestions = async (req: Request, res: Response) => {
 // ----------------- Controller: getProductBySlug -----------------
 export const getProductBySlug = async (req: Request, res: Response) => {
   try {
-    const product = await Product.findOne({ slug: req.params.slug }).lean();
+    const product = await Product.findOneAndUpdate(
+      { slug: req.params.slug },
+      { $inc: { views: 1 } }, // Increment view count
+      { new: true }
+    ).lean();
     if (!product) return res.status(404).json({ message: "Product not found" });
 
     // Fetch related data in parallel
@@ -988,5 +1009,80 @@ export const aiSuggestSubCategory = async (req: Request, res: Response) => {
   } catch (err) {
     console.error("AI Suggest Error:", err);
     res.status(500).json({ message: "AI category failed" });
+  }
+};
+
+
+// ----------------- Controller: getHomeProducts (Dynamic) -----------------
+export const getHomeProducts = async (req: Request, res: Response) => {
+  try {
+    // Exclusion Regexes
+    const innerwearRegex = /briefs|bras|lingerie|underwear|innerwear|panties|thong|boxers|trunks|vest|brief|baniyan/i;
+    // Exclude sprays, skincare, lotions, etc. Keep lipsticks and other makeup.
+    const excludedCosmeticsRegex = /spray|skincare|lotion|cream|serum|moisturizer|cleanser|facewash|face wash|body wash|shampoo|conditioner|soap|oil/i;
+
+    const exclusionFilter = {
+      $nor: [
+        { category: innerwearRegex },
+        { subCategory: innerwearRegex },
+        { name: innerwearRegex },
+        { category: excludedCosmeticsRegex },
+        { subCategory: excludedCosmeticsRegex },
+        { name: excludedCosmeticsRegex }
+      ]
+    };
+
+    const matchStage = {
+      isPublished: true,
+      stock: { $gt: 0 },
+      ...exclusionFilter
+    };
+
+    // 1. Trending (Random 12)
+    const trending = await Product.aggregate([
+      { $match: matchStage },
+      { $sample: { size: 12 } }
+    ]);
+
+    // 2. Most Viewed (Random 10)
+    const mostViewed = await Product.aggregate([
+      { $match: matchStage },
+      { $sample: { size: 10 } }
+    ]);
+
+    // 3. Offers (Random 8)
+    const offers = await Product.aggregate([
+      { $match: matchStage },
+      { $sample: { size: 8 } }
+    ]);
+
+    res.json({
+      trending,
+      mostViewed,
+      offers
+    });
+
+  } catch (error) {
+    console.error("getHomeProducts error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+
+// ----------------- Controller: getMostViewedProducts -----------------
+export const getMostViewedProducts = async (req: Request, res: Response) => {
+  try {
+    const products = await Product.find({
+      isPublished: true,
+      stock: { $gt: 0 }
+    })
+      .sort({ views: -1 }) // Sort by views descending
+      .limit(10)          // Top 10
+      .select('name slug price_cents price_before_cents images brand offer_tag'); // Optimize select
+
+    res.json(products);
+  } catch (error) {
+    console.error("getMostViewedProducts error:", error);
+    res.status(500).json({ message: "Server Error" });
   }
 };

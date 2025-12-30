@@ -40,6 +40,8 @@ interface Product {
   slug: string;
   brand: string;
   gender?: string;
+  category?: string;
+  subCategory?: string;
   description: string;
   price_cents: number;
   price_before_cents?: number;
@@ -324,6 +326,9 @@ export default async function ProductDetailPage({
             <OutfitGenerator
               productId={product._id}
               productGender={product.gender}
+              productCategory={product.category}
+              productSubCategory={product.subCategory}
+              productName={product.name}
             />
           </div>
 

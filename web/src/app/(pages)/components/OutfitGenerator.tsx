@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Sparkles, Loader2, Zap, ChevronDown, Sparkle } from "lucide-react";
+import { Sparkles, Loader2, Zap, ChevronDown, Sparkle, RefreshCw } from "lucide-react";
 import AddToCartButton from "./AddToCartButton";
+import Modal from "./Modal";
 
 interface OutfitItem {
   role: string;
@@ -70,16 +71,23 @@ function resolveImageUrl(images: any): string {
 interface OutfitGeneratorProps {
   productId: string;
   productGender?: string | null;
+  productCategory?: string;
+  productSubCategory?: string;
+  productName?: string;
 }
 
 export default function OutfitGenerator({
   productId,
   productGender,
+  productCategory,
+  productSubCategory,
+  productName,
 }: OutfitGeneratorProps) {
   // Simple Phase 1 State
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<OutfitResult | null>(null);
   const [styleVibe, setStyleVibe] = useState(STYLE_VIBES[0].value);
+  const [showBlockModal, setShowBlockModal] = useState(false);
 
   // Native scroll with custom drag
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -117,10 +125,34 @@ export default function OutfitGenerator({
     }
   };
 
-  // Exclusion Memory using useRef (persists across re-renders but resets on reload)
+  // Exclusion Memory
   const excludedIdsRef = useRef<Set<string>>(new Set());
 
+  // Non-Fashion Block List
+  const NON_FASHION_KEYWORDS = [
+    "cosmetic",
+    "skincare",
+    "lotion",
+    "cream",
+    "perfume",
+    "fragrance",
+    "makeup",
+    "shampoo",
+    "soap",
+    "personal care",
+    "beauty",
+  ];
+
   const handleGenerate = async () => {
+    // 1. Validate Category for Fashion Products
+    const searchString = `${productName || ""} ${productCategory || ""} ${productSubCategory || ""}`.toLowerCase();
+    const isBlocked = NON_FASHION_KEYWORDS.some((keyword) => searchString.includes(keyword));
+
+    if (isBlocked) {
+      setShowBlockModal(true);
+      return;
+    }
+
     setLoading(true);
     setResult(null);
 
@@ -195,101 +227,91 @@ export default function OutfitGenerator({
     return acc;
   }, {});
 
-  const renderSection = (title: string, items: OutfitItem[]) => {
+  const renderSection = (title: string, items: OutfitItem[], isAccessory = false) => {
     if (!items || items.length === 0) return null;
 
     return (
-      <div className="mb-12 last:mb-0 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-        <div className="flex items-center gap-4 mb-6 px-1">
-          <h5 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+      <div className="mb-10 last:mb-0 animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-forwards">
+        <div className="flex items-center justify-between mb-4 px-1">
+          <h5 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
             {title}
+            {isAccessory && <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{items.length}</span>}
           </h5>
-          <div className="h-[1px] flex-1 bg-gradient-to-r from-gray-200 to-transparent"></div>
+          {!isAccessory && <div className="h-[1px] flex-1 ml-4 bg-gradient-to-r from-gray-200 to-transparent"></div>}
         </div>
 
         {/* Horizontal Scroll Container */}
         <div className="relative group/scroll">
-          {/* Right Fade Cue */}
-          <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
-
           <div
-            ref={scrollRef}
-            onMouseDown={handleMouseDown}
-            onMouseLeave={handleMouseLeave}
-            onMouseUp={handleMouseUp}
-            onMouseMove={handleMouseMove}
-            className="flex overflow-x-auto gap-6 pb-12 pt-4 px-1 scroll-smooth scrollbar-hide snap-x snap-mandatory"
+            className="flex overflow-x-auto gap-4 pb-4 px-1 scroll-smooth scrollbar-hide snap-x snap-mandatory"
             style={{ cursor: "grab" }}
           >
             {items.map((item, idx) => (
               <div
                 key={idx}
-                className="flex-shrink-0 w-[200px] md:w-[260px] snap-start"
+                className={`flex-shrink-0 snap-start ${isAccessory ? 'w-[220px]' : 'w-[300px] md:w-[340px]'}`}
               >
-                <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 h-full flex flex-col group/card overflow-hidden">
+                <div className="relative bg-white rounded-2xl border border-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex overflow-hidden group/card">
 
-                  {/* Floating Role Badge - Top Left */}
-                  <div className="absolute top-2 left-2 z-20">
-                    <span className="bg-black/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wider uppercase shadow-sm">
+                  {/* Floating Role Badge */}
+                  <div className="absolute top-2 left-2 z-20 pointer-events-none">
+                    <span className="bg-white/90 backdrop-blur-md text-gray-900 text-[9px] font-bold px-2 py-1 rounded-full shadow-sm tracking-wider uppercase border border-gray-100">
                       {item.role}
                     </span>
                   </div>
 
                   {item.product ? (
                     <>
+                      {/* Left: Image (Square) */}
                       <Link
                         href={`/products/${item.product.slug}`}
-                        className="block flex-1"
+                        className={`relative bg-gray-50 flex-shrink-0 overflow-hidden group-hover/card:brightness-105 transition-all ${isAccessory ? 'w-24' : 'w-32 md:w-36'}`}
                       >
-                        {/* Product Image - Fashion Contain Mode */}
-                        <div className="relative h-[220px] bg-gray-50 flex items-center justify-center p-4">
-                          <img
-                            src={resolveImageUrl(item.product.images)}
-                            alt={item.product.name}
-                            className="w-full h-full object-contain group-hover/card:scale-105 transition-transform duration-500 will-change-transform"
-                            onError={(e) => {
-                              const target = e.currentTarget as HTMLImageElement;
-                              if (target.src !== PLACEHOLDER_IMAGE) {
-                                target.src = PLACEHOLDER_IMAGE;
-                              }
-                            }}
-                          />
-                        </div>
-
-                        {/* Product Info - Clean Layout */}
-                        <div className="p-4">
-                          {/* Brand - Small Uppercase */}
-                          <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-1">
-                            {item.product.brand || 'Eyoris'}
-                          </p>
-
-                          {/* Name */}
-                          <p className="text-sm font-medium text-gray-900 leading-snug line-clamp-2 mb-2 group-hover/card:text-violet-700 transition-colors">
-                            {item.product.name}
-                          </p>
-
-                          {/* Price Row */}
-                          <div className="flex items-center justify-between mt-auto">
-                            <p className="text-base font-semibold text-gray-900">
-                              ₹{(item.product.price_cents / 100).toFixed(0)}
-                            </p>
-                          </div>
-                        </div>
+                        <img
+                          src={resolveImageUrl(item.product.images)}
+                          alt={item.product.name}
+                          className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-700"
+                          onError={(e) => {
+                            const target = e.currentTarget as HTMLImageElement;
+                            if (target.src !== PLACEHOLDER_IMAGE) {
+                              target.src = PLACEHOLDER_IMAGE;
+                            }
+                          }}
+                        />
                       </Link>
 
-                      {/* Add to Cart - Always Visible */}
-                      <div className="px-4 pb-4 mt-auto">
-                        <AddToCartButton
-                          productId={item.product._id}
-                          price={item.product.price_cents}
-                          variants={item.product.variants}
-                        />
+                      {/* Right: Content */}
+                      <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
+                        <Link href={`/products/${item.product.slug}`} className="block">
+                          {/* Brand */}
+                          <p className="text-[9px] uppercase tracking-widest text-violet-600 font-bold mb-0.5 truncate">
+                            {item.product.brand || 'Eyoris'}
+                          </p>
+                          {/* Name */}
+                          <h4 className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2 mb-1 group-hover/card:text-violet-700 transition-colors">
+                            {item.product.name}
+                          </h4>
+                          {/* Price */}
+                          <p className="text-sm font-bold text-gray-900 mb-2">
+                            ₹{(item.product.price_cents / 100).toFixed(0)}
+                          </p>
+                        </Link>
+
+                        {/* Compact Action */}
+                        <div className="mt-auto">
+                          <AddToCartButton
+                            productId={item.product._id}
+                            price={item.product.price_cents}
+                            variants={item.product.variants}
+                            compact={true}
+                          />
+                        </div>
                       </div>
                     </>
                   ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-gray-50 h-[320px]">
-                      <span className="text-2xl mb-2 opacity-50">✨</span>
-                      <p className="text-xs text-gray-400 font-medium">Coming Soon</p>
+                    <div className="w-full flex flex-col items-center justify-center p-6 text-center bg-gray-50 h-32">
+                      <span className="text-lg mb-1 opacity-40">✨</span>
+                      <p className="text-[10px] text-gray-400 font-medium">Coming Soon</p>
                     </div>
                   )}
                 </div>
@@ -302,56 +324,51 @@ export default function OutfitGenerator({
   };
 
   return (
-    <div className="mt-14 relative px-4 md:px-0">
-      {/* Premium Container */}
-      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-violet-50/80 via-white to-indigo-50/80 backdrop-blur-xl border border-white/60 shadow-[0_20px_60px_rgba(0,0,0,0.06)]">
+    <div className="mt-16 px-4 md:px-0 max-w-6xl mx-auto mb-20">
+      {/* Premium Gradient Container */}
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-violet-50/90 via-white to-blue-50/90 backdrop-blur-xl border border-white/50 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)]">
 
-        <div className="p-6 md:p-10 lg:p-12">
+        {/* Soft Background Pattern */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-violet-100/40 to-indigo-100/40 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+
+        <div className="relative p-6 md:p-10 z-10">
           {/* Header Section */}
-          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-8 mb-12">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="p-2 bg-gradient-to-br from-violet-100 to-indigo-100 rounded-xl text-xl">✨</span>
-                <h3 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-                  Style Studio Collection
-                </h3>
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles className="w-5 h-5 text-violet-600" />
+                <span className="text-xs font-bold tracking-[0.2em] text-violet-600 uppercase">AI Driven</span>
               </div>
-              <p className="text-gray-500 font-medium ml-1">
-                Curated ensembles designed to elevate your wardrobe.
+              <h3 className="text-3xl md:text-4xl font-black tracking-tight text-gray-900">
+                Style Studio
+              </h3>
+              <p className="text-gray-500 font-medium mt-1 text-sm md:text-base">
+                Curated looks tailored just for this item.
               </p>
             </div>
 
-            {/* Premium CTA Button */}
+            {/* Floating Shuffle Button */}
             <button
               onClick={handleGenerate}
               disabled={loading}
-              className="group relative px-8 py-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white font-bold rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden w-full md:w-auto"
+              className="group relative inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-full font-bold shadow-lg shadow-violet-200 hover:shadow-violet-400 hover:scale-105 active:scale-95 transition-all duration-300 disabled:opacity-70 disabled:pointer-events-none overflow-hidden"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative flex items-center justify-center gap-2">
+              <div className="absolute inset-0 bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[length:200%_auto] animate-gradient" />
+              <div className="relative flex items-center gap-2">
                 {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Styling...</span>
-                  </>
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <>
-                    <Zap className="w-5 h-5 text-yellow-300 group-hover:rotate-12 transition-transform duration-300" />
-                    <span>{result ? "Shuffle New Look" : "Generate Collection"}</span>
-                  </>
+                  <RefreshCw className={`w-4 h-4 ${result ? "group-hover:rotate-180" : ""} transition-transform duration-500`} />
                 )}
+                <span>{result ? "Shuffle Look" : "Generate Look"}</span>
               </div>
             </button>
           </div>
 
-          {/* Mood Selector - Premium Pills */}
-          <div className="mb-12">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="w-1.5 h-1.5 rounded-full bg-violet-600 animate-pulse"></span>
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Select Vibe</span>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
+          {/* Mood Selector - Pill Chips */}
+          <div className="mb-10 overflow-x-auto pb-4 scrollbar-hide">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-gray-400 mr-2 uppercase tracking-wide">Vibe:</span>
               {STYLE_VIBES.map((v) => {
                 const isSelected = styleVibe === v.value;
                 return (
@@ -360,15 +377,14 @@ export default function OutfitGenerator({
                     onClick={() => setStyleVibe(v.value)}
                     disabled={loading}
                     className={`
-                      relative px-6 py-3 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 border
+                      relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 flex-shrink-0 flex items-center gap-2 border
                       ${isSelected
-                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white border-transparent shadow-lg shadow-violet-200 scale-105 ring-2 ring-violet-200 ring-offset-2'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        ? 'bg-gray-900 text-white border-transparent shadow-lg shadow-gray-200 transform scale-105'
+                        : 'bg-white text-gray-500 border-gray-200 hover:border-gray-900 hover:text-gray-900'
                       }
-                      disabled:opacity-50 disabled:scale-100
                     `}
                   >
-                    <span className="text-lg">{v.icon}</span>
+                    <span className="text-sm">{v.icon}</span>
                     <span>{v.label}</span>
                   </button>
                 );
@@ -376,38 +392,40 @@ export default function OutfitGenerator({
             </div>
           </div>
 
-          {/* Loading State Skeleton */}
+          {/* Loading State */}
           {loading && (
-            <div className="space-y-8 animate-pulse">
-              {[1, 2].map(row => (
-                <div key={row} className="space-y-4">
-                  <div className="h-6 w-40 bg-gray-200 rounded-lg ml-1" />
-                  <div className="flex gap-4 overflow-hidden">
-                    {[1, 2, 3, 4].map(i => (
-                      <div key={i} className="flex-shrink-0 w-[200px] md:w-[260px] h-[340px] bg-gray-100 rounded-xl" />
-                    ))}
-                  </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-32 bg-white/50 rounded-2xl border border-white shadow-sm"></div>
               ))}
             </div>
           )}
 
           {/* Results Area */}
           {result && !loading && (
-            <div className="space-y-2">
-              {groupedItems.tops && renderSection("Top Picks", groupedItems.tops)}
-              {groupedItems.bottoms && renderSection("Matching Bottoms", groupedItems.bottoms)}
-              {groupedItems.footwear && renderSection("Complete the Look", groupedItems.footwear)}
-              {groupedItems.accessories && renderSection("Accessories", groupedItems.accessories)}
+            <div className="space-y-4">
+              {/* Main Outfit Items */}
+              <div className="space-y-8">
+                {groupedItems.tops && renderSection("Top Picks", groupedItems.tops)}
+                {groupedItems.bottoms && renderSection("Matching Bottoms", groupedItems.bottoms)}
+                {groupedItems.footwear && renderSection("Perfect Pairs", groupedItems.footwear)}
+              </div>
+
+              {/* Accessories Group - Distinct Styling */}
+              {groupedItems.accessories && (
+                <div className="mt-12 bg-white/60 rounded-3xl p-6 border border-white shadow-sm">
+                  {renderSection("Complete the Look", groupedItems.accessories, true)}
+                </div>
+              )}
 
               {/* Empty State */}
-              {(!groupedItems.tops && !groupedItems.bottoms) && (
-                <div className="py-24 text-center">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Sparkles className="w-8 h-8 text-gray-400" />
+              {(!groupedItems.tops && !groupedItems.bottoms && !groupedItems.accessories) && (
+                <div className="py-20 text-center">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                    <Sparkles className="w-6 h-6 text-gray-300" />
                   </div>
-                  <h4 className="text-gray-900 font-bold mb-2">No styles found</h4>
-                  <p className="text-gray-500 text-sm">Try selecting a different vibe or product.</p>
+                  <h4 className="text-gray-900 font-bold mb-1">No styles found</h4>
+                  <p className="text-gray-400 text-xs">Try a different vibe.</p>
                 </div>
               )}
             </div>
@@ -423,7 +441,38 @@ export default function OutfitGenerator({
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
+        @keyframes gradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .animate-gradient {
+          animation: gradient 3s ease infinite;
+        }
       `}</style>
+
+      {/* Block Logic Modal */}
+      <Modal
+        isOpen={showBlockModal}
+        onClose={() => setShowBlockModal(false)}
+        title="Outfit Not Available"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600 leading-relaxed text-sm">
+            Outfit suggestions are available only for fashion items like clothing, footwear, and accessories.
+            <br /><br />
+            Since this is a non-fashion item (e.g., cosmetic or skincare), our style AI cannot generate a look for it.
+          </p>
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={() => setShowBlockModal(false)}
+              className="px-6 py-2.5 bg-black text-white text-sm font-bold rounded-full hover:bg-gray-800 transition shadow-lg"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

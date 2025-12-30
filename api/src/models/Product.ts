@@ -27,6 +27,7 @@ export interface IProduct extends Document {
   isFashionItem?: boolean;
   images: string[];
   stock: number; // ✅ ADDED
+  views?: number; // ✅ ADDED
   dominantColor: IDominantColor & { name?: string };
   aiTags: IAITags;
   variants?: any[];
@@ -57,6 +58,11 @@ const ProductSchema = new Schema<IProduct>(
       type: Number,
       required: true,
       default: 0,
+    },
+
+    views: {
+      type: Number,
+      default: 0
     },
 
     dominantColor: {

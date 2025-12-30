@@ -96,7 +96,7 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
             { role: ROLES.TOP, limit: 3 },
             { role: ROLES.BOTTOM, limit: 3 },
             { role: ROLES.FOOTWEAR, limit: 2 },
-            { role: ROLES.ACCESSORY, limit: 2 }
+            { role: ROLES.ACCESSORY, limit: 4 }
         ];
 
         const suggestions: any[] = [];
@@ -123,13 +123,17 @@ export const generateSimpleOutfit = async (req: Request, res: Response) => {
                 case ROLES.ACCESSORY:
                     const g = (gender || '').toLowerCase();
                     if (g === 'men') {
-                        roleQuery = { subCategory: { $regex: /watch|belt|wallet|cap|sunglass/i } };
+                        const r = /watch|belt|wallet|cap|sunglass/i;
+                        roleQuery = { $or: [{ subCategory: { $regex: r } }, { name: { $regex: r } }] };
                     } else if (g === 'women') {
-                        roleQuery = { subCategory: { $regex: /earring|bracelet|necklace|handbag|clutch|watch|sunglass/i } };
+                        const r = /earring|bracelet|bangle|necklace|handbag|clutch|watch|sunglass/i;
+                        roleQuery = { $or: [{ subCategory: { $regex: r } }, { name: { $regex: r } }] };
                     } else if (g === 'kids') {
-                        roleQuery = { subCategory: { $regex: /cap|watch|bag|backpack/i } };
+                        const r = /cap|watch|bag|backpack/i;
+                        roleQuery = { $or: [{ subCategory: { $regex: r } }, { name: { $regex: r } }] };
                     } else {
-                        roleQuery = { subCategory: { $regex: /accessory|watch|bag/i } };
+                        const r = /accessory|watch|bag/i;
+                        roleQuery = { $or: [{ subCategory: { $regex: r } }, { name: { $regex: r } }] };
                     }
                     break;
             }

@@ -182,32 +182,143 @@ export default function OutfitGenerator({
     }
   };
 
+  // Helper to group items by role
+  const groupedItems = (result?.outfitItems ?? []).reduce((acc: any, item: OutfitItem) => {
+    const roleKey = item.role.toLowerCase();
+    const group =
+      roleKey.includes('top') ? 'tops' :
+        roleKey.includes('bottom') ? 'bottoms' :
+          roleKey.includes('footwear') ? 'footwear' : 'accessories';
+
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(item);
+    return acc;
+  }, {});
+
+  const renderSection = (title: string, items: OutfitItem[]) => {
+    if (!items || items.length === 0) return null;
+
+    return (
+      <div className="mb-8 last:mb-0 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <h5 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2 px-1">
+          <span className="w-1 h-6 bg-violet-600 rounded-full inline-block"></span>
+          {title}
+        </h5>
+
+        {/* Horizontal Scroll Container with Cue Gradients */}
+        <div className="relative group/scroll">
+          {/* Left Fade Cue */}
+          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white/90 to-transparent z-10 pointer-events-none opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-300"></div>
+          {/* Right Fade Cue */}
+          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white/90 to-transparent z-10 pointer-events-none opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-300"></div>
+
+          <div
+            className="flex overflow-x-auto gap-5 pb-6 pt-2 px-1 scroll-smooth scrollbar-hide snap-x snap-mandatory"
+            style={{ cursor: "grab" }}
+          >
+            {items.map((item, idx) => (
+              <div
+                key={idx}
+                className="flex-shrink-0 w-[240px] md:w-[260px] snap-start"
+              >
+                <div className="relative bg-white rounded-2xl p-4 shadow-sm border border-violet-100/50 hover:shadow-xl hover:shadow-violet-200/50 hover:-translate-y-1 transition-all duration-300 h-full flex flex-col group/card">
+                  {/* Role Badge & Visual Tag */}
+                  <div className="flex items-center justify-between mb-4 relative z-10">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                      {item.role}
+                    </span>
+                    {/* Random Visual Badge Logic - purely visual */}
+                    {Math.random() > 0.6 && (
+                      <div className="px-2 py-1 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full shadow-sm text-[9px] font-bold text-white flex items-center gap-1">
+                        {Math.random() > 0.5 ? 'TRENDING' : 'POPULAR'}
+                      </div>
+                    )}
+                    {/* Valid new items */}
+                    {!item.product && (
+                      <span className="text-[9px] text-gray-400">Preview</span>
+                    )}
+                  </div>
+
+                  {item.product ? (
+                    <>
+                      <Link
+                        href={`/products/${item.product.slug}`}
+                        className="block flex-1"
+                      >
+                        {/* Product Image */}
+                        <div className="relative overflow-hidden rounded-xl mb-4 bg-gray-50 aspect-[4/5] flex items-center justify-center">
+                          <img
+                            src={resolveImageUrl(item.product.images)}
+                            alt={item.product.name}
+                            className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500 ease-out"
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement;
+                              if (target.src !== PLACEHOLDER_IMAGE) {
+                                target.src = PLACEHOLDER_IMAGE;
+                              }
+                            }}
+                          />
+                        </div>
+
+                        {/* Product Info */}
+                        <div className="mb-4">
+                          <p className="font-semibold text-gray-800 text-sm mb-1 line-clamp-2 leading-snug group-hover/card:text-violet-700 transition-colors">
+                            {item.product.name}
+                          </p>
+                          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-2">
+                            {item.product.brand}
+                          </p>
+                          <p className="text-lg font-bold text-gray-900">
+                            ₹{(item.product.price_cents / 100).toFixed(0)}
+                          </p>
+                        </div>
+                      </Link>
+
+                      {/* Add to Cart Button - Compact */}
+                      <div className="mt-auto">
+                        <AddToCartButton
+                          productId={item.product._id}
+                          price={item.product.price_cents}
+                          variants={item.product.variants}
+                        // compact prop if available, otherwise default
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center py-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                      <p className="text-xs text-gray-400 italic mb-2">
+                        More styles arriving soon
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="mt-16 relative">
       {/* Premium Container with Glassmorphism & Gradient */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-50/80 via-purple-50/60 to-pink-50/80 backdrop-blur-sm border border-violet-200/50 shadow-xl shadow-violet-100/50">
-        {/* Subtle animated gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-violet-500/5 via-transparent to-purple-500/5 animate-pulse" />
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-50/90 via-white to-purple-50/90 backdrop-blur-md border border-violet-200/50 shadow-2xl shadow-violet-100/40">
 
-        <div className="relative px-6 md:px-12 lg:px-16 py-8 md:py-10">
+        <div className="relative px-6 md:px-12 lg:px-16 py-8 md:py-12">
           {/* Premium Header */}
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-8">
-            <div className="space-y-2">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-10">
+            <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-violet-400/20 blur-xl rounded-full" />
-                  <Sparkles
-                    className="relative w-7 h-7 text-violet-600"
-                    strokeWidth={2}
-                  />
+                <div className="p-2.5 bg-violet-100/50 rounded-2xl">
+                  <Sparkles className="w-6 h-6 text-violet-600" />
                 </div>
-                <h3 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-violet-700 via-purple-700 to-pink-700 bg-clip-text text-transparent">
-                  Create a Complete Look
+                <h3 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+                  Style Studio <span className="text-violet-600">Collection</span>
                 </h3>
               </div>
-              <p className="text-sm md:text-base text-gray-600 font-medium ml-10">
-                Choose one item you love. Our Style Studio intelligently curates
-                complementary pieces to complete your outfit.
+              <p className="text-sm md:text-base text-gray-600 font-medium max-w-lg leading-relaxed">
+                Curated ensembles designed to complement your choice. Mix and match to define your look.
               </p>
             </div>
 
@@ -215,221 +326,59 @@ export default function OutfitGenerator({
             <button
               onClick={handleGenerate}
               disabled={loading}
-              className="group relative px-8 py-4 sm:py-1 lg:py-1 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 text-white font-bold text-sm md:text-base rounded-2xl shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 overflow-hidden"
+              className="group relative px-8 py-4 bg-gray-900 text-white font-bold text-sm rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden"
             >
-              {/* Animated gradient overlay on hover */}
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
               <span className="relative flex items-center gap-2">
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin text-white/80" />
                     <span>Styling...</span>
                   </>
                 ) : (
                   <>
-                    <Zap className="w-5 h-5" />
-                    <span>{result ? "Refine Style" : "Generate Look"}</span>
+                    <Zap className="w-4 h-4 text-yellow-300" />
+                    <span>{result ? "Shuffle Look" : "Generate Collection"}</span>
                   </>
                 )}
               </span>
             </button>
           </div>
 
-          {/* Style Vibe Control - Premium Styling */}
-          <div className="mb-8">
-            <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block mb-3 flex items-center gap-2">
-              <Sparkle className="w-3.5 h-3.5 text-violet-500" />
-              Choose Style Mood
-            </label>
-            <div className="relative max-w-md">
-              <select
-                value={styleVibe}
-                onChange={(e) => setStyleVibe(e.target.value)}
-                disabled={loading}
-                className="w-full px-4 py-3.5 bg-white/90 backdrop-blur-sm border-2 border-violet-200 rounded-xl text-sm font-medium text-gray-800 appearance-none focus:outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
-              >
-                {STYLE_VIBES.map((v) => (
-                  <option key={v.value} value={v.value}>
-                    {v.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-violet-500 pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Loading State with Skeleton Cards */}
+          {/* Loading State with Horizontal Skeletons */}
           {loading && (
-            <div className="space-y-6 fade-in-animation">
-              <div className="text-center py-6">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-violet-600" />
-                <p className="text-gray-700 font-medium">
-                  Curating your look...
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Our Style Studio is designing the perfect match
-                </p>
-              </div>
-
-              {/* Skeleton Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="bg-white/80 rounded-2xl p-6 border border-violet-100/50 shadow-md animate-pulse"
-                  >
-                    <div className="w-full h-64 bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl mb-4" />
-                    <div className="h-4 bg-gray-200 rounded mb-3 w-3/4" />
-                    <div className="h-3 bg-gray-200 rounded w-1/2 mb-4" />
-                    <div className="h-5 bg-gray-200 rounded w-1/3" />
+            <div className="space-y-8 animate-pulse">
+              {[1, 2].map(row => (
+                <div key={row}>
+                  <div className="h-6 w-32 bg-gray-200 rounded mb-4" />
+                  <div className="flex gap-4 overflow-hidden">
+                    {[1, 2, 3, 4].map(i => (
+                      <div key={i} className="flex-shrink-0 w-[240px] h-[320px] bg-gray-100 rounded-2xl" />
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           )}
 
-          {/* Outfit Results Display */}
+          {/* Outfit Results Display - Grouped Sections */}
           {result && !loading && (
-            <div className="space-y-6 fade-in-animation">
-              <div className="flex flex-col gap-2 mb-6">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h4 className="text-xl md:text-2xl font-bold text-gray-900">
-                    Your Curated Look
-                  </h4>
-                  <div className="px-3 py-1.5 bg-gradient-to-r from-violet-100 to-purple-100 rounded-full shadow-sm">
-                    <span className="text-xs font-bold text-violet-700 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      {result.outfitTitle}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-500">
-                  A thoughtfully styled outfit designed to complement your
-                  choice.
-                </p>
+            <div className="fade-in-animation min-h-[400px]">
+              {/* Result Message */}
+              <div className="mb-6 invisible h-0 md:visible md:h-auto">
+                {/* Reserved for future filters or summary */}
               </div>
 
-              {(result.outfitItems ?? []).length > 0 ? (
-                <>
-                  {/* Native Horizontal Scroll with Custom Drag */}
-                  <div
-                    ref={scrollRef}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseLeave}
-                    className="flex overflow-x-auto gap-6 scroll-smooth scrollbar-hide snap-x snap-mandatory pb-4"
-                    style={{ cursor: "grab", userSelect: "none" }}
-                  >
-                    {(result.outfitItems ?? []).map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="flex-shrink-0 w-[85vw] sm:w-[45vw] md:w-[40vw] lg:w-[32vw] xl:w-[28vw] snap-center"
-                        style={{
-                          animation: `slideIn 0.6s ease-out ${idx * 0.1}s both`,
-                        }}
-                      >
-                        <div className="relative bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-lg shadow-violet-100/50 hover:shadow-2xl hover:shadow-violet-200/60 hover:-translate-y-2 transition-all duration-500 h-full flex flex-col mr-4 border border-transparent bg-gradient-to-br from-white via-white to-violet-50/30 before:absolute before:inset-0 before:rounded-3xl before:p-[1px] before:bg-gradient-to-br before:from-violet-200/40 before:via-pink-200/40 before:to-violet-200/40 before:-z-10">
-                          {/* Role Badge & AI Pick Badge */}
-                          <div className="flex items-center justify-between mb-5 relative z-10">
-                            <span className="text-[9px] font-bold text-gray-700 uppercase tracking-widest bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-gray-200/50">
-                              {item.role}
-                            </span>
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 rounded-full shadow-lg shadow-violet-500/40">
-                              <Sparkle className="w-3 h-3 text-white fill-white" />
-                              <span className="text-[9px] font-extrabold text-white tracking-wide">
-                                AI
-                              </span>
-                            </div>
-                          </div>
+              {groupedItems.tops && renderSection("Top Picks", groupedItems.tops)}
+              {groupedItems.bottoms && renderSection("Try These Bottoms", groupedItems.bottoms)}
+              {groupedItems.footwear && renderSection("Complete the Look", groupedItems.footwear)}
 
-                          {item.product ? (
-                            <>
-                              <Link
-                                href={`/products/${item.product.slug}`}
-                                className="block flex-1 group/card"
-                              >
-                                {/* Product Image */}
-                                <div className="relative overflow-hidden rounded-2xl mb-5 bg-gradient-to-br from-gray-50 to-violet-50/20 flex items-center justify-center aspect-square shadow-inner">
-                                  <img
-                                    src={resolveImageUrl(item.product.images)}
-                                    alt={item.product.name}
-                                    className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-700 ease-out"
-                                    onError={(e) => {
-                                      const target =
-                                        e.currentTarget as HTMLImageElement;
-                                      if (target.src !== PLACEHOLDER_IMAGE) {
-                                        target.src = PLACEHOLDER_IMAGE;
-                                      }
-                                    }}
-                                  />
-                                </div>
-
-                                {/* Product Info */}
-                                <div className="mb-5 flex-1 space-y-2">
-                                  <p className="font-medium text-gray-900 text-base mb-1.5 line-clamp-2 min-h-[3rem] leading-snug group-hover/card:text-violet-700 transition-colors duration-300">
-                                    {item.product.name}
-                                  </p>
-                                  <p className="text-xs text-gray-500 font-medium tracking-wide uppercase">
-                                    {item.product.brand}
-                                  </p>
-                                  <p className="text-2xl font-bold text-gray-900 mt-2">
-                                    ₹
-                                    {(item.product.price_cents / 100).toFixed(
-                                      0
-                                    )}
-                                  </p>
-                                </div>
-                              </Link>
-
-                              {/* Add to Cart Button */}
-                              <div className="mt-auto">
-                                <AddToCartButton
-                                  productId={item.product._id}
-                                  price={item.product.price_cents}
-                                  variants={item.product.variants}
-                                />
-                              </div>
-                            </>
-                          ) : (
-                            <div className="flex-1 flex items-center justify-center py-8">
-                              <p className="text-sm text-gray-400 italic">
-                                No matching item found
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="py-12 text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-violet-100 mb-4">
-                    <Sparkles className="w-8 h-8 text-violet-600" />
-                  </div>
-                  <p className="text-gray-700 font-medium mb-2">
-                    No outfit items found
-                  </p>
-                  <p className="text-sm text-gray-500 max-w-md mx-auto">
-                    Our AI couldn't find matching items at this time. Try
-                    adjusting your style mood or check back later.
-                  </p>
-                </div>
-              )}
-
-              {/* Style Explanation */}
-              {result.overallStyleExplanation && (
-                <div className="mt-10 p-6 md:p-8 bg-gradient-to-r from-violet-50/90 to-purple-50/90 backdrop-blur-sm rounded-2xl border border-violet-200/50 shadow-md">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 mt-0.5">
-                      <Sparkles className="w-5 h-5 text-violet-600" />
-                    </div>
-                    <p className="text-gray-700 text-sm md:text-base leading-relaxed font-medium">
-                      {result.overallStyleExplanation}
-                    </p>
-                  </div>
+              {/* Empty State Fallback */}
+              {(!groupedItems.tops && !groupedItems.bottoms && !groupedItems.footwear) && (
+                <div className="py-20 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                  <p className="text-gray-500 font-medium">No matching styles found right now.</p>
+                  <button onClick={handleGenerate} className="text-violet-600 font-bold text-sm mt-2 hover:underline">Try Again</button>
                 </div>
               )}
             </div>
@@ -437,36 +386,9 @@ export default function OutfitGenerator({
         </div>
       </div>
 
-      {/* Custom CSS for animations */}
+      {/* Global Pulse Animation for Skeletons etc */}
       <style jsx global>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        .fade-in-animation {
-          animation: fadeIn 0.5s ease-out forwards;
-        }
-
-        /* Hide scrollbar while maintaining scroll functionality */
-        .scrollbar-hide {
+         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }

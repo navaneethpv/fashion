@@ -28,7 +28,8 @@ export default function CheckoutPage() {
     city: '',
     state: '',
     zip: '',
-    country: 'US'
+
+    country: 'India'
   });
 
   const base =
@@ -70,26 +71,6 @@ export default function CheckoutPage() {
   // 2. Fetch Order Details when orderId is available
   useEffect(() => {
     if (!orderId) return;
-
-    // const fetchOrderDetails = async () => {
-    //   try {
-    //     const res = await fetch(`${baseUrl}/api/orders/${orderId}`, {
-    //       headers: await authHeaders(),
-    //     });
-
-    //     if (!res.ok) {
-    //       throw new Error('Failed to fetch order');
-    //     }
-
-    //     const data = await res.json();
-    //     setOrderData(data);
-    //   } catch (err) {
-    //     console.error('Order fetch error:', err);
-    //     router.push('/orders');
-    //   }
-    // };
-
-    // fetchOrderDetails();
   }, [orderId]);
 
   const subtotal = cart?.items?.reduce((acc: number, item: any) => {
@@ -104,11 +85,21 @@ export default function CheckoutPage() {
   // 2. Handle Payment
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate phone length
+    if (formData.phone.length !== 10) {
+      alert("Please enter a valid 10-digit Indian mobile number.");
+      return;
+    }
+
     setProcessing(true);
 
     const orderPayload = {
       userId: user?.id,
-      shippingAddress: formData // Only send shipping address, backend calculates from cart
+      shippingAddress: {
+        ...formData,
+        phone: `+91${formData.phone}` // Prepend +91 enforced
+      }
     };
 
     try {
@@ -189,130 +180,139 @@ export default function CheckoutPage() {
         <div className="flex flex-col lg:flex-row gap-8">
 
           {/* LEFT COLUMN: FORMS */}
-          <div className="flex-1 space-y-6">
+          <div className="flex-1 space-y-8">
 
             {/* 1. Contact Info */}
-            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
-              <h2 className="text-xl font-bold mb-6">Contact Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">Email Address</label>
+            <div className="bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 transition-all hover:shadow-2xl hover:shadow-gray-200/60">
+              <h2 className="text-xl font-bold mb-8 text-gray-900">Contact Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Email Address</label>
                   <input
                     name="email"
                     type="email"
                     required
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
+                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all placeholder:text-gray-300 font-medium text-gray-900"
+                    placeholder="you@example.com"
                     value={formData.email}
                     onChange={handleChange}
                   />
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">Phone Number</label>
-                  <input
-                    name="phone"
-                    type="tel"
-                    required
-                    placeholder="+1 (555) 000-0000"
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
-                    value={formData.phone}
-                    onChange={handleChange}
-                  />
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Phone Number</label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-4 text-gray-400 font-bold select-none">+91</span>
+                    <input
+                      name="phone"
+                      type="tel"
+                      required
+                      placeholder="98765 43210"
+                      className={`w-full p-4 pl-14 bg-white border rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all placeholder:text-gray-300 font-medium text-gray-900 tracking-wide ${formData.phone && formData.phone.length !== 10 ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200'
+                        }`}
+                      value={formData.phone}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setFormData({ ...formData, phone: val });
+                      }}
+                    />
+                  </div>
+                  {formData.phone && formData.phone.length > 0 && formData.phone.length < 10 && (
+                    <p className="text-xs text-red-500 font-medium mt-1">Enter a valid 10-digit Indian mobile number</p>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* 2. Shipping Address */}
-            <form id="checkout-form" onSubmit={handlePlaceOrder} className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
-              <h2 className="text-xl font-bold mb-6">Shipping Address</h2>
+            <form id="checkout-form" onSubmit={handlePlaceOrder} className="bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 transition-all hover:shadow-2xl hover:shadow-gray-200/60">
+              <h2 className="text-xl font-bold mb-8 text-gray-900">Shipping Address</h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">First Name</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">First Name</label>
                   <input
                     name="firstName" type="text" required
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
+                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all font-medium text-gray-900"
                     value={formData.firstName} onChange={handleChange}
                   />
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">Last Name</label>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Last Name</label>
                   <input
                     name="lastName" type="text" required
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
+                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all font-medium text-gray-900"
                     value={formData.lastName} onChange={handleChange}
                   />
                 </div>
               </div>
 
-              <div className="mb-6">
-                <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">Street Address</label>
+              <div className="mb-8 space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Street Address</label>
                 <input
-                  name="street" type="text" required placeholder="123 Fashion Ave, Apt 4B"
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
+                  name="street" type="text" required placeholder="House No, Building, Area"
+                  className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all placeholder:text-gray-300 font-medium text-gray-900"
                   value={formData.street} onChange={handleChange}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">City</label>
+              <div className="grid grid-cols-2 gap-8 mb-8">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">City</label>
                   <input
                     name="city" type="text" required
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
+                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all font-medium text-gray-900"
                     value={formData.city} onChange={handleChange}
                   />
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">State / Province</label>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">State</label>
                   <input
                     name="state" type="text" required
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
+                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all font-medium text-gray-900"
                     value={formData.state} onChange={handleChange}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">ZIP Code</label>
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">ZIP Code</label>
                   <input
                     name="zip" type="text" required
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
+                    className="w-full p-4 bg-white border border-gray-200 rounded-xl focus:ring-1 focus:ring-black focus:border-black outline-none transition-all font-medium text-gray-900"
                     value={formData.zip} onChange={handleChange}
                   />
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5 block">Country</label>
-                  <select
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Country</label>
+                  <input
                     name="country"
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:bg-white outline-none transition appearance-none"
-                    value={formData.country} onChange={handleChange}
-                  >
-                    <option value="US">United States</option>
-                    <option value="UK">United Kingdom</option>
-                    <option value="CA">Canada</option>
-                    <option value="IN">India</option>
-                    <option value="AU">Australia</option>
-                  </select>
+                    type="text"
+                    disabled
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 font-bold cursor-not-allowed select-none"
+                    value="India"
+                  />
                 </div>
               </div>
             </form>
 
             {/* 3. Payment Method */}
-            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
-              <h2 className="text-xl font-bold mb-6">Payment Method</h2>
+            <div className="bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 transition-all hover:shadow-2xl hover:shadow-gray-200/60">
+              <h2 className="text-xl font-bold mb-8 text-gray-900">Payment Method</h2>
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-4 p-4 border-2 border-primary bg-violet-50 rounded-xl cursor-pointer transition">
-                  <div className="w-5 h-5 rounded-full border-4 border-primary bg-white" />
-                  <CreditCard className="w-6 h-6 text-primary" />
+                <div className="flex items-center gap-5 p-5 border border-purple-200 bg-purple-50/30 rounded-2xl cursor-pointer transition-all shadow-sm">
+                  <div className="w-5 h-5 rounded-full border-[5px] border-purple-600 bg-white shadow-sm" />
+                  <div className="p-2 bg-white rounded-lg shadow-sm">
+                    <CreditCard className="w-6 h-6 text-purple-600" />
+                  </div>
                   <div>
                     <span className="block font-bold text-gray-900">Credit / Debit Card</span>
-                    <span className="text-xs text-gray-900">Safe encryption via Stripe</span>
+                    <span className="text-xs text-gray-500 font-medium">Safe encryption via Stripe</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 p-4 border border-gray-200 rounded-xl opacity-60 cursor-not-allowed">
-                  <div className="w-5 h-5 rounded-full border border-gray-300" />
-                  <span className="font-bold text-gray-900">PayPal</span>
+                <div className="flex items-center gap-5 p-5 border border-gray-100 rounded-2xl opacity-50 cursor-not-allowed grayscale">
+                  <div className="w-5 h-5 rounded-full border border-gray-200" />
+                  <span className="font-bold text-gray-400">PayPal / Wallet</span>
                 </div>
               </div>
             </div>

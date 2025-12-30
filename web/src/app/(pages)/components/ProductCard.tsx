@@ -138,86 +138,75 @@ export default function ProductCard({ product, isPremium = false }: ProductCardP
   }
 
   const imageUrl = resolveImageUrl(localProduct);
-  const href = `/products/${localProduct.slug}${localProduct._id ? `?id=${localProduct._id}` : ""
-    }`;
+  const href = `/products/${localProduct.slug}${localProduct._id ? `?id=${localProduct._id}` : ""}`;
 
   return (
     <Link href={href} className="group block h-full">
-      <div
-        className={`bg-white transition-all duration-300 overflow-hidden h-full flex flex-col ${isPremium
-          ? "rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1"
-          : "rounded-lg shadow-sm hover:shadow-lg"
-          }`}
-      >
-        <div className="relative overflow-hidden w-full">
-          <div className={isPremium ? "aspect-[3/4]" : "aspect-[4/5] h-48 sm:h-auto"}>
-            <img
-              src={imageUrl}
-              alt={localProduct.name}
-              className={`w-full h-full object-cover transition-transform duration-700 ${isPremium ? "group-hover:scale-110" : "group-hover:scale-105"
-                }`}
-              onError={(e) => {
-                const t = e.currentTarget as HTMLImageElement;
-                if (t.src !== PLACEHOLDER) t.src = PLACEHOLDER;
-              }}
-            />
-          </div>
+      <div className="relative flex flex-col h-full bg-white border border-gray-100 p-5">
+        {/* Image Container - Always 3:4 Aspect Ratio */}
+        <div className="relative aspect-[2/3] overflow-hidden bg-gray-100 rounded-sm">
+          <img
+            src={imageUrl}
+            alt={localProduct.name}
+            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+            onError={(e) => {
+              const t = e.currentTarget as HTMLImageElement;
+              if (t.src !== PLACEHOLDER) t.src = PLACEHOLDER;
+            }}
+          />
 
+          {/* Minimal Offer Tag - Only if meaningful */}
           {localProduct.offer_tag && (
-            <span className={`absolute top-2 left-2 bg-red-500 text-white font-bold px-2 py-1 rounded ${isPremium ? "text-xs px-2.5 py-1" : "text-xs"
-              }`}>
+            <span className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-red-600 text-[10px] uppercase font-bold px-2 py-1 tracking-wider">
               {localProduct.offer_tag}
             </span>
           )}
 
-          {/* Subtle Gradient Overlay for Premium Cards */}
-          {isPremium && (
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-          )}
+          {/* Premium Gradient Overlay on hover */}
+          <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-          {/* Wishlist Button */}
+          {/* Quick Actions (Wishlist) - Desktop: Hover, Mobile: Always visible (handled via CSS/Size) */}
           {user && (
             <button
               onClick={toggleWishlist}
               disabled={wishlistLoading}
-              className={`absolute z-20 group/heart transition-all duration-300 disabled:opacity-50 ${isPremium
-                ? "top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
-                : "top-2 right-2 sm:top-3 sm:right-3 hover:scale-110"
-                }`}
+              className={`absolute top-2 right-2 p-2 rounded-full bg-white/90 backdrop-blur shadow-sm 
+                transition-all duration-300 z-10
+                ${isWishlisted ? "opacity-100" : "opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0"}
+              `}
               title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
               <Heart
-                className={`transition-all duration-300 drop-shadow-sm ${isPremium ? "w-5 h-5" : "w-6 h-6 sm:w-7 sm:h-7"
-                  } ${isWishlisted
-                    ? "fill-red-500 text-red-500 scale-110 animate-bounce-once"
-                    : "fill-transparent text-gray-800 stroke-[2] hover:text-red-500"
+                className={`w-4 h-4 transition-colors duration-300 ${isWishlisted ? "fill-red-500 text-red-500" : "text-gray-900 hover:text-red-500"
                   }`}
               />
             </button>
           )}
         </div>
 
-        <div className={`flex flex-col flex-grow ${isPremium ? "p-4" : "p-3 sm:p-4"}`}>
-          <h3 className={`font-semibold text-gray-800 truncate group-hover:text-black transition-colors ${isPremium ? "text-base mb-1" : "text-xs sm:text-sm"
-            }`}>
+        {/* Info Section - Editorial Style */}
+        <div className="pt-3 pb-1 flex flex-col gap-1">
+          {/* Brand */}
+          <h4 className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest truncate">
+            {localProduct.brand || "Eyoris"}
+          </h4>
+
+          {/* Name */}
+          <h3 className="text-xs md:text-sm font-medium text-gray-900 truncate leading-tight group-hover:underline decoration-gray-400 underline-offset-4 decoration-1">
             {localProduct.name}
           </h3>
-          <p className="text-xs text-gray-500 mb-2">{localProduct.brand}</p>
 
-          <div className="mt-auto flex items-baseline gap-2">
-            <span className={`font-bold text-gray-900 ${isPremium ? "text-lg" : "text-base sm:text-lg"}`}>
-              ₹{((localProduct.price_cents ?? 0) / 100).toFixed(0)}
+          {/* Price */}
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-sm font-semibold text-gray-900">
+              ₹{((localProduct.price_cents ?? 0) / 100).toLocaleString()}
             </span>
-            {localProduct.price_before_cents ? (
-              <span className="text-xs text-gray-400 line-through">
-                ₹{((localProduct.price_before_cents ?? 0) / 100).toFixed(0)}
-              </span>
-            ) : null}
             {localProduct.price_before_cents && (
-              <span className="text-xs text-orange-500 font-medium">
-                ({Math.round((((localProduct.price_before_cents - (localProduct.price_cents || 0)) / localProduct.price_before_cents) * 100))}% OFF)
+              <span className="text-xs text-gray-400 line-through">
+                ₹{((localProduct.price_before_cents ?? 0) / 100).toLocaleString()}
               </span>
             )}
+            {/* Optional: Calculate discount % purely for text if needed, but keeping it clean for now */}
           </div>
         </div>
       </div>

@@ -90,7 +90,7 @@ export default function ProductFilters({
     if (chips.length === 0) return null;
 
     return (
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-8 animate-in fade-in slide-in-from-top-2">
         {chips.map((chip, idx) => (
           <button
             key={`${chip.key}-${chip.value}-${idx}`}
@@ -102,20 +102,17 @@ export default function ProductFilters({
                 updateFilter(chip.key, chip.value);
               }
             }}
-            className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-xs font-medium text-gray-800 rounded-full hover:bg-gray-200 transition-colors"
+            className="group flex items-center gap-2 px-3 py-1.5 bg-gray-900 text-white text-xs font-bold rounded-full hover:bg-black transition-all shadow-sm hover:shadow-md"
           >
-            {chip.label}
-            <X className="w-3 h-3" />
+            <span>{chip.label}</span>
+            <X className="w-3 h-3 text-gray-400 group-hover:text-white transition-colors" />
           </button>
         ))}
         <button
           onClick={() => {
-            // Clear all logic handled by parent usually, but providing a helper if needed?
-            // Actually the parent "Clear All" is better. Here we just trigger individual.
-            // But if we want a local clear:
             ['gender', 'brand', 'color', 'size', 'minPrice', 'maxPrice', 'sort'].forEach(k => onChange(k, undefined));
           }}
-          className="text-xs text-red-500 hover:text-red-700 underline px-2"
+          className="px-2 text-xs font-bold text-gray-400 hover:text-black transition-colors uppercase tracking-wider"
         >
           Clear All
         </button>
@@ -124,17 +121,20 @@ export default function ProductFilters({
   };
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-10 pb-10">
       {renderActiveChips()}
 
       {/* --- Price Filter (Slider + Inputs) --- */}
       <div>
-        <h3 className="font-bold text-sm mb-4 uppercase tracking-wider">Price Range</h3>
+        <h3 className="text-xs font-bold text-gray-900 uppercase tracking-[0.15em] mb-6 flex items-center gap-2">
+          Price Range
+          <span className="h-px bg-gray-100 flex-1"></span>
+        </h3>
 
         {/* Dual Range Slider Mockup (Visual) using 2 Range Inputs */}
-        <div className="relative h-12 mb-2">
+        <div className="relative h-12 mb-6 group">
           {/* Track Background */}
-          <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 rounded-full -translate-y-1/2"></div>
+          <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-100 rounded-full -translate-y-1/2 group-hover:bg-gray-200 transition-colors"></div>
           {/* Active Track */}
           <div
             className="absolute top-1/2 h-1 bg-black rounded-full -translate-y-1/2 pointer-events-none"
@@ -152,12 +152,6 @@ export default function ProductFilters({
             onChange={(e) => {
               const val = Math.min(Number(e.target.value), localMax - 100);
               setLocalMin(val);
-              // Defer onChange commit to mouseUp or just update local?
-              // "Slider updates local state ONLY" -> "Apply filters ONLY when user clicks Apply".
-              // But we MUST update the parent `values` if we want the Inputs to sync?
-              // Actually, Drawer `tempParams` ARE the local state. 
-              // So we CAN call `onChange` immediately.
-              // The request said: "Apply filters ONLY on Apply". `onChange` here updates `tempParams` (local Drawer state). So it IS deferred.
               commitPriceChange(val, localMax);
             }}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer pointer-events-auto z-20"
@@ -178,107 +172,102 @@ export default function ProductFilters({
 
           {/* Visual Thumbs (positioned by state) */}
           <div
-            className="absolute top-1/2 w-5 h-5 bg-white border-2 border-black rounded-full shadow-md -translate-y-1/2 pointer-events-none z-30"
+            className="absolute top-1/2 w-5 h-5 bg-white border-[3px] border-black rounded-full shadow-lg -translate-y-1/2 pointer-events-none z-30 transition-transform group-hover:scale-110"
             style={{ left: `calc(${(localMin / PRICE_MAX) * 100}% - 10px)` }}
           />
           <div
-            className="absolute top-1/2 w-5 h-5 bg-white border-2 border-black rounded-full shadow-md -translate-y-1/2 pointer-events-none z-30"
+            className="absolute top-1/2 w-5 h-5 bg-white border-[3px] border-black rounded-full shadow-lg -translate-y-1/2 pointer-events-none z-30 transition-transform group-hover:scale-110"
             style={{ left: `calc(${(localMax / PRICE_MAX) * 100}% - 10px)` }}
           />
         </div>
 
         {/* Inputs */}
         <div className="flex items-center justify-between gap-4">
-          <div className="flex-1">
-            <span className="text-xs text-gray-500 mb-1 block">Min</span>
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-gray-500 text-sm">₹</span>
-              <input
-                type="number"
-                value={localMin}
-                onChange={(e) => {
-                  const val = Number(e.target.value); // Allow typing freely?
-                  setLocalMin(val);
-                }}
-                onBlur={() => {
-                  let val = Math.max(PRICE_MIN, Math.min(localMin, localMax - 100));
-                  setLocalMin(val);
-                  commitPriceChange(val, localMax);
-                }}
-                className="w-full pl-6 pr-2 py-2 border rounded-lg text-sm"
-              />
-            </div>
+          <div className="relative flex-1">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">₹</span>
+            <input
+              type="number"
+              value={localMin}
+              onChange={(e) => setLocalMin(Number(e.target.value))}
+              onBlur={() => {
+                let val = Math.max(PRICE_MIN, Math.min(localMin, localMax - 100));
+                setLocalMin(val);
+                commitPriceChange(val, localMax);
+              }}
+              className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-gray-200 focus:ring-0 transition-all text-center"
+            />
           </div>
-          <div className="flex-1">
-            <span className="text-xs text-gray-500 mb-1 block">Max</span>
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-gray-500 text-sm">₹</span>
-              <input
-                type="number"
-                value={localMax}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  setLocalMax(val);
-                }}
-                onBlur={() => {
-                  let val = Math.min(PRICE_MAX, Math.max(localMax, localMin + 100));
-                  setLocalMax(val);
-                  commitPriceChange(localMin, val);
-                }}
-                className="w-full pl-6 pr-2 py-2 border rounded-lg text-sm"
-              />
-            </div>
+          <span className="text-gray-300 font-medium">-</span>
+          <div className="relative flex-1">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">₹</span>
+            <input
+              type="number"
+              value={localMax}
+              onChange={(e) => setLocalMax(Number(e.target.value))}
+              onBlur={() => {
+                let val = Math.min(PRICE_MAX, Math.max(localMax, localMin + 100));
+                setLocalMax(val);
+                commitPriceChange(localMin, val);
+              }}
+              className="w-full pl-8 pr-4 py-2.5 bg-gray-50 border border-transparent rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:border-gray-200 focus:ring-0 transition-all text-center"
+            />
           </div>
         </div>
       </div>
 
       {/* --- Sort By Options --- */}
-      <div className="pt-4 border-t border-gray-100">
-        <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Sort By</h3>
-        <div className="grid grid-cols-2 gap-2">
+      <div>
+        <h3 className="text-xs font-bold text-gray-900 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
+          Sort By
+          <span className="h-px bg-gray-100 flex-1"></span>
+        </h3>
+        <div className="flex flex-wrap gap-2">
           {[
             { label: 'Newest', value: 'newest' },
             { label: 'Price: Low to High', value: 'price_asc' },
             { label: 'Price: High to Low', value: 'price_desc' },
-          ].map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => onChange('sort', opt.value)}
-              className={`px-3 py-2 text-sm rounded-lg border transition-all ${(values.sort || 'newest') === opt.value
-                ? 'bg-black text-white border-black'
-                : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+          ].map((opt) => {
+            const isActive = (values.sort || 'newest') === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => onChange('sort', opt.value)}
+                className={`px-4 py-2 text-xs font-bold rounded-full border transition-all duration-300
+                ${isActive
+                    ? 'bg-black text-white border-black shadow-lg'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black'
+                  }`}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
         </div>
       </div>
 
 
       {/* Gender */}
       {genders.length > 0 && (
-        <div className="pt-4 border-t border-gray-100">
-          <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Gender</h3>
-          <div className="space-y-2">
+        <div>
+          <h3 className="text-xs font-bold text-gray-900 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
+            Gender
+            <span className="h-px bg-gray-100 flex-1"></span>
+          </h3>
+          <div className="flex flex-wrap gap-2">
             {genders.map((gender) => {
               const isActive = values['gender'] === gender;
               return (
-                <label key={gender} className="flex items-center gap-2 cursor-pointer group">
-                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${isActive ? 'border-black bg-black' : 'border-gray-300 group-hover:border-gray-400'}`}>
-                    {isActive && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                  </div>
-                  <span className={`text-sm ${isActive ? 'font-bold text-gray-900' : 'text-gray-600 group-hover:text-black'}`}>
-                    {gender}
-                  </span>
-                  <input
-                    type="radio"
-                    name="gender"
-                    checked={isActive}
-                    onChange={() => updateFilter('gender', gender)}
-                    className="hidden"
-                  />
-                </label>
+                <button
+                  key={gender}
+                  onClick={() => updateFilter('gender', gender)}
+                  className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-300 border
+                    ${isActive
+                      ? 'bg-black text-white border-black shadow-md transform scale-105'
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-black hover:text-black'
+                    }`}
+                >
+                  {gender}
+                </button>
               );
             })}
           </div>
@@ -287,17 +276,17 @@ export default function ProductFilters({
 
       {/* Color */}
       {colors.length > 0 && (
-        <div className="pt-4 border-t border-gray-100">
-          <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Color</h3>
+        <div>
+          <h3 className="text-xs font-bold text-gray-900 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
+            Color
+            <span className="h-px bg-gray-100 flex-1"></span>
+          </h3>
           <div className="flex flex-wrap gap-3">
             {Array.from(new Set(colors.map(c => c.trim().toLowerCase()))).map((normalizedColor) => {
-              // Find original casing for display/value if needed, or just use Title Case
-              // We prefer Title Case for display
               const displayColor = normalizedColor.charAt(0).toUpperCase() + normalizedColor.slice(1);
-              const colorValue = displayColor; // Send Title Case to backend to match regex expected
+              const colorValue = displayColor;
 
               const activeRef = getActiveList('color');
-              // Check if "Black" or "black" is in active list (case-insensitive check)
               const isActive = activeRef.some(acc => acc.toLowerCase() === normalizedColor);
 
               const colorMap: Record<string, string> = {
@@ -315,19 +304,25 @@ export default function ProductFilters({
                   key={normalizedColor}
                   type="button"
                   title={displayColor}
-                  className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${isActive
-                    ? 'border-gray-900 scale-110 shadow-sm'
-                    : 'border-transparent hover:border-gray-300'
+                  className={`group relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${isActive
+                    ? 'ring-2 ring-black ring-offset-2 scale-110'
+                    : 'hover:scale-110 hover:shadow-lg'
                     }`}
                   onClick={() => updateFilter('color', colorValue)}
                 >
                   <div
-                    className="w-full h-full rounded-full border border-black/10"
+                    className="w-full h-full rounded-full border border-gray-100 shadow-sm"
                     style={{ backgroundColor: bg }}
                   />
                   {isActive && (
-                    <Check className={`absolute w-3 h-3 ${isWhite ? 'text-black' : 'text-white'}`} style={{ strokeWidth: 4 }} />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Check className={`w-4 h-4 ${isWhite ? 'text-black' : 'text-white'}`} strokeWidth={3} />
+                    </div>
                   )}
+                  {/* Tooltip */}
+                  <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                    {displayColor}
+                  </span>
                 </button>
               );
             })}
@@ -337,8 +332,11 @@ export default function ProductFilters({
 
       {/* Size */}
       {sizeFilterMode !== 'none' && (
-        <div className="pt-4 border-t border-gray-100">
-          <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Size</h3>
+        <div>
+          <h3 className="text-xs font-bold text-gray-900 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
+            Size
+            <span className="h-px bg-gray-100 flex-1"></span>
+          </h3>
           <div className="flex flex-wrap gap-2">
             {(sizeFilterMode === 'apparel'
               ? ['XS', 'S', 'M', 'L', 'XL', 'XXL']
@@ -350,9 +348,10 @@ export default function ProductFilters({
                 <button
                   key={size}
                   type="button"
-                  className={`min-w-[40px] px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${isActive
-                    ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400 hover:bg-gray-50'
+                  className={`min-w-[44px] h-[44px] flex items-center justify-center text-xs font-bold rounded-xl border transition-all duration-300
+                    ${isActive
+                      ? 'bg-black text-white border-black shadow-lg transform scale-105'
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-black hover:text-black hover:bg-gray-50'
                     }`}
                   onClick={() => updateFilter('size', size)}
                 >
@@ -366,23 +365,27 @@ export default function ProductFilters({
 
       {/* Brand */}
       {brands.length > 0 && (
-        <div className="pt-4 border-t border-gray-100">
-          <h3 className="font-bold text-sm mb-3 uppercase tracking-wider">Brand</h3>
-          <div className="space-y-1 max-h-48 overflow-y-auto pr-1 customize-scrollbar">
+        <div>
+          <h3 className="text-xs font-bold text-gray-900 uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
+            Brand
+            <span className="h-px bg-gray-100 flex-1"></span>
+          </h3>
+          <div className="flex flex-wrap gap-2">
             {brands.map((brand) => {
               const isActive = values['brand'] === brand;
               return (
-                <label key={brand} className="flex items-center gap-2 cursor-pointer group py-1">
-                  <input
-                    type="checkbox"
-                    checked={isActive}
-                    onChange={() => updateFilter('brand', brand)}
-                    className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
-                  />
-                  <span className={`text-sm ${isActive ? 'font-medium text-black' : 'text-gray-600 group-hover:text-black'}`}>
-                    {brand}
-                  </span>
-                </label>
+                <button
+                  key={brand}
+                  onClick={() => updateFilter('brand', brand)}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border
+                         ${isActive
+                      ? 'bg-gray-100 text-black border-black/10 shadow-inner'
+                      : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-50 hover:text-black'
+                    }
+                    `}
+                >
+                  {brand}
+                </button>
               );
             })}
           </div>

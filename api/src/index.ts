@@ -12,26 +12,15 @@ import adminRoutes from "./routes/adminRoutes";
 import reviewRoutes from "./routes/reviewRoutes";
 import wishlistRoutes from "./routes/wishlistRoutes";
 import outfitRoutes from "./routes/outfitRoutes";
+import userRoutes from "./routes/userRoutes";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// CORS Configuration - Allow only specific origins
-const allowedOrigins = [
-  "http://localhost:3000",
-  "https://eyoris-fashion.vercel.app",
-];
-
 const corsOptions = {
-  origin: (origin: string | undefined, callback: any) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: true, // Allow all origins
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -57,6 +46,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/outfit", outfitRoutes);
+app.use("/api/user", userRoutes);
 
 app.get("/", (req, res) => {
   res.send("Eyoris Fashion API is running...");

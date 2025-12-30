@@ -6,7 +6,6 @@ import Link from "next/link";
 
 export default function MostViewedSlider() {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [isPaused, setIsPaused] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
@@ -31,36 +30,13 @@ export default function MostViewedSlider() {
     fetchMostViewed();
   }, []);
 
-  // Auto-scroll logic
-  useEffect(() => {
-    const scrollContainer = scrollRef.current;
-    if (!scrollContainer) return;
-
-    let animationFrameId: number;
-
-    const animate = () => {
-      if (!isPaused) {
-        // Slow drift
-        scrollContainer.scrollLeft += 0.5;
-
-        // Loop back if reached end (simple reset for now, or bi-directional loop if needed later)
-        if (scrollContainer.scrollLeft >= scrollContainer.scrollWidth - scrollContainer.clientWidth) {
-          scrollContainer.scrollLeft = 0;
-        }
-      }
-      animationFrameId = requestAnimationFrame(animate);
-    };
-
-    animationFrameId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [isPaused]);
-
   // Check scroll buttons
   const checkScrollPosition = () => {
     if (scrollRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-      setCanScrollLeft(scrollLeft > 10);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+      // Strict checks with 1px buffer for cross-browser safety
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(Math.ceil(scrollLeft + clientWidth) < scrollWidth);
     }
   };
 
@@ -68,9 +44,16 @@ export default function MostViewedSlider() {
     const el = scrollRef.current;
     if (el) {
       el.addEventListener('scroll', checkScrollPosition);
-      return () => el.removeEventListener('scroll', checkScrollPosition);
+      window.addEventListener('resize', checkScrollPosition);
+      // Initial check
+      checkScrollPosition();
+
+      return () => {
+        el.removeEventListener('scroll', checkScrollPosition);
+        window.removeEventListener('resize', checkScrollPosition);
+      };
     }
-  }, []);
+  }, [mostViewedProducts]); // Re-run when products load/change
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
@@ -85,62 +68,52 @@ export default function MostViewedSlider() {
   if (mostViewedProducts.length === 0) return null;
 
   return (
-    <section className="py-20 bg-gradient-to-b from-purple-50/50 to-white relative overflow-hidden">
-      <div className="max-w-[1400px] mx-auto px-6 mb-12 flex items-end justify-between">
-        <div>
-          <h2 className="text-3xl md:text-5xl font-serif font-bold text-gray-900 mb-2">
-            Most Viewed
-          </h2>
-          <p className="text-gray-500 font-medium tracking-wide">
-            Styles the world is falling for
-          </p>
-        </div>
-        <Link
-          href="/product"
-          className="hidden md:flex items-center gap-2 px-6 py-2 rounded-full border border-gray-200 text-sm font-bold hover:bg-black hover:text-white transition-all duration-300"
-        >
-          VIEW ALL
-          <ChevronRight className="w-4 h-4" />
-        </Link>
+    <section className="py-24 bg-white relative overflow-hidden">
+      <div className="max-w-[1400px] mx-auto px-6 mb-12 text-center">
+        <h2 className="text-3xl md:text-4xl font-serif text-gray-900 mb-2">
+          Trending Now
+        </h2>
+        <p className="text-gray-500 text-sm tracking-wider uppercase">
+          Most Coveted Pieces
+        </p>
       </div>
 
-      <div
-        className="relative group w-full"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-        onTouchStart={() => setIsPaused(true)}
-        onTouchEnd={() => setIsPaused(false)}
-      >
-        {/* Navigation Buttons */}
+      <div className="relative group w-full">
+        {/* Navigation Buttons - Strict Logic & Styling */}
         <button
           onClick={() => scroll("left")}
           disabled={!canScrollLeft}
-          className={`absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/80 backdrop-blur-md border border-white/40 rounded-full flex items-center justify-center shadow-xl text-gray-900 transition-all duration-300 ${!canScrollLeft ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100 hover:scale-110"
+          className={`hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full items-center justify-center transition-all duration-300 border border-gray-100 bg-white ${!canScrollLeft
+              ? "opacity-30 cursor-not-allowed pointer-events-none shadow-none text-gray-400"
+              : "opacity-100 shadow-lg text-gray-800 hover:bg-black hover:text-white"
             }`}
+          aria-label="Scroll left"
         >
-          <ChevronLeft className="w-6 h-6" />
+          <ChevronLeft className="w-6 h-6" strokeWidth={1.5} />
         </button>
 
         <button
           onClick={() => scroll("right")}
           disabled={!canScrollRight}
-          className={`absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/80 backdrop-blur-md border border-white/40 rounded-full flex items-center justify-center shadow-xl text-gray-900 transition-all duration-300 ${!canScrollRight ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100 hover:scale-110"
+          className={`hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full items-center justify-center transition-all duration-300 border border-gray-100 bg-white ${!canScrollRight
+              ? "opacity-30 cursor-not-allowed pointer-events-none shadow-none text-gray-400"
+              : "opacity-100 shadow-lg text-gray-800 hover:bg-black hover:text-white"
             }`}
+          aria-label="Scroll right"
         >
-          <ChevronRight className="w-6 h-6" />
+          <ChevronRight className="w-6 h-6" strokeWidth={1.5} />
         </button>
 
         {/* Slider */}
         <div
           ref={scrollRef}
-          className={`flex gap-6 overflow-x-auto pb-12 px-6 no-scrollbar ${isPaused ? "snap-x snap-mandatory" : ""
-            }`}
+          className="flex gap-8 overflow-x-auto pb-12 px-6 no-scrollbar snap-x snap-mandatory"
           style={{ scrollbarWidth: 'none' }}
         >
           {mostViewedProducts.map((p, i) => (
             <div
               key={p._id || i}
-              className="snap-center shrink-0 w-[75vw] sm:w-[320px] md:w-[360px]"
+              className="snap-center shrink-0 w-[80vw] sm:w-[320px] md:w-[340px]"
             >
               <ProductCard
                 product={{
@@ -157,8 +130,6 @@ export default function MostViewedSlider() {
               />
             </div>
           ))}
-          {/* Spacer */}
-          <div className="w-8 shrink-0" />
         </div>
       </div>
     </section>

@@ -4,6 +4,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
 
 // Static data (Fallback)
 const originalOffers = [
@@ -99,7 +100,12 @@ export default function OfferCarousel() {
     }, [isPaused]);
 
     return (
-        <section className="py-20 bg-white">
+        <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="py-20 bg-white"
+        >
             <div className="max-w-[1400px] mx-auto px-6 mb-12 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <span className="text-sm font-bold tracking-[6px] text-gray-400 uppercase mb-3 block">
@@ -214,7 +220,7 @@ export default function OfferCarousel() {
                     ))}
                 </div>
             </div>
-        </section>
+        </motion.section>
     );
 }
 

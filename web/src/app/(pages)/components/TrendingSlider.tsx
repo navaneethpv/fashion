@@ -13,7 +13,7 @@ export default function TrendingSlider({ products }: TrendingSliderProps) {
 
     const scroll = (direction: 'left' | 'right') => {
         if (scrollRef.current) {
-            const scrollAmount = 300;
+            const scrollAmount = 400;
             scrollRef.current.scrollBy({
                 left: direction === 'left' ? -scrollAmount : scrollAmount,
                 behavior: 'smooth'
@@ -25,37 +25,43 @@ export default function TrendingSlider({ products }: TrendingSliderProps) {
 
     return (
         <div className="relative group">
+            {/* Minimal Header (Embedded in component for autonomy) */}
+            <div className="mb-12 text-center">
+                <h3 className="text-3xl md:text-4xl font-serif text-gray-900 mb-2">Curated for You</h3>
+                <p className="text-gray-500 text-sm tracking-wider uppercase">Best of the Season</p>
+            </div>
+
             {/* Left Button */}
             <button
                 onClick={() => scroll('left')}
-                className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -ml-4 z-10 w-10 h-10 bg-white/90 backdrop-blur-sm border border-gray-100 rounded-full items-center justify-center shadow-lg text-gray-800 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:bg-white disabled:opacity-0"
+                className="hidden md:flex absolute -left-8 top-1/2 -translate-y-1/2 z-10 w-12 h-12 items-center justify-center text-gray-400 hover:text-black transition-colors disabled:opacity-0"
                 aria-label="Scroll left"
             >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-8 h-8 font-light" strokeWidth={1} />
             </button>
 
             {/* Right Button */}
             <button
                 onClick={() => scroll('right')}
-                className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 -mr-4 z-10 w-10 h-10 bg-white/90 backdrop-blur-sm border border-gray-100 rounded-full items-center justify-center shadow-lg text-gray-800 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:bg-white disabled:opacity-0"
+                className="hidden md:flex absolute -right-8 top-1/2 -translate-y-1/2 z-10 w-12 h-12 items-center justify-center text-gray-400 hover:text-black transition-colors disabled:opacity-0"
                 aria-label="Scroll right"
             >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-8 h-8 font-light" strokeWidth={1} />
             </button>
 
             {/* Scroll Container */}
             <div
                 ref={scrollRef}
-                className="flex gap-4 overflow-x-auto pb-8 snap-x snap-mandatory scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0 scroll-smooth"
+                className="flex gap-8 overflow-x-auto pb-8 snap-x snap-mandatory scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0 scroll-smooth items-stretch"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
                 {products.map((p, index) => (
                     <div
                         key={p._id || index}
-                        className="snap-center shrink-0 w-[80vw] sm:w-[320px] md:w-[260px]"
+                        className="snap-center shrink-0 w-[80vw] sm:w-[300px] md:w-[340px]"
                     >
                         <ProductCard
-                            isPremium={true}
+                            isPremium={true} // Using existing premium card logic, ensuring it matches
                             product={{
                                 _id: p._id,
                                 slug: p.slug,
@@ -69,8 +75,7 @@ export default function TrendingSlider({ products }: TrendingSliderProps) {
                         />
                     </div>
                 ))}
-                {/* Spacer for right edge on mobile */}
-                <div className="w-2 shrink-0 md:hidden" />
+
             </div>
         </div>
     );

@@ -6,6 +6,8 @@ import AutoBanner from "./(pages)/components/AutoBanner";
 import MostViewedSlider from "./(pages)/components/MostViewedSlider";
 import Link from "next/link";
 import OfferCarousel from "./(pages)/components/OfferCarousel";
+import ServiceFeatures from "./(pages)/components/ServiceFeatures";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Home() {
   const [homeData, setHomeData] = useState<{ trending: any[], offers: any[] }>({
@@ -42,70 +44,55 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 overflow-x-hidden">
+    <div className="min-h-screen bg-white font-sans text-gray-900 overflow-x-hidden selection:bg-gray-100 selection:text-black">
       <Navbar />
 
-      {/* HERO */}
+      {/* HERO SECTION */}
       <AutoBanner />
 
-      {/* NEW: OFFER CAROUSEL */}
-      <OfferCarousel />
+      {/* SERVICE FEATURES (Clean Bar) */}
+      <ServiceFeatures />
 
-      {/* TRENDING PRODUCTS */}
-      <section className="max-w-7xl mx-auto px-6 py-24">
-        {/* HEADER */}
-        <div className="flex items-end justify-between mb-16">
-          <div>
-            <p className="text-xs uppercase tracking-[4px] text-gray-500 mb-2">
-              Discover
-            </p>
-            <h2 className="text-3xl md:text-4xl font-semibold text-gray-900">
-              Trending Now
-            </h2>
-          </div>
-
-          <Link
-            href="/product"
-            className="text-sm font-medium text-gray-700 hover:text-black transition flex items-center gap-2"
-          >
-            View All <span className="text-lg">→</span>
-          </Link>
-        </div>
-
-        {/* GRID */}
+      {/* TRENDING LOOKBOOK */}
+      <motion.section
+        className="max-w-[1500px] mx-auto px-6 py-24 md:py-32"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        viewport={{ once: true, margin: "-100px" }}
+      >
         {loading ? (
-          <div className="py-24 text-center text-gray-500">
-            Loading products...
+          <div className="py-24 text-center text-gray-300 font-light tracking-widest">
+            LOADING COLLECTION...
           </div>
         ) : homeData.trending.length > 0 ? (
           <TrendingSlider products={homeData.trending} />
         ) : (
-          <div className="py-24 text-center "> {/* Cleaned up empty state */}
-            {/* Silent fallback or simple message */}
-          </div>
+          <div className="py-24" />
         )}
-      </section>
+      </motion.section>
 
-      {/* MOST VIEWED SLIDER */}
-      {/* MOST VIEWED SLIDER */}
-      <MostViewedSlider />
+      {/* EDITORIAL OFFERS */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+        viewport={{ once: true }}
+      >
+        <OfferCarousel />
+      </motion.div>
 
-      {/* PAGE ANIMATION */}
-      <style jsx>{`
-        @keyframes fade-up {
-          from {
-            opacity: 0;
-            transform: translateY(18px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-up {
-          animation: fade-up 0.6s ease-out forwards;
-        }
-      `}</style>
+      {/* MOST VIEWED LOOKBOOK */}
+      <motion.div
+        className="pb-24"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        viewport={{ once: true }}
+      >
+        <MostViewedSlider />
+      </motion.div>
+
     </div>
   );
 }

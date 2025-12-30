@@ -91,29 +91,37 @@ export default function FilterDrawer({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex justify-start">
+        <div className="fixed inset-0 z-[100] flex justify-end sm:justify-end">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+                className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 ease-out"
                 onClick={onClose}
             />
 
             {/* Drawer Panel */}
-            <div className="relative w-full max-w-sm sm:max-w-md h-full bg-white shadow-2xl flex flex-col animate-slide-in-left">
+            <div className="relative w-full max-w-md h-full bg-white shadow-2xl flex flex-col animate-slide-in-right rounded-l-[0px] sm:rounded-l-[2rem] overflow-hidden">
 
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white z-10">
-                    <h2 className="text-lg font-bold flex items-center gap-2">
-                        <SlidersHorizontal className="w-5 h-5" />
-                        Filters
-                    </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <X className="w-5 h-5 text-gray-500" />
+                <div className="flex items-center justify-between px-8 py-6 bg-white z-10 sticky top-0">
+                    <div>
+                        <h2 className="text-xl font-black tracking-tight text-gray-900 uppercase">
+                            Filters
+                        </h2>
+                        <p className="text-xs text-gray-500 font-medium tracking-wide mt-1">
+                            Refine your selection
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={onClose}
+                        className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 hover:bg-black hover:text-white transition-all duration-300"
+                    >
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto px-6 py-6">
+                <div className="flex-1 overflow-y-auto px-8 py-4 customize-scrollbar">
                     <ProductFilters
                         sizeFilterMode={sizeFilterMode}
                         genders={genders}
@@ -125,30 +133,30 @@ export default function FilterDrawer({
                 </div>
 
                 {/* Sticky Footer */}
-                <div className="border-t border-gray-100 bg-white p-4 px-6 flex items-center gap-4 z-10">
+                <div className="border-t border-gray-100 bg-white/80 backdrop-blur-md p-6 flex items-center gap-4 z-10 sticky bottom-0">
                     <button
                         onClick={handleClear}
-                        className="flex-1 py-3 text-sm font-bold text-gray-700 hover:text-black border border-gray-300 rounded-full hover:bg-gray-50 transition-colors"
+                        className="flex-1 py-4 text-xs font-bold text-gray-900 uppercase tracking-widest border border-gray-200 rounded-full hover:bg-gray-50 transition-colors"
                     >
-                        Clear All
+                        Reset
                     </button>
                     <button
                         onClick={handleApply}
-                        className="flex-1 py-3 text-sm font-bold text-white bg-black rounded-full hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200"
+                        className="flex-[2] py-4 text-xs font-bold text-white bg-black rounded-full hover:bg-gray-900 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-0.5 uppercase tracking-widest flex items-center justify-center gap-2"
                     >
-                        Apply Filters
+                        View Results <SlidersHorizontal className="w-4 h-4" />
                     </button>
                 </div>
 
             </div>
 
             <style jsx global>{`
-        @keyframes slide-in-left {
-          from { transform: translateX(-100%); }
+        @keyframes slide-in-right {
+          from { transform: translateX(100%); }
           to { transform: translateX(0); }
         }
-        .animate-slide-in-left {
-          animation: slide-in-left 0.3s ease-out;
+        .animate-slide-in-right {
+          animation: slide-in-right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
       `}</style>
         </div>

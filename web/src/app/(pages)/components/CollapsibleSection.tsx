@@ -18,14 +18,15 @@ export default function CollapsibleSection({ title, children, defaultOpen = fals
             <motion.header
                 initial={false}
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex justify-between items-center py-5 cursor-pointer hover:bg-gray-50 transition -mx-4 px-4"
+                className="flex justify-between items-center py-6 cursor-pointer hover:bg-gray-50/50 transition-colors duration-300 rounded-xl -mx-4 px-4 select-none group"
             >
-                <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                <h3 className="text-base font-bold text-gray-900 tracking-tight group-hover:text-black">{title}</h3>
                 <motion.div
                     animate={{ rotate: isOpen ? 180 : 0 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 group-hover:bg-gray-100 transition-colors"
                 >
-                    <ChevronDown className="w-6 h-6 text-gray-500" />
+                    <ChevronDown className="w-4 h-4 text-gray-500 group-hover:text-gray-900" />
                 </motion.div>
             </motion.header>
 

@@ -37,8 +37,8 @@ async function getProducts(
 ): Promise<ProductsApiResponse> {
   const params = new URLSearchParams();
   if (searchParams.page) params.set("page", searchParams.page);
-  // Set limit to 60 products per page for better browsing experience
-  const limit = 60;
+  // Set limit to 70 products per page for better browsing experience
+  const limit = 70;
   params.set("limit", String(limit));
 
   // articleType maps to 'category' in backend
@@ -435,7 +435,7 @@ function ProductPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-gray-800">
+    <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-gray-100">
       <Navbar />
 
       <AnimatePresence mode="wait">
@@ -444,11 +444,11 @@ function ProductPageContent() {
 
       {!loading && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
         >
-          {/* Filter Drawer */}
+          {/* Filter Drawer (Mobile) */}
           <FilterDrawer
             isOpen={isFilterOpen}
             onClose={() => setIsFilterOpen(false)}
@@ -458,86 +458,118 @@ function ProductPageContent() {
             colors={colors}
           />
 
-          <main className="max-w-7xl mx-auto px-4 py-8">
-            <div className="flex flex-col md:flex-row gap-8">
+          {/* MOBILE STICKY FILTER PILL */}
+          <motion.button
+            initial={{ y: 100, opacity: 0, x: "-50%" }}
+            animate={{ y: 0, opacity: 1, x: "-50%" }}
+            transition={{ delay: 0.5, type: "spring", stiffness: 200, damping: 20 }}
+            onClick={() => setIsFilterOpen(true)}
+            className="fixed bottom-8 left-1/2 z-50 md:hidden flex items-center gap-3 px-6 py-3 bg-black/90 backdrop-blur-md text-white rounded-full shadow-2xl hover:bg-black transition-colors"
+            aria-label="Open Filters"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span className="text-xs font-medium tracking-[0.15em] uppercase">Filters</span>
+          </motion.button>
 
-              {/* Desktop Sidebar (Hidden on mobile) */}
-              <aside className="hidden md:block w-full md:w-64 flex-shrink-0">
-                <div className="sticky top-24">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-bold">Filters</h2>
-                    {hasActiveFiltersOrSort && (
-                      <button
-                        type="button"
-                        onClick={clearAllFilters}
-                        className="text-xs font-semibold text-gray-600 hover:text-primary underline-offset-2 hover:underline"
-                      >
-                        Clear all
-                      </button>
-                    )}
-                  </div>
-                  <ProductFilters
-                    sizeFilterMode={sizeFilterMode}
-                    genders={genders}
-                    brands={brands}
-                    colors={colors}
-                    values={resolvedSearchParams}
-                    onChange={handleSidebarFilterChange}
-                  />
+          {/* 1) PREMIUM HEADER */}
+          <header className="pt-16 pb-12 sm:pt-24 sm:pb-16 text-center max-w-4xl mx-auto px-6">
+            <motion.h1
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.1, duration: 0.6 }}
+              className="text-4xl md:text-5xl font-serif font-medium text-gray-900 mb-4"
+            >
+              {pageTitle}
+            </motion.h1>
+            <motion.p
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="text-gray-500 uppercase tracking-[0.15em] text-xs md:text-sm font-medium"
+            >
+              {sortedProducts.length > 0 ? `${sortedProducts.length} Items` : "Collection"}
+            </motion.p>
+          </header>
+
+          {/* 2) STICKY UTILITY BAR (Mobile & Desktop) */}
+          <div className="sticky top-[60px] md:top-[80px] z-40 bg-white/95 backdrop-blur-md border-b border-gray-100 transition-all duration-300">
+            <div className="max-w-7xl mx-auto px-4 md:px-8 h-14 flex items-center justify-between">
+
+              {/* Left: Filter Toggle / Count */}
+              <div className="flex items-center gap-6">
+
+                <div className="hidden md:flex items-center gap-4 text-sm text-gray-500">
+                  <span className="font-medium text-gray-900 hidden lg:inline">Filters</span>
+                  <span className="h-4 w-px bg-gray-200"></span>
+                  <span>{sortedProducts.length} Results</span>
                 </div>
-              </aside>
+              </div>
 
-              <div className="flex-1">
-                <div className="mb-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                    <div className="flex items-center gap-3">
-                      <h1 className="text-2xl font-bold">{pageTitle}</h1>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-4">
-                      <p className="text-sm text-gray-500">
-                        {sortedProducts.length > 0
-                          ? `Showing ${sortedProducts.length} result${sortedProducts.length === 1 ? "" : "s"}`
-                          : "No products found"}
-                      </p>
-
-                      <button
-                        onClick={() => setIsFilterOpen(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full shadow-sm hover:shadow-md transition-all text-sm font-medium md:hidden lg:hidden"
-                      >
-                        <SlidersHorizontal className="w-4 h-4" />
-                        Filters
-                      </button>
-                    </div>
-
-                    {/* Sort Dropdown */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 uppercase tracking-wide hidden sm:inline">
-                        Sort by
-                      </span>
-                      <select
-                        className="border border-gray-200 text-sm rounded-full px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent cursor-pointer"
-                        value={sortKey || ""}
-                        onChange={(e) => handleSortChange(e.target.value)}
-                      >
-                        <option value="">Recommended</option>
-                        <option value="price_asc">Price: Low to High</option>
-                        <option value="price_desc">Price: High to Low</option>
-                        <option value="new">New Arrivals</option>
-                        <option value="rating">Customer Rating</option>
-                      </select>
-                    </div>
-                  </div>
+              {/* Right: Sort */}
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-500 uppercase tracking-wider hidden sm:inline">Sort by</span>
+                <div className="relative">
+                  <select
+                    className="appearance-none bg-transparent text-sm font-medium text-gray-900 pr-8 pl-2 py-1 focus:outline-none cursor-pointer hover:opacity-70 transition-opacity text-right"
+                    value={sortKey || ""}
+                    onChange={(e) => handleSortChange(e.target.value)}
+                  >
+                    <option value="">Recommended</option>
+                    <option value="price_asc">Price: Low to High</option>
+                    <option value="price_desc">Price: High to Low</option>
+                    <option value="new">New Arrivals</option>
+                    <option value="rating">Top Rated</option>
+                  </select>
+                  {/* Tiny custom arrow to replace default browser arrow */}
+                  {/* <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                      <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                    </div> */}
                 </div>
+              </div>
+            </div>
+          </div>
 
-                {sortedProducts.length > 0 ? (
-                  <>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                      {sortedProducts.map((p) => (
+          <main className="max-w-[1600px] mx-auto px-4 md:px-8 py-12 flex gap-12">
+
+            {/* Desktop Sidebar */}
+            <aside className="hidden md:block w-64 flex-shrink-0 pt-2 sticky px-4 top-32 h-[calc(100vh-8rem)] overflow-y-auto pr-4 thin-scrollbar">
+              <div className="flex justify-between items-baseline mb-8">
+                <span className="text-xs font-bold text-gray-900 uppercase tracking-widest">Refine</span>
+                {hasActiveFiltersOrSort && (
+                  <button
+                    type="button"
+                    onClick={clearAllFilters}
+                    className="text-[10px] uppercase font-bold text-gray-400 hover:text-black transition-colors"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+
+              <ProductFilters
+                sizeFilterMode={sizeFilterMode}
+                genders={genders}
+                brands={brands}
+                colors={colors}
+                values={resolvedSearchParams}
+                onChange={handleSidebarFilterChange}
+              />
+            </aside>
+
+            {/* Product Grid */}
+            <div className="flex-1">
+              {sortedProducts.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12 md:gap-x-6 md:gap-y-16">
+                    {sortedProducts.map((p, i) => (
+                      <motion.div
+                        key={p._id}
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, margin: "0px" }}
+                        transition={{ duration: 0.6, delay: i * 0.05 }}
+                      >
                         <ProductCard
-                          key={p._id}
                           product={{
                             _id: p._id,
                             slug: (p.slug as string) || "",
@@ -550,29 +582,29 @@ function ProductPageContent() {
                             offer_tag: p.offer_tag ?? undefined,
                           }}
                         />
-                      ))}
-                    </div>
-                    <Pagination page={meta.page} totalPages={meta.pages} />
-                  </>
-                ) : (
-                  <div className="text-center py-20 bg-gray-50 rounded-xl">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      No products found
-                    </h3>
-                    <p className="mt-2 text-gray-500">
-                      We couldn&apos;t find anything that matches your current
-                      filters.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={clearAllFilters}
-                      className="mt-6 inline-flex items-center justify-center rounded-full bg-black px-6 py-3 text-sm font-semibold text-white hover:bg-gray-800"
-                    >
-                      Clear filters and show all
-                    </button>
+                      </motion.div>
+                    ))}
                   </div>
-                )}
-              </div>
+
+                  <div className="mt-20 border-t border-gray-100 pt-12 text-center">
+                    <Pagination page={meta.page} totalPages={meta.pages} />
+                  </div>
+                </>
+              ) : (
+                <div className="min-h-[400px] flex flex-col items-center justify-center text-center px-6">
+                  <h3 className="font-serif text-2xl text-gray-900 mb-2">No matches found</h3>
+                  <p className="text-gray-500 mb-8 max-w-md mx-auto">
+                    We couldn't find any items matching your filters. Try adjusting your search criteria.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={clearAllFilters}
+                    className="inline-flex items-center justify-center bg-black text-white px-8 py-3 text-sm font-medium uppercase tracking-wider hover:bg-gray-800 transition-colors"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              )}
             </div>
           </main>
         </motion.div>

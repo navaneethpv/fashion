@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { 
-  CreateOrderRequest, 
-  ShippingAddress, 
-  PriceMismatchError 
+import {
+  CreateOrderRequest,
+  ShippingAddress,
+  PriceMismatchError
 } from '../types/order';
 
 // Validation utilities
@@ -14,8 +14,8 @@ export class ValidationError extends Error {
 }
 
 export const validateShippingAddress = (address: any): ShippingAddress => {
-  const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'street', 'city', 'state', 'zip'];
-  
+  const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'street', 'city', 'district', 'state', 'zip'];
+
   for (const field of requiredFields) {
     if (!address[field] || typeof address[field] !== 'string' || !address[field].trim()) {
       throw new ValidationError(`Invalid or missing field: ${field}`, field);
@@ -42,6 +42,7 @@ export const validateShippingAddress = (address: any): ShippingAddress => {
     phone: cleanPhone,
     street: address.street.trim(),
     city: address.city.trim(),
+    district: address.district.trim(),
     state: address.state.trim(),
     zip: address.zip.trim(),
     country: address.country?.trim() || 'US'
@@ -80,23 +81,23 @@ export const validateOrderItems = (items: any[]): void => {
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
-    
+
     if (!item.productId || typeof item.productId !== 'string') {
       throw new ValidationError(`Invalid productId at index ${i}`, `items[${i}].productId`);
     }
-    
+
     if (!item.name || typeof item.name !== 'string') {
       throw new ValidationError(`Invalid name at index ${i}`, `items[${i}].name`);
     }
-    
+
     if (!item.variantSku || typeof item.variantSku !== 'string') {
       throw new ValidationError(`Invalid variantSku at index ${i}`, `items[${i}].variantSku`);
     }
-    
+
     if (typeof item.quantity !== 'number' || item.quantity <= 0) {
       throw new ValidationError(`Invalid quantity at index ${i}`, `items[${i}].quantity`);
     }
-    
+
     if (typeof item.price_cents !== 'number' || item.price_cents < 0) {
       throw new ValidationError(`Invalid price_cents at index ${i}`, `items[${i}].price_cents`);
     }
@@ -147,8 +148,8 @@ export const handleCartError = (error: any, res: Response): void => {
 
 // Price validation utilities
 export const validatePriceSnapshot = (
-  cartPrice: number, 
-  productPrice: number, 
+  cartPrice: number,
+  productPrice: number,
   maxVariance: number = 0.05 // 5% variance allowed
 ): boolean => {
   const variance = Math.abs(cartPrice - productPrice) / productPrice;

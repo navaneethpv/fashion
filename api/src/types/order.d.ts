@@ -6,6 +6,7 @@ export interface ShippingAddress {
   phone: string;
   street: string;
   city: string;
+  district: string;
   state: string;
   zip: string;
   country?: string;

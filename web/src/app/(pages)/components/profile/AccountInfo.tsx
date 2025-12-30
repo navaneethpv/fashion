@@ -106,13 +106,13 @@ export default function AccountInfo({ clerkUser }: AccountInfoProps) {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploadingPhoto}
-            className="absolute bottom-0 right-0 bg-primary text-white rounded-full p-1.5 hover:bg-violet-700 shadow-lg transition disabled:opacity-50"
+            className="absolute bottom-0 right-0 bg-black text-white rounded-full p-2 hover:bg-gray-800 shadow-xl transition disabled:opacity-50"
             title="Change profile photo"
           >
             {isUploadingPhoto ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <Camera className="w-3 h-3" />
+              <Camera className="w-3.5 h-3.5" />
             )}
           </button>
           <input
@@ -201,39 +201,45 @@ export default function AccountInfo({ clerkUser }: AccountInfoProps) {
 
       {/* 🛑 DETAIL GRID: Contact Information 🛑 */}
       <div className="space-y-6">
-        <h3 className="text-xl font-bold text-gray-900 border-b border-gray-200 pb-2">
+        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest border-b border-gray-100 pb-4">
           Contact Details
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           {/* Email Card */}
-          <div className="flex items-center gap-4 p-4 border rounded-xl shadow-sm hover:shadow-md transition">
-            <Mail className="w-6 h-6 text-primary" />
+          <div className="flex items-center gap-5 p-5 bg-gray-50/50 rounded-2xl hover:bg-gray-50 transition-colors duration-300">
+            <div className="p-2.5 bg-white rounded-xl shadow-sm text-gray-400">
+              <Mail className="w-5 h-5" strokeWidth={1.5} />
+            </div>
             <div>
-              <p className="text-xs font-bold text-gray-700">Primary Email</p>
-              <p className="font-semibold text-gray-900">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Primary Email</p>
+              <p className="font-medium text-gray-900">
                 {primaryEmail?.emailAddress || "N/A"}
               </p>
             </div>
           </div>
 
           {/* Phone Card */}
-          <div className="flex items-center gap-4 p-4 border rounded-xl shadow-sm hover:shadow-md transition">
-            <Phone className="w-6 h-6 text-primary" />
+          <div className="flex items-center gap-5 p-5 bg-gray-50/50 rounded-2xl hover:bg-gray-50 transition-colors duration-300">
+            <div className="p-2.5 bg-white rounded-xl shadow-sm text-gray-400">
+              <Phone className="w-5 h-5" strokeWidth={1.5} />
+            </div>
             <div>
-              <p className="text-xs font-bold text-gray-700">Phone Number</p>
-              <p className="font-semibold text-gray-900">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Phone Number</p>
+              <p className="font-medium text-gray-900">
                 {clerkUser.phoneNumbers[0]?.phoneNumber || "Not Set"}
               </p>
             </div>
           </div>
 
           {/* Join Date Card */}
-          <div className="flex items-center gap-4 p-4 border rounded-xl shadow-sm hover:shadow-md transition">
-            <Calendar className="w-6 h-6 text-primary" />
+          <div className="flex items-center gap-5 p-5 bg-gray-50/50 rounded-2xl hover:bg-gray-50 transition-colors duration-300">
+            <div className="p-2.5 bg-white rounded-xl shadow-sm text-gray-400">
+              <Calendar className="w-5 h-5" strokeWidth={1.5} />
+            </div>
             <div>
-              <p className="text-xs font-bold text-gray-700">Member Since</p>
-              <p className="font-semibold text-gray-900">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Member Since</p>
+              <p className="font-medium text-gray-900">
                 {clerkUser.createdAt
                   ? new Date(clerkUser.createdAt).toLocaleDateString()
                   : "N/A"}
@@ -244,28 +250,29 @@ export default function AccountInfo({ clerkUser }: AccountInfoProps) {
       </div>
 
       {/* 🛑 SETTINGS CARD: Security & Management 🛑 */}
-      <div className="pt-4 border-t border-gray-100">
-        <h3 className="text-xl font-bold mb-3 text-gray-900">
+      <div className="pt-8 border-t border-gray-100">
+        <h3 className="text-sm font-bold mb-4 text-gray-900 uppercase tracking-widest">
           Account Management
         </h3>
 
         <Link
           href="https://dashboard.clerk.com"
           target="_blank"
-          className="flex items-center justify-between p-4 border border-purple-200 bg-purple-50 rounded-xl hover:bg-purple-100 transition shadow-lg shadow-purple-100/50"
+          className="group flex items-center justify-between p-5 border border-purple-100 bg-purple-50/30 rounded-2xl hover:bg-purple-50/60 transition-all duration-300"
         >
           <div className="flex items-center gap-4">
-            <ShieldCheck className="w-6 h-6 text-purple-600" />
-            <span className="font-bold text-gray-900">
+            <div className="p-2.5 bg-white rounded-xl shadow-sm text-purple-600">
+              <ShieldCheck className="w-5 h-5" strokeWidth={1.5} />
+            </div>
+            <span className="font-medium text-gray-900">
               Update Password & Security Settings
             </span>
           </div>
-          <ChevronRight className="w-5 h-5 text-purple-600" />
+          <ChevronRight className="w-5 h-5 text-purple-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all duration-300" />
         </Link>
 
-        <p className="text-xs text-gray-700 mt-2 font-medium">
-          This feature is managed securely by our authentication provider
-          (Clerk).
+        <p className="text-[10px] text-gray-400 mt-4 font-medium uppercase tracking-wide text-center">
+          Secured by Clerk Authentication
         </p>
       </div>
     </div>

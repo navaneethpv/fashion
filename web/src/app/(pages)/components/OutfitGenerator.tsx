@@ -70,11 +70,17 @@ function resolveImageUrl(images: any): string {
 interface OutfitGeneratorProps {
   productId: string;
   productGender?: string | null;
+  productCategory?: string;
+  productSubCategory?: string;
+  productName?: string;
 }
 
 export default function OutfitGenerator({
   productId,
   productGender,
+  productCategory,
+  productSubCategory,
+  productName,
 }: OutfitGeneratorProps) {
   // Simple Phase 1 State
   const [loading, setLoading] = useState(false);
@@ -120,7 +126,31 @@ export default function OutfitGenerator({
   // Exclusion Memory using useRef (persists across re-renders but resets on reload)
   const excludedIdsRef = useRef<Set<string>>(new Set());
 
+  // Non-Fashion Block List
+  const NON_FASHION_KEYWORDS = [
+    "cosmetic",
+    "skincare",
+    "lotion",
+    "cream",
+    "perfume",
+    "fragrance",
+    "makeup",
+    "shampoo",
+    "soap",
+    "personal care",
+    "beauty",
+  ];
+
   const handleGenerate = async () => {
+    // 1. Validate Category for Fashion Products
+    const searchString = `${productName || ""} ${productCategory || ""} ${productSubCategory || ""}`.toLowerCase();
+    const isBlocked = NON_FASHION_KEYWORDS.some((keyword) => searchString.includes(keyword));
+
+    if (isBlocked) {
+      alert("Outfit suggestions are available only for fashion products.");
+      return;
+    }
+
     setLoading(true);
     setResult(null);
 

@@ -33,28 +33,36 @@ export default function Gallery({ images, name }: GalleryProps) {
   return (
     <>
       {/* Main Image */}
-      <div className="relative flex-1 aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden shadow-sm">
+      <div className="relative flex-1 aspect-[3/4] bg-white rounded-[2rem] overflow-hidden shadow-sm border border-gray-100 group">
         <Image
           src={mainSrc}
           alt={name || "Product image"}
           fill
-          className="object-contain"
+          className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
           priority
         />
       </div>
 
       {/* Thumbnails */}
-      <div className="flex gap-2 mt-4">
+      <div className="flex gap-3 mt-6 overflow-x-auto pb-2 scrollbar-hide">
         {images?.map((img, i) => {
           const thumbSrc =
             typeof img === "string" ? img : (img as any)?.url;
           const src = normalizeImageSrc(thumbSrc);
+          const isSelected = i === selectedIndex;
+
           return (
             <button
               key={i}
               type="button"
               aria-label={`Thumbnail ${i}`}
-              className={`relative h-20 w-20 overflow-hidden rounded ${i === selectedIndex ? "ring-2 ring-blue-500" : ""}`}
+              className={`
+                relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl transition-all duration-300
+                ${isSelected
+                  ? "ring-2 ring-black ring-offset-2 scale-105 opacity-100"
+                  : "opacity-70 hover:opacity-100 hover:scale-105"
+                }
+              `}
               onClick={() => setSelectedIndex(i)}
             >
               <Image src={src} alt={`Thumbnail ${i}`} fill className="object-cover" />

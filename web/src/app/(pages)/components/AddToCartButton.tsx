@@ -1,5 +1,5 @@
 "use client"
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { ShoppingBag, Loader2, Check, X, AlertTriangle, Ruler, Heart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -28,6 +28,30 @@ export default function AddToCartButton({ variants = [], productId, price, compa
   const [selectedSize, setSelectedSize] = useState<string>("");
 
   const [showSizeError, setShowSizeError] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+
+  // --- WISHLIST FETCH ON MOUNT ---
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+
+    // Fetch user's wishlist to see if this product is in it
+    const fetchWishlistStatus = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/wishlist?userId=${user.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          const inWishlist = data.wishlist?.some((item: any) =>
+            (typeof item.productId === 'string' ? item.productId : item.productId?._id) === productId
+          );
+          if (inWishlist) setIsLiked(true);
+        }
+      } catch (error) {
+        console.error("Failed to fetch wishlist status:", error);
+      }
+    };
+
+    fetchWishlistStatus();
+  }, [isLoaded, user, productId]);
 
   // --- STOCK LOGIC ---
   const selectedVariant = Array.isArray(variants) ? variants.find(v => v.size === selectedSize) : undefined;
@@ -102,29 +126,42 @@ export default function AddToCartButton({ variants = [], productId, price, compa
       clerk.openSignIn();
       return;
     }
-    setWishlistLoading(true);
-    try {
-      // ... same logic ...
-      const res = await fetch(`${baseUrl}/api/wishlist/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, productId })
-      });
 
-      if (res.ok) {
-        window.dispatchEvent(new Event("wishlist-updated"));
-      } else if (res.status === 400) {
-        const resDel = await fetch(`${baseUrl}/api/wishlist/remove/${productId}`, {
+    // OPTIMISTIC UPDATE
+    const previousState = isLiked;
+    setIsLiked(!previousState);
+    setWishlistLoading(true);
+
+    try {
+      if (!previousState) {
+        // Was NOT liked -> ADD it
+        const res = await fetch(`${baseUrl}/api/wishlist/add`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, productId })
+        });
+        if (!res.ok && res.status !== 400) {
+          // Revert on real failure (ignore 400 duplicate)
+          setIsLiked(previousState);
+        }
+      } else {
+        // WAS liked -> REMOVE it
+        const res = await fetch(`${baseUrl}/api/wishlist/remove/${productId}`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: user.id })
         });
-        if (resDel.ok) {
-          window.dispatchEvent(new Event("wishlist-updated"));
+        if (!res.ok) {
+          setIsLiked(previousState);
         }
       }
+
+      // Trigger global event for header counters etc
+      window.dispatchEvent(new Event("wishlist-updated"));
+
     } catch (err) {
       console.error(err);
+      setIsLiked(previousState); // Revert on network error
     } finally {
       setWishlistLoading(false);
     }
@@ -148,7 +185,7 @@ export default function AddToCartButton({ variants = [], productId, price, compa
             </button>
           )}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           {variants.map((v: Variant, i: number) => (
             <button
               key={i}
@@ -157,19 +194,19 @@ export default function AddToCartButton({ variants = [], productId, price, compa
                 setShowSizeError(false);
               }}
               disabled={v.stock <= 0}
-              className={`rounded-lg border flex items-center justify-center font-bold transition 
-                ${compact ? "w-8 h-8 text-xs" : "w-12 h-12 text-sm"}
+              className={`rounded-full px-5 py-2.5 flex items-center justify-center text-sm font-bold transition-all duration-300
+                ${compact ? "px-3 py-1.5 text-xs" : ""}
                 ${v.stock <= 0
-                  ? 'border-gray-100 text-gray-400 line-through cursor-not-allowed'
+                  ? 'bg-gray-50 text-gray-300 cursor-not-allowed decoration-slice'
                   : selectedSize === v.size
-                    ? 'border-black bg-black text-white'
-                    : 'border-gray-200 text-gray-900 hover:border-black'
+                    ? 'bg-gray-900 text-white shadow-lg shadow-gray-200 transform scale-105'
+                    : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-900 hover:text-gray-900'
                 }`}
             >
               {v.size}
             </button>
           ))}
-          {variants.length === 0 && <span className="text-xs text-gray-500">One Size</span>}
+          {variants.length === 0 && <span className="text-xs text-gray-500 font-medium bg-gray-50 px-3 py-1 rounded-full">One Size</span>}
         </div>
         {/* Size Selection Error */}
         {showSizeError && (
@@ -195,26 +232,27 @@ export default function AddToCartButton({ variants = [], productId, price, compa
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-2">
+      <div className="flex gap-4">
         <button
           onClick={handleAddToCart}
           disabled={loading || success}
-          className={`flex-1 rounded-lg font-bold transition shadow-sm flex items-center justify-center gap-2 
-            ${compact ? "h-9 text-xs" : "h-14 text-lg shadow-xl"}
+          className={`flex-1 rounded-full font-bold transition-all duration-300 shadow-xl flex items-center justify-center gap-3 overflow-hidden group
+            ${compact ? "h-10 text-xs" : "h-14 text-base"}
             ${success
               ? 'bg-green-600 text-white shadow-green-200'
-              : 'bg-gray-900 text-white hover:bg-black shadow-gray-200'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+              : 'bg-gray-900 text-white hover:bg-black hover:scale-[1.02] shadow-gray-200'
+            } disabled:opacity-70 disabled:cursor-not-allowed`}
         >
           {loading ? (
             <Loader2 className={compact ? "w-3 h-3 animate-spin" : "w-5 h-5 animate-spin"} />
           ) : success ? (
             <>
-              <Check className={compact ? "w-3 h-3" : "w-5 h-5"} /> {compact ? "Added" : "Added"}
+              <Check className={compact ? "w-3 h-3" : "w-5 h-5"} /> {compact ? "Added" : "Added to Bag"}
             </>
           ) : (
             <>
-              <ShoppingBag className={compact ? "w-3 h-3" : "w-5 h-5"} /> {compact ? "Add" : "Add to Bag"}
+              <ShoppingBag className={compact ? "w-3 h-3" : "w-5 h-5 group-hover:animate-bounce-subtle"} />
+              {compact ? "Add" : "Add to Bag"}
             </>
           )}
         </button>
@@ -222,9 +260,9 @@ export default function AddToCartButton({ variants = [], productId, price, compa
         <button
           onClick={handleWishlistToggle}
           disabled={wishlistLoading}
-          className={`flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 transition ${compact ? "w-9 h-9" : "w-14 h-14 rounded-xl"}`}
+          className={`group flex items-center justify-center border border-gray-200 rounded-full hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 ${compact ? "w-10 h-10" : "w-14 h-14"}`}
         >
-          <Heart className={`${compact ? "w-4 h-4" : "w-6 h-6"} ${wishlistLoading ? "text-gray-300 animate-pulse" : "text-gray-600"}`} />
+          <Heart className={`${compact ? "w-4 h-4" : "w-6 h-6"} ${wishlistLoading ? "animate-pulse" : ""} ${isLiked ? "fill-current text-red-500" : "text-gray-400 group-hover:text-red-500"} transition-colors`} />
         </button>
       </div>
     </div>

@@ -196,83 +196,92 @@ export default async function ProductDetailPage({
     <div className="min-h-screen bg-white">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+      <main className="max-w-7xl mx-auto px-4 py-12 md:py-20">
         {/* 🛑 TOP SECTION: GALLERY + MAIN INFO 🛑 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">
-          {/* Left Column: Gallery */}
-          <div className="scroll self-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-start">
+          {/* Left Column: Gallery (7 cols) */}
+          <div className="lg:col-span-7 self-start sticky top-24">
             {/* Uses your product.images directly */}
             <Gallery images={product.images} name={product.name} />
           </div>
 
-          {/* Right Column: Details */}
-          <div>
+          {/* Right Column: Details (5 cols) */}
+          <div className="lg:col-span-5 flex flex-col h-full pt-2">
             {/* Brand + Title + Rating */}
-            <div className="mb-6">
-              <h1 className="text-sm font-bold text-gray-600 uppercase tracking-wider mb-2">
-                {product.brand}
-              </h1>
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4 leading-tight">
-                {product.name}
-              </h2>
-
-              {typeof product.rating === "number" && (
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
-                    <span className="font-bold text-sm">
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-3">
+                <h1 className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em]">
+                  {product.brand}
+                </h1>
+                {typeof product.rating === "number" && (
+                  <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100">
+                    <Star className="w-3.5 h-3.5 fill-current text-gray-900" />
+                    <span className="font-bold text-xs text-gray-900">
                       {product.rating.toFixed(1)}
                     </span>
-                    <Star className="w-3 h-3 fill-current text-yellow-500" />
-                    <span className="text-xs text-gray-500 border-l border-gray-300 pl-2 ml-1">
-                      {product.reviewsCount ?? 0} Ratings
+                    <span className="text-[10px] text-gray-400 pl-1">
+                      ({product.reviewsCount ?? 0})
                     </span>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+
+              <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6 leading-[1.1] tracking-tight font-serif">
+                {product.name}
+              </h2>
             </div>
 
-            <div className="h-px bg-gray-100 my-6" />
-
             {/* Price */}
-            <div className="mb-8">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl font-bold text-gray-900">
+            <div className="mb-10 p-6 rounded-2xl bg-gray-50 border border-gray-100/50">
+              <div className="flex items-baseline gap-4 mb-2">
+                <span className="text-4xl font-bold text-gray-900 tracking-tight">
                   ₹{(product.price_cents / 100).toFixed(0)}
                 </span>
                 {product.price_before_cents && (
-                  <span className="text-xl text-gray-400 line-through">
+                  <span className="text-xl text-gray-400 line-through decoration-gray-300 decoration-2">
                     ₹{(product.price_before_cents / 100).toFixed(0)}
                   </span>
                 )}
+              </div>
+
+              <div className="flex items-center gap-3">
                 {discount > 0 && (
-                  <span className="text-sm font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded">
-                    {discount}% OFF
+                  <span className="text-xs font-bold text-green-700 bg-green-100 px-3 py-1 rounded-full uppercase tracking-wide">
+                    Save {discount}%
                   </span>
                 )}
+                <span className="text-xs text-gray-400 font-medium">
+                  Inclusive of all taxes
+                </span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Inclusive of all taxes
-              </p>
             </div>
 
             {/* Sizes & Add Button */}
-            <AddToCartButton
-              productId={product._id}
-              price={product.price_cents}
-              variants={product.variants}
-            />
+            <div className="mb-8">
+              <AddToCartButton
+                productId={product._id}
+                price={product.price_cents}
+                variants={product.variants}
+              />
+            </div>
 
             {/* Delivery & Trust */}
-            <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 mt-10">
-              <div className="flex items-center gap-2">
-                <Truck className="w-4 h-4" /> <span>Free Delivery</span>
+            <div className="grid grid-cols-2 gap-3 text-xs text-gray-600 mb-10">
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-white border border-gray-100 shadow-sm">
+                <div className="p-2 bg-gray-50 rounded-full">
+                  <Truck className="w-4 h-4 text-gray-900" />
+                </div>
+                <span className="font-medium">Free Express Delivery</span>
               </div>
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4" /> <span>30 Day Returns</span>
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-white border border-gray-100 shadow-sm">
+                <div className="p-2 bg-gray-50 rounded-full">
+                  <ShieldCheck className="w-4 h-4 text-gray-900" />
+                </div>
+                <span className="font-medium">30 Day Easy Returns</span>
               </div>
             </div>
 
-            <div className="h-px bg-gray-100 my-6" />
+            <div className="h-px bg-gray-100 my-2" />
           </div>
         </div>
 

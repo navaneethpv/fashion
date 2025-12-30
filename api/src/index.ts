@@ -11,6 +11,7 @@ import orderRoutes from "./routes/orderRoutes";
 import adminRoutes from "./routes/adminRoutes";
 import reviewRoutes from "./routes/reviewRoutes";
 import wishlistRoutes from "./routes/wishlistRoutes";
+import outfitRoutes from "./routes/outfitRoutes";
 
 dotenv.config();
 
@@ -47,6 +48,7 @@ app.use(morgan("dev"));
 app.use(clerkMiddleware());
 
 // Mount Routes
+// Mount Routes
 app.use("/api/products", productRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/cart", cartRoutes);
@@ -54,6 +56,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/outfit", outfitRoutes);
 
 app.get("/", (req, res) => {
   res.send("Eyoris Fashion API is running...");

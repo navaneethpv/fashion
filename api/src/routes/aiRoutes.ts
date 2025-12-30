@@ -4,11 +4,8 @@
 import { Router } from 'express';
 import { upload } from '../config/multer';
 import { searchByImageColor } from '../controllers/imageSearchController';
-import { getOutfitRecommendations } from '../controllers/recommendationController';
 
 import { getSuggestedCategoryAndSubCategoryFromGemini } from '../utils/geminiTagging';
-import { generateOutfit } from '../controllers/aiOutfitController';
-import { generateEnhancedOutfit } from '../controllers/enhancedOutfitController';
 import axios from 'axios';
 import { Product } from '../models/Product';
 
@@ -28,7 +25,6 @@ router.post('/visual-search/results', getSimilarProducts);
 
 // --- LEGACY ---
 router.post('/image-search', upload.single('image'), searchByImageColor);
-router.get('/recommendations', getOutfitRecommendations);
 
 
 // Endpoint to get category and subcategory from an uploaded file
@@ -111,8 +107,5 @@ router.post('/suggest-category-url', async (req, res) => {
         res.status(500).json({ message: 'Failed to process image URL.' });
     }
 });
-
-// Use enhanced outfit generator (deterministic, no API key required)
-router.post('/outfit', generateEnhancedOutfit);
 
 export default router;

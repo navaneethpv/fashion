@@ -121,7 +121,7 @@ export default function MostViewedSlider({ products }: MostViewedSliderProps) {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 mb-1">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-gray-900 mb-1">
               🔥 Most Viewed
             </h2>
             <p className="text-gray-600">Popular picks everyone's loving</p>
@@ -140,11 +140,10 @@ export default function MostViewedSlider({ products }: MostViewedSliderProps) {
           <button
             onClick={() => scroll("left")}
             disabled={!canScrollLeft}
-            className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-300 -translate-x-1/2 ${
-              canScrollLeft
+            className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-300 -translate-x-1/2 ${canScrollLeft
                 ? "opacity-0 group-hover:opacity-100 hover:bg-gray-50 hover:scale-110 cursor-pointer"
                 : "opacity-30 cursor-not-allowed"
-            }`}
+              }`}
             aria-label="Scroll left"
           >
             <ChevronLeft className="w-6 h-6" />
@@ -157,9 +156,8 @@ export default function MostViewedSlider({ products }: MostViewedSliderProps) {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
-            className={`flex gap-3 sm:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth ${
-              isDragging ? "cursor-grabbing select-none" : "cursor-grab"
-            }`}
+            className={`flex gap-3 sm:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth ${isDragging ? "cursor-grabbing select-none" : "cursor-grab"
+              }`}
             style={{
               scrollBehavior: isDragging ? "auto" : "smooth",
             }}
@@ -189,11 +187,10 @@ export default function MostViewedSlider({ products }: MostViewedSliderProps) {
           <button
             onClick={() => scroll("right")}
             disabled={!canScrollRight}
-            className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-300 translate-x-1/2 ${
-              canScrollRight
+            className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-300 translate-x-1/2 ${canScrollRight
                 ? "opacity-0 group-hover:opacity-100 hover:bg-gray-50 hover:scale-110 cursor-pointer"
                 : "opacity-30 cursor-not-allowed"
-            }`}
+              }`}
             aria-label="Scroll right"
           >
             <ChevronRight className="w-6 h-6" />

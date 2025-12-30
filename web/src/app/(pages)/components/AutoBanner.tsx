@@ -36,19 +36,52 @@ const banners = [
 
 export default function AutoBanner() {
   const [current, setCurrent] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const STRICT_DURATION = 4000;
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % banners.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, []);
+    let animationFrameId: number;
+    let lastTime = performance.now();
 
-  const next = () => setCurrent((prev) => (prev + 1) % banners.length);
-  const prev = () => setCurrent((prev) => (prev - 1 + banners.length) % banners.length);
+    const animate = (time: number) => {
+      if (!isPaused) {
+        const delta = time - lastTime;
+        setProgress((prev) => {
+          const nextProgress = prev + (delta / STRICT_DURATION) * 100;
+          if (nextProgress >= 100) {
+            setCurrent((c) => (c + 1) % banners.length);
+            return 0;
+          }
+          return nextProgress;
+        });
+      }
+      lastTime = time;
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isPaused]);
+
+  const next = () => {
+    setCurrent((prev) => (prev + 1) % banners.length);
+    setProgress(0);
+  };
+
+  const prev = () => {
+    setCurrent((prev) => (prev - 1 + banners.length) % banners.length);
+    setProgress(0);
+  };
 
   return (
-    <div className="relative w-full h-[600px] md:h-[85vh] overflow-hidden bg-gray-100 group">
+    <div
+      className="relative w-full h-[600px] md:h-[85vh] overflow-hidden bg-gray-100 group"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => setIsPaused(false)}
+    >
       <AnimatePresence mode="popLayout">
         <motion.div
           key={current}
@@ -72,7 +105,7 @@ export default function AutoBanner() {
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.8 }}
+                transition={{ delay: 0.1, duration: 0.5 }}
                 className="text-white/90 text-sm md:text-base uppercase tracking-[0.2em] mb-4 font-medium"
               >
                 {banners[current].subtitle}
@@ -81,7 +114,7 @@ export default function AutoBanner() {
               <motion.h1
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.8 }}
+                transition={{ delay: 0.2, duration: 0.6 }}
                 className="text-5xl md:text-7xl lg:text-8xl font-serif text-white mb-6 leading-none"
               >
                 {banners[current].title}
@@ -90,7 +123,7 @@ export default function AutoBanner() {
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.8 }}
+                transition={{ delay: 0.3, duration: 0.6 }}
                 className="text-white/80 text-lg md:text-xl font-light mb-10 max-w-xl mx-auto"
               >
                 {banners[current].description}
@@ -127,15 +160,23 @@ export default function AutoBanner() {
         <ChevronRight className="w-8 h-8 font-thin" strokeWidth={1} />
       </button>
 
-      {/* Pagination Line */}
-      <div className="absolute bottom-10 left-0 right-0 flex justify-center gap-4 z-20">
+      {/* Progress Indicators (Flipkart Style) */}
+      <div className="absolute bottom-10 left-0 right-0 flex justify-center items-center gap-3 z-20">
         {banners.map((_, idx) => (
           <button
             key={idx}
-            onClick={() => setCurrent(idx)}
-            className={`h-[2px] transition-all duration-300 ${idx === current ? "w-12 bg-white" : "w-6 bg-white/30 hover:bg-white/60"
+            onClick={() => { setCurrent(idx); setProgress(0); }}
+            className={`relative h-1 rounded-full overflow-hidden transition-all duration-300 ease-out ${idx === current ? "w-12 bg-white/30" : "w-3 bg-white/50"
               }`}
-          />
+          >
+            {/* Progress Bar Fill - Only for Active Slide */}
+            {idx === current && (
+              <div
+                className="absolute left-0 top-0 bottom-0 bg-white transition-all duration-[50ms] ease-linear"
+                style={{ width: `${progress}%` }}
+              />
+            )}
+          </button>
         ))}
       </div>
     </div>

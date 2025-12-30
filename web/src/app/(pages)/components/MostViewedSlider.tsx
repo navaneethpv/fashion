@@ -6,7 +6,6 @@ import Link from "next/link";
 
 export default function MostViewedSlider() {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [isPaused, setIsPaused] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
@@ -30,30 +29,6 @@ export default function MostViewedSlider() {
     }
     fetchMostViewed();
   }, []);
-
-  // Auto-scroll logic
-  useEffect(() => {
-    const scrollContainer = scrollRef.current;
-    if (!scrollContainer) return;
-
-    let animationFrameId: number;
-
-    const animate = () => {
-      if (!isPaused) {
-        // Slow drift
-        scrollContainer.scrollLeft += 0.5;
-
-        // Loop back if reached end (simple reset for now, or bi-directional loop if needed later)
-        if (scrollContainer.scrollLeft >= scrollContainer.scrollWidth - scrollContainer.clientWidth) {
-          scrollContainer.scrollLeft = 0;
-        }
-      }
-      animationFrameId = requestAnimationFrame(animate);
-    };
-
-    animationFrameId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [isPaused]);
 
   // Check scroll buttons
   const checkScrollPosition = () => {
@@ -95,13 +70,7 @@ export default function MostViewedSlider() {
         </p>
       </div>
 
-      <div
-        className="relative group w-full"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-        onTouchStart={() => setIsPaused(true)}
-        onTouchEnd={() => setIsPaused(false)}
-      >
+      <div className="relative group w-full">
         {/* Navigation Buttons - Minimalist */}
         <button
           onClick={() => scroll("left")}
@@ -122,8 +91,7 @@ export default function MostViewedSlider() {
         {/* Slider */}
         <div
           ref={scrollRef}
-          className={`flex gap-8 overflow-x-auto pb-12 px-6 no-scrollbar ${isPaused ? "snap-x snap-mandatory" : ""
-            }`}
+          className="flex gap-8 overflow-x-auto pb-12 px-6 no-scrollbar snap-x snap-mandatory"
           style={{ scrollbarWidth: 'none' }}
         >
           {mostViewedProducts.map((p, i) => (

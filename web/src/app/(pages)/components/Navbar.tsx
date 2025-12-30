@@ -60,7 +60,7 @@ function NavbarContent() {
               />
             </div>
 
-            <Link href="/wishlist" className="relative group">
+            <Link href="/wishlist" className="relative group hidden md:flex">
               <Heart className="w-5 h-5 text-gray-700 group-hover:text-black transition" />
               {wishlistCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] px-1 rounded-full">

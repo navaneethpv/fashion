@@ -12,6 +12,8 @@ import {
   ChevronRight,
   Image as ImageIcon,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 export default function ProductsListPage() {
   type Product = {
@@ -118,9 +120,9 @@ export default function ProductsListPage() {
         />
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden">
         <table className="w-full text-left text-sm">
-          <thead className="bg-gray-50 text-gray-500 uppercase text-xs sticky top-0 z-10 backdrop-blur-sm bg-opacity-90">
+          <thead className="bg-zinc-50 text-zinc-500 uppercase text-xs sticky top-0 z-10 backdrop-blur-sm bg-opacity-90">
             <tr>
               <th className="px-6 py-4 rounded-tl-lg">Product</th>
               <th className="px-6 py-4">Category</th>
@@ -129,117 +131,126 @@ export default function ProductsListPage() {
               <th className="px-6 py-4 text-right rounded-tr-lg">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
-            {filteredProducts.map((p) => {
-              console.log(p);
-              // Calculate total stock from variants (supports both array of variants or single object)
-              const stock = Array.isArray(p.variants)
-                ? p.variants.reduce((sum: number, v: any) => sum + (v?.stock ?? 0), 0)
-                : (p.variants?.stock ?? 0);
+          <tbody className="divide-y divide-zinc-100">
+            <AnimatePresence>
+              {filteredProducts.map((p, index) => {
+                console.log(p);
+                // Calculate total stock from variants (supports both array of variants or single object)
+                const stock = Array.isArray(p.variants)
+                  ? p.variants.reduce((sum: number, v: any) => sum + (v?.stock ?? 0), 0)
+                  : (p.variants?.stock ?? 0);
 
-              // Extract image src (supports array or single string)
-              // Handle: array of objects with url, array of strings, single string, or undefined
-              let imgSrc: string | undefined;
-              if (Array.isArray(p.images)) {
-                if (p.images.length > 0) {
-                  const firstImg = p.images[0];
-                  imgSrc = typeof firstImg === 'string' ? firstImg : firstImg?.url;
+                // Extract image src (supports array or single string)
+                // Handle: array of objects with url, array of strings, single string, or undefined
+                let imgSrc: string | undefined;
+                if (Array.isArray(p.images)) {
+                  if (p.images.length > 0) {
+                    const firstImg = p.images[0];
+                    imgSrc = typeof firstImg === 'string' ? firstImg : firstImg?.url;
+                  }
+                } else if (typeof p.images === 'string') {
+                  imgSrc = p.images;
                 }
-              } else if (typeof p.images === 'string') {
-                imgSrc = p.images;
-              }
 
-              // Only use imgSrc if it's a valid non-empty string
-              const hasValidImage = imgSrc && imgSrc.trim().length > 0;
+                // Only use imgSrc if it's a valid non-empty string
+                const hasValidImage = imgSrc && imgSrc.trim().length > 0;
 
-              return (
-                <tr key={p._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
-                        {hasValidImage ? (
-                          <img
-                            src={imgSrc}
-                            alt={p.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <ImageIcon className="w-5 h-5 text-gray-400" />
-                        )}
+                return (
+                  <motion.tr
+                    key={p._id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="hover:bg-zinc-50 transition-colors"
+                  >
+                    <td className="px-6 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-zinc-100 overflow-hidden flex items-center justify-center">
+                          {hasValidImage ? (
+                            <img
+                              src={imgSrc}
+                              alt={p.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <ImageIcon className="w-5 h-5 text-zinc-400" />
+                          )}
+                        </div>
+                        <span className="font-bold text-zinc-900">{p.name}</span>
                       </div>
-                      <span className="font-bold text-gray-900">{p.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-3 text-gray-600">{p.category}</td>
+                    </td>
+                    <td className="px-6 py-3 text-zinc-600">{p.category}</td>
 
 
-                  <td className="px-6 py-3 font-mono">
-                    ₹{new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format((p.price_cents || 0) / 100)}
-                  </td>
-                  <td className="px-6 py-3">
-                    <span
-                      className={`px-3 py-1 rounded text-xs font-bold ${stock > 0
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                        }`}
-                    >
-                      {stock > 0 ? "In Stock" : "Out of Stock"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3 text-right flex items-center justify-end gap-2">
-                    {/* 1. NEW EDIT LINK: Points to the admin editing view */}
-                    <Link
-                      href={`/admin/products/manage/${p._id}`}
-                      className="p-2 hover:bg-blue-50 rounded-lg text-blue-600"
-                      title="Edit Stock/Details"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="lucide lucide-square-pen"
+                    <td className="px-6 py-3 font-mono text-zinc-900">
+                      ₹{new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format((p.price_cents || 0) / 100)}
+                    </td>
+                    <td className="px-6 py-3">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${stock > 0
+                          ? "bg-green-50 text-green-700 border-green-200"
+                          : "bg-red-50 text-red-700 border-red-200"
+                          }`}
                       >
-                        <path d="M12 20h9" />
-                        <path d="M15 7l2 2" />
-                        <path d="M12.5 14.5l5 5" />
-                        <path d="M14 2c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2h-2z" />
-                        <path d="M10 14L4 20l-1 1h7l6-6" />
-                      </svg>
-                    </Link>
+                        {stock > 0 ? "In Stock" : "Out of Stock"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-right flex items-center justify-end gap-2">
+                      {/* 1. NEW EDIT LINK: Points to the admin editing view */}
+                      <Link
+                        href={`/admin/products/manage/${p._id}`}
+                        className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors"
+                        title="Edit Stock/Details"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="lucide lucide-square-pen"
+                        >
+                          <path d="M12 20h9" />
+                          <path d="M15 7l2 2" />
+                          <path d="M12.5 14.5l5 5" />
+                          <path d="M14 2c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2h-2z" />
+                          <path d="M10 14L4 20l-1 1h7l6-6" />
+                        </svg>
+                      </Link>
 
-                    {/* 2. Public View Link (Kept for convenience) */}
-                    <a
-                      href={`/products/${p.slug}`}
-                      target="_blank"
-                      className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
-                      title="View Live"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
+                      {/* 2. Public View Link (Kept for convenience) */}
+                      <a
+                        href={`/products/${p.slug}`}
+                        target="_blank"
+                        className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-500 transition-colors"
+                        title="View Live"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
 
-                    {/* 3. Delete Button (Same as before) */}
-                    <button
-                      onClick={() => handleDelete(p._id)}
-                      disabled={deletingId === p._id}
-                      className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition disabled:opacity-50"
-                      title="Delete Product"
-                    >
-                      {deletingId === p._id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+                      {/* 3. Delete Button (Same as before) */}
+                      <button
+                        onClick={() => handleDelete(p._id)}
+                        disabled={deletingId === p._id}
+                        className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition disabled:opacity-50"
+                        title="Delete Product"
+                      >
+                        {deletingId === p._id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    </td>
+                  </motion.tr>
+                );
+              })}
+            </AnimatePresence>
           </tbody>
         </table>
         {/* Pagination Controls (arrow + input) */}

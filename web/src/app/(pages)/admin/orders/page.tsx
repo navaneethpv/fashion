@@ -126,12 +126,12 @@ export default function OrdersPage() {
 
   const getOrderStatusColor = (orderStatus: string) => {
     switch (orderStatus) {
-      case 'Placed': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'Shipped': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'Delivered': return 'bg-green-100 text-green-700 border-green-200';
-      case 'Cancelled': return 'bg-red-100 text-red-700 border-red-200';
-      case 'Return Requested': return 'bg-orange-100 text-orange-700 border-orange-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'Placed': return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'Shipped': return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'Delivered': return 'bg-green-50 text-green-700 border-green-200';
+      case 'Cancelled': return 'bg-red-50 text-red-700 border-red-200';
+      case 'Return Requested': return 'bg-amber-50 text-amber-700 border-amber-200';
+      default: return 'bg-zinc-100 text-zinc-700 border-zinc-200';
     }
   };
 
@@ -163,10 +163,10 @@ export default function OrdersPage() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+        className="bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden"
       >
         <table className="w-full text-left text-sm">
-          <thead className="bg-gray-50 text-gray-500 uppercase text-xs sticky top-0 z-10 backdrop-blur-sm bg-opacity-90">
+          <thead className="bg-zinc-50 text-zinc-500 uppercase text-xs sticky top-0 z-10 backdrop-blur-sm bg-opacity-90">
             <tr>
               <th className="px-6 py-4 w-8 rounded-tl-lg"></th>
               <th className="px-6 py-4">Order ID</th>

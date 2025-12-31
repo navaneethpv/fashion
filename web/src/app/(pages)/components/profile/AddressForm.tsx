@@ -1,8 +1,9 @@
 
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, MapPin } from "lucide-react";
 import { useAuth, useUser } from "@clerk/nextjs";
+import LocationPicker from "./LocationPicker";
 
 interface AddressFormProps {
     isOpen: boolean;
@@ -19,6 +20,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
     const [pincodeLoading, setPincodeLoading] = useState(false);
     const [pincodeError, setPincodeError] = useState("");
     const [autoFilled, setAutoFilled] = useState(false);
+    const [showMap, setShowMap] = useState(false);
     const pincodeCache = useRef<Record<string, any>>({});
     const cityRef = useRef<HTMLInputElement>(null);
 
@@ -145,6 +147,32 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
         }
     };
 
+    const handleLocationSelect = (address: {
+        zip: string;
+        city: string;
+        district: string;
+        state: string;
+        street: string;
+    }) => {
+        setFormData((prev) => ({
+            ...prev,
+            zip: address.zip,
+            city: address.city,
+            district: address.district,
+            state: address.state,
+            street: address.street, // Auto-fill street from formatted address
+        }));
+        setAutoFilled(true);
+        setPincodeError("");
+
+        // Cache this pincode
+        pincodeCache.current[address.zip] = {
+            city: address.city,
+            district: address.district,
+            state: address.state,
+        };
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -248,16 +276,29 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                 {pincodeError && (
                                     <span className="text-xs text-red-500 ml-2">{pincodeError}</span>
                                 )}
+                                {pincodeError && (
+                                    <span className="text-xs text-red-500 ml-2">{pincodeError}</span>
+                                )}
                             </label>
-                            <input
-                                name="zip"
-                                type="text"
-                                required
-                                value={formData.zip}
-                                onChange={handleChange}
-                                placeholder="6-digit Pincode"
-                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base"
-                            />
+                            <div className="relative">
+                                <input
+                                    name="zip"
+                                    type="text"
+                                    required
+                                    value={formData.zip}
+                                    onChange={handleChange}
+                                    placeholder="6-digit Pincode"
+                                    className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowMap(true)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-white rounded-lg shadow-sm border border-gray-100 text-red-500 hover:scale-110 hover:shadow-md transition-all tooltip"
+                                    title="Use current location"
+                                >
+                                    <MapPin className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Phone (+91)</label>
@@ -382,7 +423,14 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                         </button>
                     </div>
                 </form>
+
             </div>
-        </div>
+
+            <LocationPicker
+                isOpen={showMap}
+                onClose={() => setShowMap(false)}
+                onSelectLocation={handleLocationSelect}
+            />
+        </div >
     );
 }

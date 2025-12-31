@@ -139,7 +139,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
             <div
-                className="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden"
+                className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl sm:rounded-2xl"
                 role="dialog"
             >
                 <div className="flex items-center justify-between p-6 border-b border-gray-100">
@@ -167,11 +167,11 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                             value={formData.name}
                             onChange={handleChange}
                             placeholder="Full Name"
-                            className="w-full p-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900"
+                            className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base"
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Pincode</label>
                             <input
@@ -181,13 +181,13 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                 value={formData.zip}
                                 onChange={handleChange}
                                 placeholder="6-digit Pincode"
-                                className="w-full p-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900"
+                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base"
                             />
                         </div>
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Phone (+91)</label>
                             <div className="flex">
-                                <span className="flex items-center justify-center px-3 bg-gray-100 border border-gray-100 border-r-0 rounded-l-xl text-gray-500 font-bold text-sm">+91</span>
+                                <span className="min-w-[48px] flex items-center justify-center px-3 bg-gray-100 border border-gray-100 border-r-0 rounded-l-xl text-gray-500 font-bold text-sm">+91</span>
                                 <input
                                     name="phone"
                                     type="text"
@@ -195,13 +195,13 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                     value={formData.phone}
                                     onChange={handleChange}
                                     placeholder="10-digit Number"
-                                    className="w-full p-3 bg-gray-50 border border-transparent rounded-r-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900"
+                                    className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-r-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base"
                                 />
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">City</label>
                             <input
@@ -210,7 +210,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                 required
                                 value={formData.city}
                                 onChange={handleChange}
-                                className="w-full p-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900"
+                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base"
                             />
                         </div>
                         <div className="space-y-1">
@@ -221,12 +221,12 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                 required
                                 value={formData.state}
                                 onChange={handleChange}
-                                className="w-full p-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900"
+                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base"
                             />
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">District</label>
                             <input
@@ -235,7 +235,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                 required
                                 value={formData.district}
                                 onChange={handleChange}
-                                className="w-full p-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900"
+                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base"
                             />
                         </div>
                     </div>
@@ -248,7 +248,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                             rows={3}
                             value={formData.street}
                             onChange={handleChange as any}
-                            className="w-full p-3 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 resize-none"
+                            className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 resize-none min-h-[96px] sm:min-h-[72px] text-sm sm:text-base"
                         />
                     </div>
 
@@ -285,7 +285,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                         <label htmlFor="defaultCheck" className="text-sm font-medium text-gray-700 select-none cursor-pointer">Make this my default address</label>
                     </div>
 
-                    <div className="flex gap-4 pt-2">
+                    <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t border-gray-100 flex gap-3">
                         <button
                             type="button"
                             onClick={onClose}

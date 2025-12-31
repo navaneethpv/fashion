@@ -35,7 +35,7 @@ export default function ProductsListPage() {
     process.env.NEXT_PUBLIC_API_BASE ||
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:4000";
-    const baseUrl = base.replace(/\/$/, "");
+  const baseUrl = base.replace(/\/$/, "");
 
   useEffect(() => {
     const p = page;
@@ -120,40 +120,40 @@ export default function ProductsListPage() {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full text-left text-sm">
-          <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+          <thead className="bg-gray-50 text-gray-500 uppercase text-xs sticky top-0 z-10 backdrop-blur-sm bg-opacity-90">
             <tr>
-              <th className="px-6 py-4">Product</th>
+              <th className="px-6 py-4 rounded-tl-lg">Product</th>
               <th className="px-6 py-4">Category</th>
               <th className="px-6 py-4">Price</th>
               <th className="px-6 py-4">Total Stock</th>
-              <th className="px-6 py-4 text-right">Actions</th>
+              <th className="px-6 py-4 text-right rounded-tr-lg">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filteredProducts.map((p) => {
-               console.log(p);
-               // Calculate total stock from variants (supports both array of variants or single object)
+              console.log(p);
+              // Calculate total stock from variants (supports both array of variants or single object)
               const stock = Array.isArray(p.variants)
                 ? p.variants.reduce((sum: number, v: any) => sum + (v?.stock ?? 0), 0)
                 : (p.variants?.stock ?? 0);
 
-               // Extract image src (supports array or single string)
-               // Handle: array of objects with url, array of strings, single string, or undefined
-               let imgSrc: string | undefined;
-               if (Array.isArray(p.images)) {
-                 if (p.images.length > 0) {
-                   const firstImg = p.images[0];
-                   imgSrc = typeof firstImg === 'string' ? firstImg : firstImg?.url;
-                 }
-               } else if (typeof p.images === 'string') {
-                 imgSrc = p.images;
-               }
+              // Extract image src (supports array or single string)
+              // Handle: array of objects with url, array of strings, single string, or undefined
+              let imgSrc: string | undefined;
+              if (Array.isArray(p.images)) {
+                if (p.images.length > 0) {
+                  const firstImg = p.images[0];
+                  imgSrc = typeof firstImg === 'string' ? firstImg : firstImg?.url;
+                }
+              } else if (typeof p.images === 'string') {
+                imgSrc = p.images;
+              }
 
-               // Only use imgSrc if it's a valid non-empty string
-               const hasValidImage = imgSrc && imgSrc.trim().length > 0;
+              // Only use imgSrc if it's a valid non-empty string
+              const hasValidImage = imgSrc && imgSrc.trim().length > 0;
 
-               return (
-                 <tr key={p._id} className="hover:bg-gray-50">
+              return (
+                <tr key={p._id} className="hover:bg-gray-50">
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
@@ -178,11 +178,10 @@ export default function ProductsListPage() {
                   </td>
                   <td className="px-6 py-3">
                     <span
-                      className={`px-3 py-1 rounded text-xs font-bold ${
-                        stock > 0
+                      className={`px-3 py-1 rounded text-xs font-bold ${stock > 0
                           ? "bg-green-100 text-green-700"
                           : "bg-red-100 text-red-700"
-                      }`}
+                        }`}
                     >
                       {stock > 0 ? "In Stock" : "Out of Stock"}
                     </span>
@@ -239,8 +238,8 @@ export default function ProductsListPage() {
                     </button>
                   </td>
                 </tr>
-               );
-             })}
+              );
+            })}
           </tbody>
         </table>
         {/* Pagination Controls (arrow + input) */}

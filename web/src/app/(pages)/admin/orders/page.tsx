@@ -166,15 +166,15 @@ export default function OrdersPage() {
         className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
       >
         <table className="w-full text-left text-sm">
-          <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+          <thead className="bg-gray-50 text-gray-500 uppercase text-xs sticky top-0 z-10 backdrop-blur-sm bg-opacity-90">
             <tr>
-              <th className="px-6 py-4 w-8"></th>
+              <th className="px-6 py-4 w-8 rounded-tl-lg"></th>
               <th className="px-6 py-4">Order ID</th>
               <th className="px-6 py-4">Customer</th>
               <th className="px-6 py-4">Total</th>
               <th className="px-6 py-4">Payment Status</th>
               <th className="px-6 py-4">Order Status</th>
-              <th className="px-6 py-4">Actions</th>
+              <th className="px-6 py-4 rounded-tr-lg">Actions</th>
             </tr>
           </thead>
 

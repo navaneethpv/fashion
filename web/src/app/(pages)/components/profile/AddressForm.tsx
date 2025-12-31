@@ -1,9 +1,8 @@
 
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { X, Loader2, MapPin } from "lucide-react";
+import { X, Loader2, Edit2 } from "lucide-react";
 import { useAuth, useUser } from "@clerk/nextjs";
-import LocationPicker from "./LocationPicker";
 
 interface AddressFormProps {
     isOpen: boolean;
@@ -20,13 +19,14 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
     const [pincodeLoading, setPincodeLoading] = useState(false);
     const [pincodeError, setPincodeError] = useState("");
     const [autoFilled, setAutoFilled] = useState(false);
-    const [showMap, setShowMap] = useState(false);
+    const [isManual, setIsManual] = useState(false);
     const pincodeCache = useRef<Record<string, any>>({});
-    const cityRef = useRef<HTMLInputElement>(null);
+    const streetRef = useRef<HTMLTextAreaElement>(null);
 
     const [formData, setFormData] = useState({
         name: "",
         street: "",
+        landmark: "",
         city: "",
         district: "",
         state: "",
@@ -43,6 +43,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
             setFormData({
                 name: initialData.name || "",
                 street: initialData.street || "",
+                landmark: initialData.landmark || "",
                 city: initialData.city || "",
                 district: initialData.district || "",
                 state: initialData.state || "",
@@ -56,6 +57,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
             setFormData({
                 name: user?.fullName || "",
                 street: "",
+                landmark: "",
                 city: "",
                 district: "",
                 state: "",
@@ -82,12 +84,15 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                     state: cached.state,
                 }));
                 setAutoFilled(true);
-                cityRef.current?.focus();
+                setIsManual(false); // Reset manual override on new valid pincode
+                setTimeout(() => streetRef.current?.focus(), 100);
                 return;
             }
 
             try {
                 setPincodeLoading(true);
+                // Reset manual override when fetching new logic
+                setIsManual(false);
 
                 const res = await fetch(
                     `https://api.postalpincode.in/pincode/${formData.zip}`
@@ -116,7 +121,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                 }));
 
                 setAutoFilled(true);
-                cityRef.current?.focus();
+                setTimeout(() => streetRef.current?.focus(), 100);
 
             } catch {
                 setPincodeError("Failed to fetch location");
@@ -147,30 +152,8 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
         }
     };
 
-    const handleLocationSelect = (address: {
-        zip: string;
-        city: string;
-        district: string;
-        state: string;
-        street: string;
-    }) => {
-        setFormData((prev) => ({
-            ...prev,
-            zip: address.zip,
-            city: address.city,
-            district: address.district,
-            state: address.state,
-            street: address.street, // Auto-fill street from formatted address
-        }));
-        setAutoFilled(true);
-        setPincodeError("");
-
-        // Cache this pincode
-        pincodeCache.current[address.zip] = {
-            city: address.city,
-            district: address.district,
-            state: address.state,
-        };
+    const handleManualToggle = () => {
+        setIsManual(!isManual);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -270,15 +253,6 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">
                                 Pincode
-                                {pincodeLoading && (
-                                    <span className="text-xs text-gray-400 ml-2">Fetching location…</span>
-                                )}
-                                {pincodeError && (
-                                    <span className="text-xs text-red-500 ml-2">{pincodeError}</span>
-                                )}
-                                {pincodeError && (
-                                    <span className="text-xs text-red-500 ml-2">{pincodeError}</span>
-                                )}
                             </label>
                             <div className="relative">
                                 <input
@@ -288,17 +262,16 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                     value={formData.zip}
                                     onChange={handleChange}
                                     placeholder="6-digit Pincode"
-                                    className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base pr-10"
+                                    maxLength={6}
+                                    className={`w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base pr-10 ${pincodeError ? "border-red-500 bg-red-50" : ""}`}
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowMap(true)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-white rounded-lg shadow-sm border border-gray-100 text-red-500 hover:scale-110 hover:shadow-md transition-all tooltip"
-                                    title="Use current location"
-                                >
-                                    <MapPin className="w-4 h-4" />
-                                </button>
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+                                    {pincodeLoading && <Loader2 className="w-4 h-4 animate-spin text-black" />}
+                                </div>
                             </div>
+                            {pincodeError && (
+                                <span className="text-xs text-red-500 font-medium block mt-1">{pincodeError}</span>
+                            )}
                         </div>
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Phone (+91)</label>
@@ -317,6 +290,17 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                         </div>
                     </div>
 
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Location Details</span>
+                        <button
+                            type="button"
+                            onClick={handleManualToggle}
+                            className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 active:scale-95 transition-transform"
+                        >
+                            <Edit2 className="w-3 h-3" /> {isManual ? "Disable Edit" : "Edit Manually"}
+                        </button>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">City</label>
@@ -324,11 +308,10 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                 name="city"
                                 type="text"
                                 required
-                                ref={cityRef}
-                                disabled={pincodeLoading || !autoFilled}
+                                disabled={!isManual}
                                 value={formData.city}
                                 onChange={handleChange}
-                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base disabled:bg-gray-100 disabled:text-gray-500"
                             />
                         </div>
                         <div className="space-y-1">
@@ -337,10 +320,10 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                 name="state"
                                 type="text"
                                 required
-                                disabled={pincodeLoading || !autoFilled}
+                                disabled={!isManual}
                                 value={formData.state}
                                 onChange={handleChange}
-                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base disabled:bg-gray-100 disabled:text-gray-500"
                             />
                         </div>
                     </div>
@@ -352,10 +335,10 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                                 name="district"
                                 type="text"
                                 required
-                                disabled={pincodeLoading || !autoFilled}
+                                disabled={!isManual}
                                 value={formData.district}
                                 onChange={handleChange}
-                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base disabled:bg-gray-100 disabled:text-gray-500"
                             />
                         </div>
                     </div>
@@ -365,10 +348,23 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
                         <textarea
                             name="street"
                             required
+                            ref={streetRef}
                             rows={3}
                             value={formData.street}
                             onChange={handleChange as any}
-                            className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 resize-none min-h-[96px] sm:min-h-[72px] text-sm sm:text-base"
+                            className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 resize-none min-h-[80px] text-sm sm:text-base"
+                        />
+                    </div>
+
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Landmark (Optional)</label>
+                        <input
+                            name="landmark"
+                            type="text"
+                            value={formData.landmark}
+                            onChange={handleChange}
+                            placeholder="E.g. Near City Hospital"
+                            className="w-full p-3 sm:p-3.5 bg-gray-50 border border-transparent rounded-xl focus:bg-white focus:border-black focus:ring-0 transition-all font-medium text-gray-900 text-sm sm:text-base"
                         />
                     </div>
 
@@ -426,11 +422,7 @@ export default function AddressForm({ isOpen, onClose, onSuccess, initialData }:
 
             </div>
 
-            <LocationPicker
-                isOpen={showMap}
-                onClose={() => setShowMap(false)}
-                onSelectLocation={handleLocationSelect}
-            />
+
         </div >
     );
 }

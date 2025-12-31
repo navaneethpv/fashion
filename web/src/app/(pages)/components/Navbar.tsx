@@ -1,7 +1,7 @@
 "use client";
 import { useState, Suspense } from "react";
 import Link from "next/link";
-import { ShoppingBag, Search, Heart } from "lucide-react";
+import { ShoppingBag, Search, Heart, X } from "lucide-react";
 import ImageSearchModal from "./ImageSearchModal";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import SearchInput from "./SearchInput";
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
 
 function NavbarContent() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const { user } = useUser();
   const cartCount = useCartCount();
   const searchParams = useSearchParams();
@@ -59,6 +60,14 @@ function NavbarContent() {
                 className="w-[300px] xl:w-[400px]"
               />
             </div>
+
+            {/* Mobile Search Icon */}
+            <button
+              className="md:hidden p-2 -ml-2 text-gray-700"
+              onClick={() => setIsMobileSearchOpen(true)}
+            >
+              <Search className="w-6 h-6" />
+            </button>
 
             <Link href="/wishlist" className="relative group hidden md:flex">
               <Heart className="w-5 h-5 text-gray-700 group-hover:text-black transition" />
@@ -130,6 +139,27 @@ function NavbarContent() {
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
       />
+
+      {/* MOBILE SEARCH OVERLAY */}
+      {isMobileSearchOpen && (
+        <div className="fixed inset-0 z-[60] bg-white px-4 py-4 animate-in fade-in slide-in-from-top-5 duration-200">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-lg font-bold">Search</span>
+            <button
+              onClick={() => setIsMobileSearchOpen(false)}
+              className="p-2 bg-gray-100 rounded-full"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <SearchInput
+            autoFocus
+            onCameraClick={() => setIsSearchOpen(true)}
+            className="w-full"
+          />
+        </div>
+      )}
     </>
   );
 }

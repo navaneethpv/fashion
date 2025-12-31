@@ -8,6 +8,7 @@ import { fetchAiSuggestions } from "../../../utils/aiSuggestions";
 interface SearchInputProps {
   onCameraClick: () => void;
   className?: string;
+  autoFocus?: boolean;
 }
 
 interface Suggestion {
@@ -19,7 +20,7 @@ interface Suggestion {
   isAi?: boolean;
 }
 
-export default function SearchInput({ onCameraClick, className }: SearchInputProps) {
+export default function SearchInput({ onCameraClick, className, autoFocus }: SearchInputProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { recentSearches, addSearch, removeSearch, clearRecentSearches } = useRecentSearches();
@@ -179,7 +180,7 @@ export default function SearchInput({ onCameraClick, className }: SearchInputPro
   return (
     <div
       ref={searchRef}
-      className={`flex-1 max-w-lg hidden md:flex relative group z-50 ${className || ""}`}
+      className={`flex-1 max-w-lg relative group z-50 ${className || ""}`}
     >
       <form onSubmit={handleSubmit} className="w-full relative">
         <button
@@ -198,6 +199,7 @@ export default function SearchInput({ onCameraClick, className }: SearchInputPro
           }}
           onFocus={() => setShowDropdown(true)}
           onKeyDown={handleKeyDown}
+          autoFocus={autoFocus}
           className="block w-full pl-10 pr-10 py-2.5 bg-gray-50 border-none rounded-lg text-sm text-gray-900 shadow-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-200 focus:bg-white transition-all"
           placeholder="Search for products, brands..."
         />

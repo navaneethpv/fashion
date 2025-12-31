@@ -63,10 +63,10 @@ function NavbarContent() {
 
             {/* Mobile Search Icon */}
             <button
-              className="md:hidden p-2 -ml-2 text-gray-700"
+              className="md:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
               onClick={() => setIsMobileSearchOpen(true)}
             >
-              <Search className="w-6 h-6" />
+              <Search className="w-5 h-5" />
             </button>
 
             <Link href="/wishlist" className="relative group hidden md:flex">

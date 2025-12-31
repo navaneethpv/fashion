@@ -157,7 +157,7 @@ export default function CheckoutPage() {
   };
 
 
-  if (!isLoaded || loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-primary w-8 h-8" /></div>;
+  if (!isLoaded || loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-zinc-900 w-8 h-8" /></div>;
 
   if (orderSuccess) {
     const displayFirstName = orderData?.shippingAddress?.firstName || user?.firstName;
@@ -172,31 +172,31 @@ export default function CheckoutPage() {
             <CheckCircle className="w-10 h-10 text-green-600 sm:w-12 sm:h-12" />
           </div>
 
-          <h1 className="text-3xl font-black mb-2 text-gray-900 sm:text-4xl">Order Confirmed!</h1>
+          <h1 className="text-3xl font-black mb-2 text-zinc-900 sm:text-4xl">Order Confirmed!</h1>
 
           {/* Order Meta */}
           <div className="flex flex-col items-center gap-1 mb-6 text-sm">
-            <span className="font-bold text-gray-900 bg-gray-100 px-3 py-1 rounded-full text-xs tracking-wide">
+            <span className="font-bold text-zinc-900 bg-zinc-100 px-3 py-1 rounded-full text-xs tracking-wide">
               Order ID: {displayOrderId}
             </span>
-            <p className="text-gray-500 font-medium">Estimated delivery: 5–7 business days</p>
+            <p className="text-zinc-500 font-medium">Estimated delivery: 5–7 business days</p>
           </div>
 
-          <p className="text-gray-600 mb-8 max-w-md text-base sm:text-lg leading-relaxed">
-            Thanks {displayFirstName}! We&apos;ve sent a receipt to <b className="text-gray-900">{displayEmail}</b>. Your order is being prepared.
+          <p className="text-zinc-600 mb-8 max-w-md text-base sm:text-lg leading-relaxed">
+            Thanks {displayFirstName}! We&apos;ve sent a receipt to <b className="text-zinc-900">{displayEmail}</b>. Your order is being prepared.
           </p>
 
           <div className="flex flex-col w-full max-w-xs gap-3 sm:flex-row sm:max-w-none sm:w-auto">
             <Link
               href="/product"
-              className="w-full bg-black text-white px-8 py-3.5 rounded-full font-bold hover:bg-gray-800 hover:scale-105 transition transform shadow-lg text-center flex items-center justify-center gap-2 sm:w-auto"
+              className="w-full bg-zinc-900 text-white px-8 py-3.5 rounded-full font-bold hover:bg-zinc-800 hover:scale-105 transition transform shadow-lg text-center flex items-center justify-center gap-2 sm:w-auto"
             >
               <Plus className="w-4 h-4" /> Continue Shopping
             </Link>
 
             <Link
               href="/profile?tab=orders"
-              className="w-full bg-white text-gray-900 border border-gray-200 px-8 py-3.5 rounded-full font-bold hover:bg-gray-50 hover:border-gray-300 transition text-center sm:w-auto"
+              className="w-full bg-white text-zinc-900 border border-zinc-200 px-8 py-3.5 rounded-full font-bold hover:bg-zinc-50 hover:border-zinc-300 transition text-center sm:w-auto"
             >
               View My Orders
             </Link>
@@ -211,140 +211,189 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-white">
         <Navbar />
         <div className="text-center py-20">
-          <h2 className="text-2xl font-bold">Your bag is empty</h2>
-          <Link href="/product" className="text-primary underline mt-2 inline-block">Go Shopping</Link>
+          <h2 className="text-2xl font-bold text-zinc-900">Your bag is empty</h2>
+          <Link href="/product" className="text-zinc-600 underline mt-2 inline-block hover:text-zinc-900">Go Shopping</Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+    <div className="min-h-screen bg-zinc-50/50 font-sans text-zinc-900">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 py-8 md:py-12">
-        <h1 className="text-3xl font-black mb-8 flex items-center gap-3">
-          <ShieldCheck className="w-8 h-8 text-primary" /> Secure Checkout
-        </h1>
+      {/* Subtle Divider below Navbar */}
+      <div className="h-px bg-zinc-200 w-full" />
 
-        <div className="flex flex-col lg:flex-row gap-8">
+      <main className="max-w-6xl mx-auto px-4 py-8 md:py-12">
+
+        {/* HEADER & STEPS */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+          <h1 className="text-2xl md:text-3xl font-black flex items-center gap-3 text-zinc-900">
+            <ShieldCheck className="w-6 h-6 md:w-8 md:h-8 text-zinc-900" />
+            Secure Checkout
+          </h1>
+
+          {/* Step Indicator */}
+          <div className="flex items-center gap-3 text-sm font-medium">
+            <span className="text-zinc-500">Address</span>
+            <ChevronRight className="w-4 h-4 text-zinc-300" />
+            <span className="text-zinc-900 font-bold bg-zinc-100 px-3 py-1 rounded-full">Payment</span>
+            <ChevronRight className="w-4 h-4 text-zinc-300" />
+            <span className="text-zinc-400">Review</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
 
           {/* LEFT COLUMN: INFO & PAYMENT */}
           <div className="flex-1 space-y-8">
 
             {/* 1. SHIPPING ADDRESS SECTION */}
-            <div className="bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 transition-all hover:shadow-2xl hover:shadow-gray-200/60">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-gray-400" /> Shipping Address
-                </h2>
-                {addresses.length > 0 && (
-                  <button
-                    onClick={() => setShowAddressModal(true)}
-                    className="text-xs font-bold text-primary border border-primary px-4 py-2 rounded-full hover:bg-primary hover:text-white hover:bg-black hover:cursor-pointer transition-all uppercase tracking-wide"
-                  >
-                    Change
-                  </button>
-                )}
-              </div>
+            <div className={`bg-white rounded-3xl shadow-sm border border-zinc-100 overflow-hidden transition-all ${!selectedAddress ? 'p-8' : ''}`}>
+
+              {/* Header inside card if not selected, otherwise part of the clickable area */}
+              {!selectedAddress && (
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-zinc-400" /> Shipping Address
+                  </h2>
+                </div>
+              )}
 
               {selectedAddress ? (
-                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="px-2.5 py-1 bg-white border border-gray-200 text-gray-600 text-[10px] font-bold rounded uppercase tracking-wide">
-                      {selectedAddress.type}
-                    </span>
-                    <span className="font-bold text-gray-900">{selectedAddress.name}</span>
-                    <span className="text-gray-400 text-sm font-medium">{selectedAddress.phone}</span>
+                // Clickable Address Card
+                <div
+                  className="group relative bg-white p-6 sm:p-8 cursor-pointer hover:bg-zinc-50/50 transition-colors"
+                  onClick={() => setShowAddressModal(true)}
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-zinc-900" />
+                      Delivering to
+                      <span className="bg-zinc-100 text-zinc-600 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full tracking-wider">
+                        {selectedAddress.type}
+                      </span>
+                    </h2>
+
+                    {/* Secondary CHANGE Button */}
+                    <button
+                      type="button"
+                      className="text-xs font-bold text-zinc-600 bg-white border border-zinc-200 px-4 py-1.5 rounded-full hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-all shadow-sm"
+                    >
+                      Change
+                    </button>
                   </div>
-                  <p className="text-gray-700 font-medium leading-relaxed">
-                    {selectedAddress.street}, {selectedAddress.city}, {selectedAddress.district}, {selectedAddress.state} - <span className="text-black font-bold">{selectedAddress.zip}</span>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mb-2">
+                    <span className="font-bold text-zinc-900 text-base">{selectedAddress.name}</span>
+                    <span className="hidden sm:inline text-zinc-300">|</span>
+                    <span className="text-zinc-500 text-sm font-medium">{selectedAddress.phone}</span>
+                  </div>
+
+                  <p className="text-zinc-600 text-sm leading-relaxed max-w-xl">
+                    {selectedAddress.street}, {selectedAddress.city}, {selectedAddress.district}, {selectedAddress.state} - <span className="text-zinc-900 font-bold">{selectedAddress.zip}</span>
                   </p>
+
+                  <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-zinc-200 via-zinc-100 to-white opacity-50" />
                 </div>
               ) : (
-                <div className="text-center py-8">
+                // Empty State
+                <div className="text-center py-8 bg-zinc-50 rounded-2xl border border-dashed border-zinc-200">
+                  <p className="text-zinc-500 mb-4 text-sm">Where should we send your order?</p>
                   <button
                     onClick={() => setShowAddForm(true)}
-                    className="bg-black text-white px-8 py-4 rounded-xl font-bold flex items-center gap-2 mx-auto hover:scale-105 transition-transform shadow-lg"
+                    className="bg-zinc-900 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 mx-auto hover:bg-black hover:scale-105 transition-all shadow-lg shadow-zinc-200"
                   >
-                    <Plus className="w-5 h-5" /> Add New Address
+                    <Plus className="w-4 h-4" /> Add New Address
                   </button>
                 </div>
               )}
             </div>
 
             {/* 3. Payment Method */}
-            <div className="bg-white p-8 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 transition-all hover:shadow-2xl hover:shadow-gray-200/60">
-              <h2 className="text-xl font-bold mb-8 text-gray-900">Payment Method</h2>
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-5 p-5 border border-purple-200 bg-purple-50/30 rounded-2xl cursor-pointer transition-all shadow-sm ring-1 ring-purple-500/20">
-                  <div className="w-5 h-5 rounded-full border-[5px] border-purple-600 bg-white shadow-sm" />
-                  <div className="p-2 bg-white rounded-lg shadow-sm">
+            <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-zinc-100">
+              <h2 className="text-lg font-bold mb-6 text-zinc-900 flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-zinc-400" /> Payment Method
+              </h2>
+
+              <div className="space-y-4">
+                {/* Active Payment Method */}
+                <div className="flex items-center gap-5 p-5 border border-purple-100 bg-purple-50/10 rounded-2xl cursor-pointer transition-all shadow-sm ring-1 ring-purple-500/10 hover:ring-purple-500/30">
+                  <div className="relative w-5 h-5 flex items-center justify-center">
+                    <div className="w-5 h-5 rounded-full border-[5px] border-purple-600 bg-white" />
+                  </div>
+                  <div className="p-2.5 bg-white rounded-xl shadow-sm border border-purple-50">
                     <CreditCard className="w-6 h-6 text-purple-600" />
                   </div>
-                  <div>
-                    <span className="block font-bold text-gray-900">Credit / Debit Card</span>
-                    <span className="text-xs text-gray-500 font-medium">Safe encryption via Stripe</span>
+                  <div className="flex-1">
+                    <span className="block font-bold text-zinc-900 text-sm">Credit / Debit Card</span>
+                    <span className="text-xs text-zinc-500 font-medium">Secure encryption via Stripe</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-5 p-5 border border-gray-100 rounded-2xl opacity-50 cursor-not-allowed grayscale">
-                  <div className="w-5 h-5 rounded-full border border-gray-200" />
-                  <span className="font-bold text-gray-400">PayPal / Wallet</span>
+
+                {/* Disabled Method */}
+                <div className="flex items-center gap-5 p-5 border border-zinc-100 rounded-2xl opacity-40 cursor-not-allowed grayscale bg-zinc-50">
+                  <div className="w-5 h-5 rounded-full border border-zinc-300" />
+                  <div className="p-2.5 bg-white rounded-xl border border-zinc-100">
+                    <span className="w-6 h-6 block bg-zinc-200 rounded-sm" />
+                  </div>
+                  <span className="font-bold text-zinc-900 text-sm">Coming Soon</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* RIGHT COLUMN: SUMMARY */}
-          <div className="w-full lg:w-[400px]">
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 sticky top-24">
-              <h3 className="font-bold text-xl mb-6">Order Summary</h3>
+          <div className="w-full lg:w-[380px]">
+            <div className="bg-white p-6 rounded-3xl shadow-lg shadow-zinc-200/50 border border-zinc-100 sticky top-24">
+              <h3 className="font-bold text-lg mb-6 text-zinc-900">Order Summary</h3>
 
-              <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {cart.items.map((item: any) => (
-                  <div key={`${item.product?._id ?? 'unknown'}-${item.variantSku ?? 'default'}`} className="flex gap-4">
-                    <div className="w-12 h-16 bg-gray-100 rounded-md flex-shrink-0 relative overflow-hidden">
+                  <div key={`${item.product?._id ?? 'unknown'}-${item.variantSku ?? 'default'}`} className="flex gap-4 group">
+                    <div className="w-16 h-20 bg-zinc-100 rounded-lg flex-shrink-0 relative overflow-hidden border border-zinc-100">
                       <img
                         src={item.product?.images?.[0] || item.product?.images?.[0]?.url || '/images/placeholder.png'}
-                        className="object-cover w-full h-full"
+                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
                         alt={item.product?.name ?? ''}
                       />
                     </div>
-                    <div className="flex-1 text-sm">
-                      <p className="font-bold text-gray-900 truncate">{item.product.name}</p>
-                      <p className="text-gray-900 text-xs">Size: {item.variantSku} | Qty: {item.quantity}</p>
+                    <div className="flex-1 py-1">
+                      <p className="font-bold text-zinc-900 text-sm truncate mb-1">{item.product.name}</p>
+                      <p className="text-zinc-500 text-xs mb-2">Size: {item.variantSku} <span className="mx-1">|</span> Qty: {item.quantity}</p>
+                      <span className="font-bold text-sm text-zinc-900">₹{((item.product.price_cents * item.quantity) / 100).toFixed(2)}</span>
                     </div>
-                    <span className="font-bold text-sm">₹{((item.product.price_cents * item.quantity) / 100).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
 
-              <div className="border-t border-gray-100 pt-4 space-y-2 mb-6 text-sm">
+              <div className="border-t border-zinc-100 pt-4 space-y-3 mb-6 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-900">Subtotal</span>
-                  <span className="font-bold">₹{(subtotal / 100).toFixed(2)}</span>
+                  <span className="text-zinc-600">Subtotal</span>
+                  <span className="font-medium text-zinc-900">₹{(subtotal / 100).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-900">Shipping</span>
-                  <span className="font-bold text-gray-900">Free</span>
+                  <span className="text-zinc-600">Shipping</span>
+                  <span className="font-bold text-green-600">Free</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-900">Tax (Estimated)</span>
-                  <span className="font-bold">₹0.00</span>
+                  <span className="text-zinc-600">Taxes</span>
+                  <span className="font-medium text-zinc-900">Calculated</span>
                 </div>
               </div>
 
-              <div className="border-t border-gray-100 pt-4 mb-6">
-                <div className="flex justify-between text-xl font-black">
-                  <span>Total</span>
-                  <span>₹{(subtotal / 100).toFixed(2)}</span>
+              <div className="border-t border-dashed border-zinc-200 pt-4 mb-6">
+                <div className="flex justify-between items-end">
+                  <span className="text-zinc-900 font-bold text-base">Total Amount</span>
+                  <span className="text-xl font-black text-zinc-900">₹{(subtotal / 100).toFixed(2)}</span>
                 </div>
               </div>
 
               <button
                 onClick={handlePlaceOrder}
                 disabled={processing || !selectedAddress}
-                className="w-full bg-black text-white h-14 rounded-xl font-bold hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2 shadow-xl shadow-gray-200 disabled:opacity-70 disabled:hover:scale-100"
+                className="w-full bg-zinc-900 text-white h-14 rounded-xl font-bold hover:bg-black hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2 shadow-xl shadow-zinc-900/10 disabled:opacity-70 disabled:hover:scale-100 disabled:shadow-none"
               >
                 {processing ? (
                   <>
@@ -352,14 +401,15 @@ export default function CheckoutPage() {
                   </>
                 ) : (
                   <>
-                    <Lock className="w-4 h-4" /> Pay ₹{(subtotal / 100).toFixed(2)}
+                    <Lock className="w-4 h-4" /> Pay Securely
                   </>
                 )}
               </button>
 
-              <div className="text-center mt-4 text-xs text-gray-900">
-                <p>Secure SSL Encryption.</p>
-                <p>30-Day Money Back Guarantee.</p>
+              <div className="text-center mt-6 flex flex-col gap-2">
+                <div className="flex items-center justify-center gap-2 text-[10px] text-zinc-400 uppercase tracking-widest font-bold">
+                  <ShieldCheck className="w-3 h-3" /> 100% Secure Payment
+                </div>
               </div>
 
             </div>
@@ -371,18 +421,18 @@ export default function CheckoutPage() {
       {showAddressModal && (
         isMobile ? (
           // Mobile Bottom Sheet
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowAddressModal(false)}>
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer" onClick={() => setShowAddressModal(false)}>
             <div
               className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-3xl max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 flex flex-col shadow-2xl"
               onClick={e => e.stopPropagation()}
             >
-              <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
-                <h3 className="text-lg font-black text-gray-900">Select Delivery Address</h3>
-                <button onClick={() => setShowAddressModal(false)} className="p-2 bg-gray-100 rounded-full">
-                  <X className="w-5 h-5 text-gray-600" />
+              <div className="p-5 border-b border-zinc-100 flex justify-between items-center bg-white sticky top-0 z-10">
+                <h3 className="text-lg font-black text-zinc-900">Select Delivery Address</h3>
+                <button onClick={() => setShowAddressModal(false)} className="p-2 bg-zinc-100 rounded-full hover:bg-zinc-200 text-zinc-600 transition-colors">
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-5 overflow-y-auto">
+              <div className="p-5 overflow-y-auto bg-zinc-50 min-h-[50vh]">
                 <AddressBook
                   clerkUser={user}
                   onSelect={(addr: any) => {
@@ -391,7 +441,10 @@ export default function CheckoutPage() {
                   }}
                   selectedId={selectedAddress?._id}
                 />
-                <button onClick={() => setShowAddForm(true)} className="w-full mt-4 py-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="w-full mt-6 py-4 bg-white border border-dashed border-zinc-300 rounded-xl text-zinc-900 font-bold hover:bg-zinc-50 hover:border-zinc-900 transition-all flex items-center justify-center gap-2 shadow-sm"
+                >
                   <Plus className="w-5 h-5" /> Add New Address
                 </button>
               </div>
@@ -399,15 +452,15 @@ export default function CheckoutPage() {
           </div>
         ) : (
           // Desktop Modal
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                <h3 className="text-xl font-black text-gray-900">Select Delivery Address</h3>
-                <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
-                  <X className="w-5 h-5 text-gray-500" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer" onClick={() => setShowAddressModal(false)}>
+            <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-white">
+                <h3 className="text-xl font-black text-zinc-900">Select Delivery Address</h3>
+                <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-zinc-100 rounded-full text-zinc-500 transition-colors">
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+              <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-zinc-50/50">
                 <AddressBook
                   clerkUser={user}
                   onSelect={(addr: any) => {
@@ -417,9 +470,9 @@ export default function CheckoutPage() {
                   selectedId={selectedAddress?._id}
                 />
               </div>
-              <div className="p-4 border-t border-gray-100 bg-gray-50 text-center">
-                <button onClick={() => setShowAddForm(true)} className="text-primary font-bold text-sm hover:underline">
-                  + Add New Address
+              <div className="p-4 border-t border-zinc-100 bg-white text-center">
+                <button onClick={() => setShowAddForm(true)} className="text-zinc-900 font-bold text-sm hover:underline flex items-center justify-center gap-2 mx-auto">
+                  <Plus className="w-4 h-4" /> Add New Address
                 </button>
               </div>
             </div>

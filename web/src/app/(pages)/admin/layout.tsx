@@ -8,11 +8,8 @@ import { LayoutDashboard, ShoppingBag, Users, Package, LogOut, Loader2 } from 'l
 import { UserButton } from '@clerk/nextjs';
 import clsx from 'clsx';
 
-// 👇 ADD YOUR ADMIN EMAIL ADDRESSES HERE
-const ADMIN_EMAILS = [
-  "navaneethpv450@gmail.com",
-  "muhammadyaseen1907@gmail.com"  // Add more admin emails here
-];
+// 👇 Fetch admin emails from environment variable
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").split(",").map(email => email.trim());
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();

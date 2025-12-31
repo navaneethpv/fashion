@@ -9,6 +9,7 @@ interface Review {
     rating: number;
     comment: string;
     userName?: string;
+    userAvatar?: string;
     createdAt: string;
 }
 
@@ -73,7 +74,8 @@ export default function ProductReviews({ productId }: { productId: string }) {
                     productId: productId,
                     rating: newRating,
                     comment: newComment,
-                    userName: user.fullName || user.firstName || "User"
+                    userName: user.fullName || user.firstName || "User",
+                    userAvatar: user.imageUrl
                 })
             });
 
@@ -229,9 +231,17 @@ export default function ProductReviews({ productId }: { productId: string }) {
                                 >
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center text-violet-700 font-bold text-sm">
-                                                A
-                                            </div>
+                                            {review.userAvatar ? (
+                                                <img
+                                                    src={review.userAvatar}
+                                                    alt={review.userName || "User"}
+                                                    className="w-10 h-10 rounded-full object-cover border border-gray-100"
+                                                />
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center text-violet-700 font-bold text-sm">
+                                                    {(review.userName || "A").charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
                                             <div>
                                                 <p className="text-sm font-bold text-gray-900">{review.userName || "Anonymous"}</p>
                                                 <div className="flex items-center gap-2">

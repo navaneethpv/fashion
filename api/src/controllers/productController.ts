@@ -877,11 +877,11 @@ export const updateProduct = async (req: Request, res: Response) => {
 
 export const createReview = async (req: Request, res: Response) => {
   try {
-    const { userId, productId, rating, comment, userName } = req.body;
+    const { userId, productId, rating, comment, userName, userAvatar } = req.body;
     if (!userId || !productId || !rating || !comment || !userName) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
-    const newReview = new Review({ userId, productId, rating, comment, userName });
+    const newReview = new Review({ userId, productId, rating, comment, userName, userAvatar });
     await newReview.save();
     const stats = await Review.aggregate([
       { $match: { productId: new mongoose.Types.ObjectId(productId) } },

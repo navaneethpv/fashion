@@ -56,7 +56,7 @@ const banners = [
     title: "Finishing Touches",
     description: "Elevate your look with our curated accessories.",
     buttonText: "Discover Accessories",
-    link: "/product?q=Accessories",
+    link: "/product?q=Accessory",
     image: "https://images.unsplash.com/photo-1618453292459-53424688f279?w=1920&h=1080&fit=crop",
   },
 ];

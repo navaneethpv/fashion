@@ -31,6 +31,8 @@ export const syncClerkUsers = async () => {
                         firstName: clerkUser.firstName,
                         lastName: clerkUser.lastName,
                         isAdmin: false,
+                        // Initialize lastSeenAt effectively to avoid "Never"
+                        lastSeenAt: new Date()
                     });
                     newUsersCount++;
                 }

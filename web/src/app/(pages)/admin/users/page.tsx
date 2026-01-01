@@ -45,8 +45,17 @@ export default function UsersPage() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {users.map((user: any) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 font-bold text-gray-900">{user.name}</td>
+              <tr key={user.id} className={user.isOnline ? "bg-green-50 hover:bg-green-100" : "hover:bg-gray-50"}>
+                <td className="px-6 py-4 font-bold text-gray-900">
+                  <div className="flex items-center gap-2">
+                    <span>{user.name}</span>
+                    {user.role === 'Administrator' && user.isOnline && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                        Admin • Active
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-6 py-4 text-gray-600">{user.email}</td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded text-xs font-bold ${user.role === 'Administrator'

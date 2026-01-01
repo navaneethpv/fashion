@@ -14,6 +14,21 @@ export default function UsersPage() {
       .then(res => res.json())
       .then(data => setUsers(data.users || []));
   }, []);
+
+  function formatTimeAgo(dateString: string | null) {
+    if (!dateString) return "Never";
+    const date = new Date(dateString);
+    const diffMs = Date.now() - date.getTime();
+    const minutes = Math.floor(diffMs / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes} min ago`;
+    if (hours < 24) return `${hours} hours ago`;
+    return `${days} days ago`;
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Registered Users</h1>
@@ -24,6 +39,7 @@ export default function UsersPage() {
               <th className="px-6 py-4">Name</th>
               <th className="px-6 py-4">Email</th>
               <th className="px-6 py-4">Role</th>
+              <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4">Joined</th>
             </tr>
           </thead>
@@ -39,6 +55,9 @@ export default function UsersPage() {
                     }`}>
                     {user.role}
                   </span>
+                </td>
+                <td className="px-6 py-4 text-gray-500">
+                  {formatTimeAgo(user.lastSeenAt)}
                 </td>
                 <td className="px-6 py-4 text-gray-500">{user.joined}</td>
               </tr>

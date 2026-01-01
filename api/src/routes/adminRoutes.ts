@@ -25,6 +25,7 @@ router.get('/users', async (req, res) => {
       email: user.email,
       role: user.isAdmin ? "Administrator" : "Customer",
       joined: user.createdAt.toLocaleDateString(),
+      lastSeenAt: user.lastSeenAt || null,
     };
   });
 

@@ -38,7 +38,7 @@ const banners = [
     title: "Streetwear Redefined",
     description: "Bold statements for the concrete jungle.",
     buttonText: "Shop Streetwear",
-    link: "/product?category=Streetwear",
+    link: "/product?q=Streetwear",
     image: "https://images.unsplash.com/photo-1523396864712-ecc4a2401d41?w=1920&h=1080&fit=crop",
   },
   {
@@ -47,7 +47,7 @@ const banners = [
     title: "The Evening Edit",
     description: "Sophisticated attire for your most memorable nights.",
     buttonText: "View Formal Wear",
-    link: "/product?category=Formal",
+    link: "/product?q=Formal",
     image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1920&h=1080&fit=crop",
   },
   {
@@ -56,7 +56,7 @@ const banners = [
     title: "Finishing Touches",
     description: "Elevate your look with our curated accessories.",
     buttonText: "Discover Accessories",
-    link: "/product?category=Accessories",
+    link: "/product?q=Accessories",
     image: "https://images.unsplash.com/photo-1618453292459-53424688f279?w=1920&h=1080&fit=crop",
   },
 ];

@@ -21,8 +21,7 @@ const UserSchema = new mongoose.Schema({
     phone: { type: String, required: true },
     type: { type: String, enum: ['Home', 'Work', 'Other'], default: 'Home' },
     isDefault: { type: Boolean, default: false }
-  }],
-  lastSeenAt: { type: Date, default: null }
+  }]
 }, { timestamps: true });
 
 export const User = mongoose.model('User', UserSchema);

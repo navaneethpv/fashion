@@ -24,7 +24,6 @@ export default function UsersPage() {
               <th className="px-6 py-4">Name</th>
               <th className="px-6 py-4">Email</th>
               <th className="px-6 py-4">Role</th>
-              <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4">Joined</th>
             </tr>
           </thead>
@@ -40,16 +39,6 @@ export default function UsersPage() {
                     }`}>
                     {user.role}
                   </span>
-                </td>
-                <td className="px-6 py-4">
-                  {user.isOnline ? (
-                    <div className="flex items-center gap-2 text-green-600 px-3 py-1 bg-green-50 rounded-full w-fit">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      <span className="text-xs font-bold">Online</span>
-                    </div>
-                  ) : (
-                    <span className="text-gray-500 text-sm">{user.lastSeen}</span>
-                  )}
                 </td>
                 <td className="px-6 py-4 text-gray-500">{user.joined}</td>
               </tr>

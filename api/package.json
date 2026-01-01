@@ -7,7 +7,8 @@
     "dev": "nodemon src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "seed:kaggle": "ts-node scripts/seed_kaggle.ts"
+    "seed:kaggle": "ts-node scripts/seed_kaggle.ts",
+    "seed:users": "ts-node scripts/seed_users.ts"
   },
   "keywords": [],
   "author": "",

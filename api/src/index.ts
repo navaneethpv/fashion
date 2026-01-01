@@ -13,6 +13,7 @@ import reviewRoutes from "./routes/reviewRoutes";
 import wishlistRoutes from "./routes/wishlistRoutes";
 import outfitRoutes from "./routes/outfitRoutes";
 import userRoutes from "./routes/userRoutes";
+import { syncClerkUsers } from "./services/clerkUserSync";
 
 dotenv.config();
 
@@ -33,8 +34,11 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan("dev"));
 
+import { updateLastSeen } from "./middleware/userActivity";
+
 // Clerk middleware - MUST be before routes
 app.use(clerkMiddleware());
+app.use(updateLastSeen);
 
 // Mount Routes
 // Mount Routes
@@ -63,8 +67,18 @@ const startServer = async () => {
     }
 
     await connectDB();
+
+    // Start the server
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
+
+      // Initial Sync
+      syncClerkUsers();
+
+      // Schedule Auto-Sync every 10 seconds
+      setInterval(() => {
+        syncClerkUsers();
+      }, 10 * 1000);
     });
   } catch (error) {
     console.error("Failed to start server:", error);

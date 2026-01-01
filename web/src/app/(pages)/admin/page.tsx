@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ArrowUpRight, ArrowDownRight, MoreHorizontal, DollarSign, ShoppingBag, Users, Package, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
@@ -70,27 +71,35 @@ export default function DashboardPage() {
           isPositive={true}
           icon={DollarSign}
         />
-        <StatsCard
-          title="Total Orders"
-          value={stats.orders}
-          trend="+5.2%"
-          isPositive={true}
-          icon={ShoppingBag}
-        />
-        <StatsCard
-          title="Total Products"
-          value={productCount}
-          trend="+2.4%"
-          isPositive={true}
-          icon={Package}
-        />
-        <StatsCard
-          title="Total Users"
-          value={stats.users}
-          trend="-1.1%"
-          isPositive={false}
-          icon={Users}
-        />
+        <Link href="/admin/orders" >
+          <StatsCard
+            title="Total Orders"
+            value={stats.orders}
+            trend="+5.2%"
+            isPositive={true}
+            icon={ShoppingBag}
+          />
+        </Link>
+        <Link href="/admin/products" >
+          <StatsCard
+            title="Total Products"
+            value={productCount}
+            trend="+2.4%"
+            isPositive={true}
+            icon={Package}
+            Link="/products"
+          />
+        </Link>
+        <Link href="/admin/users" >
+          <StatsCard
+            title="Total Users"
+            value={stats.users}
+            trend="-1.1%"
+            isPositive={false}
+            icon={Users}
+            Link="/users"
+          />
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -198,7 +207,7 @@ const StatsCard = ({ title, value, trend, isPositive, icon: Icon }: any) => {
     <motion.div
       variants={item}
       whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
-      className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100 flex items-start justify-between cursor-default transition-shadow"
+      className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100 flex items-start justify-between cursor-pointer transition-shadow"
     >
       <div>
         <p className="text-zinc-500 text-sm font-medium mb-1">{title}</p>

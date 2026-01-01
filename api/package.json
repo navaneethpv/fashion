@@ -7,9 +7,7 @@
     "dev": "nodemon src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "seed": "ts-node scripts/seed_mongo_1000.ts",
-    "seed:kaggle": "ts-node scripts/seed_kaggle.ts",
-    "clear:products": "ts-node scripts/clear_products.ts"
+    "seed:kaggle": "ts-node scripts/seed_kaggle.ts"
   },
   "keywords": [],
   "author": "",

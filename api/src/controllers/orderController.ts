@@ -3,7 +3,7 @@
 import { Request, Response } from 'express';
 import { Order } from '../models/Order';
 import { Cart } from '../models/Cart';
-import { User } from '../models/User';
+
 import { Product } from '../models/Product';
 import {
   validateCreateOrderRequest,
@@ -16,6 +16,7 @@ import {
   CreateOrderResponse,
   OrderStatusUpdateResponse
 } from '../types/order';
+import { clerkClient } from '@clerk/express';
 
 
 
@@ -173,7 +174,13 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     // 2. Counts (exclude cancelled)
     const totalOrders = await Order.countDocuments({ orderStatus: { $ne: 'cancelled' } });
     const totalProducts = await Product.countDocuments();
-    const totalUsers = await User.countDocuments();
+
+    let totalUsers = 0;
+    try {
+      totalUsers = await clerkClient.users.getCount();
+    } catch (error) {
+      console.error("Failed to fetch Clerk user count", error);
+    }
 
     // 3. Recent Orders (exclude cancelled)
     const recentOrders = await Order.find({ orderStatus: { $ne: 'cancelled' } })

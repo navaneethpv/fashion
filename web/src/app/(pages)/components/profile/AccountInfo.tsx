@@ -153,7 +153,7 @@ export default function AccountInfo({ clerkUser }: AccountInfoProps) {
                 <button
                   onClick={handleSaveName}
                   disabled={isSavingName}
-                  className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg text-base font-bold hover:bg-violet-700 transition shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-6 py-3 bg-primary text-black hover:text-white rounded-lg text-base font-bold hover:bg-gray-700 hover:cursor-pointer transition shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSavingName ? (
                     <>
@@ -170,7 +170,7 @@ export default function AccountInfo({ clerkUser }: AccountInfoProps) {
                 <button
                   onClick={handleCancelEdit}
                   disabled={isSavingName}
-                  className="flex items-center gap-2 px-4 py-2 border-2 border-gray-300 bg-white rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-4 py-2 border-2 border-gray-300 bg-white hover:cursor-pointer rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <X className="w-3 h-3" />
                   Cancel

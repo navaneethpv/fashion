@@ -2,18 +2,36 @@
 import { useEffect, useState } from 'react';
 
 
+import { useAuth } from '@clerk/nextjs';
+
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
+  const { getToken } = useAuth();
   const base =
     process.env.NEXT_PUBLIC_API_BASE ||
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:4000";
   const baseUrl = base.replace(/\/$/, "");
 
-  const fetchUsers = () => {
-    fetch(`${baseUrl}/api/admin/users`)
-      .then(res => res.json())
-      .then(data => setUsers(data.users || []));
+  const fetchUsers = async () => {
+    try {
+      const token = await getToken();
+      const res = await fetch(`${baseUrl}/api/admin/users`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        console.error("Failed to fetch users:", res.statusText);
+        return;
+      }
+
+      const data = await res.json();
+      setUsers(data.users || []);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
   };
 
   useEffect(() => {

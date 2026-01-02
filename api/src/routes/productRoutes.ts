@@ -42,12 +42,13 @@ router.get('/subcategories/:category', getSubcategoriesByCategory);
 router.post('/reviews', createReview);
 
 // --- Admin-Only Routes ---
-// You would typically have an admin-specific middleware here,
-// but for now, we can protect them with the general clerkAuth.
-router.post('/', upload.array('images'), createProduct);
-router.get('/admin/:id', getProductByIdAdmin);
-router.put('/:id', updateProduct);
-router.delete('/:id', deleteProduct);
+// Protected by requireAdmin middleware
+import { requireAdmin } from '../middleware/adminAuth';
+
+router.post('/', requireAdmin, upload.array('images'), createProduct);
+router.get('/admin/:id', requireAdmin, getProductByIdAdmin);
+router.put('/:id', requireAdmin, updateProduct);
+router.delete('/:id', requireAdmin, deleteProduct);
 
 
 router.post(

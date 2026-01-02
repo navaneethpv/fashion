@@ -4,7 +4,12 @@ import { getDashboardStats, getMonthlySales } from '../controllers/orderControll
 import { User } from '../models/User';
 import { clerkClient } from '@clerk/express';
 
+import { requireAdmin } from '../middleware/adminAuth';
+
 const router = Router();
+
+// Apply admin protection to all routes in this file
+router.use(requireAdmin);
 
 router.get('/stats', getDashboardStats);
 router.get('/monthly-sales', getMonthlySales);
@@ -25,7 +30,7 @@ router.get('/users', async (req, res) => {
           ? `${firstName ?? ""} ${lastName ?? ""}`.trim()
           : "—",
       email: user.email,
-      role: user.isAdmin ? "Administrator" : "Customer",
+      role: user.role === 'admin' || user.role === 'super_admin' ? "Administrator" : "Customer",
       joined: user.createdAt.toLocaleDateString(),
       lastSeenAt: user.lastSeenAt || null,
       isOnline,

@@ -1,9 +1,10 @@
 import nodemailer from "nodemailer";
+import { User } from "../models/User";
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT),
-    secure: false, // true for 465, false for other ports
+    secure: false,
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -15,17 +16,22 @@ export const sendAdminEmail = async (
     html: string
 ) => {
     try {
-        const admins = process.env.ADMIN_NOTIFICATION_EMAILS?.split(",");
+        // Fetch all admins & super admins
+        const admins = await User.find({
+            role: { $in: ["admin", "super_admin"] }
+        }).select("email");
 
-        if (!admins || admins.length === 0) return;
+        if (!admins.length) return;
+
+        const emails = admins.map(a => a.email);
 
         await transporter.sendMail({
             from: `"Eyoris Orders" <${process.env.SMTP_USER}>`,
-            to: admins,
+            to: emails,
             subject,
             html,
         });
-    } catch (err) {
-        console.error("Admin email failed:", err);
+    } catch (error) {
+        console.error("Admin order email failed:", error);
     }
 };

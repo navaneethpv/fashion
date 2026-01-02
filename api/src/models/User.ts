@@ -6,6 +6,11 @@ const UserSchema = new mongoose.Schema({
   firstName: { type: String },
   lastName: { type: String },
   isAdmin: { type: Boolean, default: false },
+  role: {
+    type: String,
+    enum: ["super_admin", "admin", "customer"],
+    default: "customer"
+  },
   preferences: {
     favorite_colors: [String],
     sizes: [String]

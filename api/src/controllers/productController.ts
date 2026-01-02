@@ -21,7 +21,14 @@ import { getSuggestedCategoryAndSubCategoryFromGemini } from "../utils/geminiTag
 function uploadBufferToCloudinary(buffer: Buffer, folder = 'eyoris/products') {
   return new Promise<any>((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder, use_filename: true, unique_filename: false, resource_type: 'image' },
+      {
+        folder,
+        use_filename: true,
+        unique_filename: false,
+        resource_type: 'image',
+        access_mode: 'public',
+        type: 'upload'
+      },
       (err: any, result: any) => {
         if (err) return reject(err);
         return resolve(result);

@@ -1,40 +1,13 @@
 "use client"
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, Users, Package, LogOut, Loader2 } from 'lucide-react';
-import { UserButton } from '@clerk/nextjs';
+import { LayoutDashboard, ShoppingBag, Users, Package, LogOut } from 'lucide-react';
+import { UserButton, useUser } from '@clerk/nextjs';
 import clsx from 'clsx';
 
-// 👇 Fetch admin emails from environment variable
-const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").split(",").map(email => email.trim());
-
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, isLoaded } = useUser();
-  const router = useRouter();
+export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
+  const { user } = useUser();
   const pathname = usePathname();
-
-  // Security Check
-  useEffect(() => {
-    if (isLoaded) {
-      const email = user?.primaryEmailAddress?.emailAddress;
-
-      if (!user || !email || !ADMIN_EMAILS.includes(email)) {
-        // If not logged in OR email doesn't match, kick them out
-        router.push('/');
-      }
-    }
-  }, [isLoaded, user, router]);
-
-  if (!isLoaded) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
-
-  // Double check to prevent flash of content
-  const email = user?.primaryEmailAddress?.emailAddress;
-  if (!email || !ADMIN_EMAILS.includes(email)) {
-    return null;
-  }
 
   const menu = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
@@ -87,7 +60,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-end px-8 sticky top-0 z-20">
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold">{user.fullName}</p>
+              <p className="text-sm font-bold">{user?.fullName}</p>
               <p className="text-xs text-green-600 font-bold">Administrator</p>
             </div>
             <UserButton />

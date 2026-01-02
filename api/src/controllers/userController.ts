@@ -19,6 +19,31 @@ export const getAddresses = async (req: Request, res: Response) => {
     }
 };
 
+// Get current user profile (ID, email, ROLE)
+export const getUserProfile = async (req: Request, res: Response) => {
+    try {
+        const { userId } = getAuth(req);
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const user = await User.findOne({ clerkId: userId });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({
+            id: user._id,
+            clerkId: user.clerkId,
+            email: user.email,
+            role: user.role, // VITAL for frontend auth check
+            firstName: user.firstName,
+            lastName: user.lastName
+        });
+    } catch (error) {
+        console.error('Error fetching profile:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 // Add a new address
 export const addAddress = async (req: Request, res: Response) => {
     try {

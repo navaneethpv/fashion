@@ -103,18 +103,19 @@ export default function AddProductPage() {
     // Fetch articleTypes (categories) when masterCategory changes
     // These are the articleTypes that belong to the selected masterCategory
     if (formData.masterCategory) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products?limit=1000`)
+      // ✅ Use the new dynamic endpoint instead of fetching 1000 products
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/categories/${formData.masterCategory}/subcategories`)
         .then((res) => res.json())
         .then((data) => {
-          const articleTypesList = Array.from(new Set(
-            data.data
-              .filter((p: any) => p.masterCategory === formData.masterCategory)
-              .map((p: any) => p.category)
-              .filter((cat: string) => cat && cat.trim())
-          )).sort() as string[];
-
-          // Fallback: if no articleTypes found for this masterCategory, fetch all categories
-          if (articleTypesList.length === 0) {
+          // Data is array of strings (the distinct categories)
+          if (Array.isArray(data) && data.length > 0) {
+            setArticleTypes(data);
+            setFilteredArticleTypes(data);
+          } else {
+            // Fallback if empty (bootstrapping new category?) - still try general fetch or just empty
+            // For now, let's keep it empty so user can maybe type custom if we allowed it, 
+            // but UI currently forces selection. 
+            // Let's use the old fallback of "all categories" just in case this is a new master calc
             fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/categories`)
               .then((res) => res.json())
               .then((cats) => {
@@ -122,16 +123,13 @@ export default function AddProductPage() {
                 setFilteredArticleTypes(cats);
               })
               .catch((err) => console.error("Category fetch failed", err));
-          } else {
-            setArticleTypes(articleTypesList);
-            setFilteredArticleTypes(articleTypesList);
           }
 
           setArticleTypeInputValue(''); // Clear articleType when masterCategory changes
           setFormData(prev => ({ ...prev, category: '' }));
         })
         .catch((err) => {
-          console.error("ArticleType fetch failed", err);
+          console.error("SubCategory fetch failed", err);
           // Fallback to all categories
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/categories`)
             .then((res) => res.json())

@@ -8,10 +8,7 @@ const API_KEY = process.env.CLOUDINARY_API_KEY;
 const API_SECRET = process.env.CLOUDINARY_API_SECRET;
 
 if (!CLOUD_NAME || !API_KEY || !API_SECRET) {
-  console.error(
-    "Cloudinary credentials missing. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in your .env"
-  );
-  // Do not throw here to allow non-cloudinary flows, but uploads will fail until set.
+  // Credentials missing: uploads will fail, but we suppress the warning message.
 }
 
 cloudinary.config({

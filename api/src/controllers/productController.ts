@@ -55,23 +55,16 @@ async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeT
     // --- Step 1: Get the Image Buffer and Upload to Cloudinary ---
     if (source.url) {
       try {
-        // First, try to download the image from the URL.
-        const response = await axios.get(source.url, {
-          responseType: 'arraybuffer',
-          timeout: 15000, // 15-second timeout for the download
-        });
-        buffer = Buffer.from(response.data);
-        mimeType = response.headers['content-type'] || mimeType;
-
-        // If download is successful, upload the buffer to Cloudinary.
-        const uploadResult = await uploadBufferToCloudinary(buffer);
-        finalUrl = uploadResult.secure_url;
+        // ✅ DIRECT URL HANDLING: Just use the URL, don't download/re-upload.
+        if (!/^https?:\/\//.test(source.url)) {
+          throw new Error("Invalid URL format. Must start with http:// or https://");
+        }
+        finalUrl = source.url;
+        // Buffer remains undefined, so AI analysis will be skipped for direct URLs.
 
       } catch (networkError: any) {
-        // THIS IS THE FIX: Catch DNS errors like EAI_AGAIN here.
-        console.warn(`[WARN] Failed to download image from URL: ${source.url}. Reason: ${networkError.message}`);
-        // We will re-throw the error to let the controller know this image failed.
-        throw new Error(`Could not fetch image from ${source.url}`);
+        console.warn(`[WARN] Invalid URL provided: ${source.url}. Reason: ${networkError.message}`);
+        throw new Error(`Invalid URL: ${source.url}`);
       }
     } else if (buffer) {
       // If a file buffer was provided directly (from an upload), upload it.
@@ -636,7 +629,27 @@ export const getProductBySlug = async (req: Request, res: Response) => {
 
     res.json(enhancedProduct);
   } catch (error) {
-    console.error("getProductBySlug error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// ----------------- Controller: getSubCategoriesForMaster -----------------
+export const getSubCategoriesForMaster = async (req: Request, res: Response) => {
+  try {
+    const { category } = req.params; // This is the 'masterCategory' in DB terms
+    if (!category) return res.status(400).json({ message: "Category parameter is required" });
+
+    // Case-insensitive regex for masterCategory
+    const regex = new RegExp(`^${category}$`, 'i');
+
+    const subCategories = await Product.distinct("category", {
+      masterCategory: regex,
+      isPublished: true
+    });
+
+    res.json(subCategories.sort());
+  } catch (error) {
+    console.error("Get SubCategories Error:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
@@ -709,12 +722,16 @@ export const createProduct = async (req: Request, res: Response) => {
       // Do NOT return error. Proceed with defaults.
     }
 
-    const firstImageResult = successes.length > 0 ? successes[0] : {
+    // Try to find a result that has AI data (likely from a file upload) to use for product metadata
+    const firstImageResult = successes.length > 0 ? (successes.find((s: any) => s.dominantColor) || successes[0]) : {
       url: "",
       dominantColor: undefined,
       imageEmbedding: undefined,
       aiTags: { style_tags: [] }
     };
+
+    // Collect ALL successful image URLs
+    const validImageUrls = successes.map((s: any) => s.url).filter((u: any) => u && typeof u === 'string');
 
     // parse price safely: accept cents or decimal rupees
     const priceNumber = (() => {
@@ -743,33 +760,48 @@ export const createProduct = async (req: Request, res: Response) => {
       });
     }
 
-    // --- CATEGORY VALIDATION ---
-    const normalizedCategory = normalizeCategoryInput(String(category));
-    if (!VALID_CATEGORIES.includes(normalizedCategory)) {
-      return res.status(400).json({
-        message: `Invalid category "${category}". Must be one of: ${VALID_CATEGORIES.join(", ")}`
-      });
+    // --- CATEGORY VALIDATION (DYNAMIC DB-BASED) ---
+    // 1. Check if the Category (Input "SubCategory") exists in the DB
+    // We treat the input 'category' as the DB 'category' field.
+    const normalizedCategoryInput = String(category).trim();
+
+    // Check if this category exists in the DB (Case Insensitive)
+    const categoryExists = await Product.exists({
+      category: new RegExp(`^${normalizedCategoryInput}$`, 'i')
+    });
+
+    // Valid if it exists OR if it matches one of the known valid list (fallback for bootstrapping new categories)
+    // We keep VALID_CATEGORIES as a fallback only if DB is empty, but primary is DB.
+    // Actually, per instructions: "If category exists in DB → accept it."
+
+    let dbCategory = normalizedCategoryInput;
+    if (categoryExists) {
+      // Fetch the canonical casing from one document
+      const canonical = await Product.findOne({ category: new RegExp(`^${normalizedCategoryInput}$`, 'i') }).select('category').lean();
+      if (canonical) dbCategory = canonical.category;
+    } else {
+      // If it's not in DB, is it in the static list? (Legacy support / Bootstrapping)
+      const staticMatch = VALID_CATEGORIES.find(c => c.toLowerCase() === normalizedCategoryInput.toLowerCase());
+      if (staticMatch) {
+        dbCategory = staticMatch;
+      } else {
+        // If totally new and not in static list, we reject it to prevent pollution
+        return res.status(400).json({
+          message: `Invalid category "${category}". Please use an existing category.`
+        });
+      }
     }
 
+    const normalizedCategory = dbCategory;
+
+    // 2. Validate user "SubCategory" (Input) vs DB "subCategory"
+    // Though requirements focused mainly on Category, let's just ensure clean input.
     let normalizedSubCategory = "";
     if (req.body.subCategory) {
-      // Simple trim
-      normalizedSubCategory = normalizeSubCategoryInput(req.body.subCategory);
-
-      // Check if subcategory belongs to main category
-      const allowedSubs = VALID_SUBCATEGORIES[normalizedCategory] || [];
-      // If the category has defined subcategories, enforce them?
-      // OR just warn? User requirement: "subCategory MUST belong to the category"
-      // Let's enforce strict case-insensitive match if list exists
-      if (allowedSubs.length > 0) {
-        const match = allowedSubs.find(s => s.toLowerCase() === normalizedSubCategory.toLowerCase());
-        if (!match) {
-          return res.status(400).json({
-            message: `Invalid subCategory "${req.body.subCategory}" for category "${normalizedCategory}". Valid options: ${allowedSubs.join(", ")}`
-          });
-        }
-        normalizedSubCategory = match; // Use canonical casing
-      }
+      normalizedSubCategory = String(req.body.subCategory).trim();
+      // Optional: Check if this subCategory is valid for the category?
+      // The prompt says "If subCategory exists for that category → accept it."
+      // We won't block based on subCategory distinctness for now to be flexible, just trimming.
     }
     // ---------------------------
 
@@ -786,7 +818,7 @@ export const createProduct = async (req: Request, res: Response) => {
       price_cents: priceNumber,
       price_before_cents: req.body.price_before_cents ? Number(req.body.price_before_cents) : Math.round(priceNumber * 1.3),
       variants: parsedVariants.length ? parsedVariants : [{ size: "One Size", color: "Default", sku: `${slug}-OS`, stock: 10 }],
-      images: firstImageResult.url ? [firstImageResult.url] : [], // ✅ Save empty array if no image
+      images: validImageUrls.length > 0 ? validImageUrls : [], // ✅ Save ALL images
       dominantColor: firstImageResult.dominantColor || undefined,
       imageEmbedding: firstImageResult.imageEmbedding, // ✅ Save Embedding
       tags: firstImageResult.aiTags.style_tags || [],

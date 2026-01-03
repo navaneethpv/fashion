@@ -17,7 +17,7 @@ import {
   getMostViewedProducts
 } from '../controllers/productController';
 import { upload } from '../config/multer'; // Assuming multer is configured for file uploads
-import { getSubCategories, getSubcategoriesByCategory, getCategories } from "../controllers/productController";
+import { getSubCategories, getSubcategoriesByCategory, getCategories, getSubCategoriesForMaster } from "../controllers/productController"; // ✅ Added getSubCategoriesForMaster
 import { aiSuggestSubCategory } from "../controllers/productController";
 
 
@@ -34,6 +34,7 @@ router.get('/', getProducts);
 router.get('/slug/:slug', getProductBySlug);
 router.get('/reviews/:productId', getReviews);
 router.get('/categories', getCategories);
+router.get('/categories/:category/subcategories', getSubCategoriesForMaster); // ✅ New Dynamic Endpoint
 router.get('/subcategories', getSubCategories);
 router.get('/subcategories/:category', getSubcategoriesByCategory);
 

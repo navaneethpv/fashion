@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { Buffer } from "buffer";
 import dotenv from "dotenv";
+import axios from 'axios';
 
 dotenv.config();
 
@@ -158,29 +159,34 @@ export async function generateImageEmbedding(
     mimeType: string
 ): Promise<number[] | undefined> {
     try {
-        const imagePart = bufferToGenerativePart(imageBuffer, mimeType);
+        // Strategy: Since standard Google AI Studio keys might not have access to 'multimodal-embedding-001',
+        // we will use a robust fallback:
+        // 1. Generate a dense description of the image using a Vision model.
+        // 2. Embed that text description using a Text Embedding model.
 
-        // Usage for @google/genai SDK: 'contents' for request, 'embeddings' for response
-        const result = await ai.models.embedContent({
-            model: "models/embedding-001",
-            contents: [ // Changed from 'content' to 'contents' (array)
-                {
-                    parts: [imagePart]
-                }
-            ]
-        } as any); // Using 'as any' to be safe against strict type definition mismatches if 'contents' is also debated, 
-        // but 'contents' matches the linter's suggestion.
+        // Step 1: Get Description
+        const description = await generateImageDescription({ imageBuffer, mimeType });
 
-        const response: any = result;
-
-        // Check for 'embeddings' array as per linter error
-        if (response.embeddings && response.embeddings.length > 0 && response.embeddings[0].values) {
-            return response.embeddings[0].values;
+        if (!description) {
+            console.warn("[VISUAL SEARCH AI] Failed to generate description for embedding.");
+            return undefined;
         }
 
-        // Fallback check just in case
-        if (response.embedding?.values) {
+        // Step 2: Embed Description
+        // Using 'models/text-embedding-004' which is better, or 'models/embedding-001'
+        const result = await ai.models.embedContent({
+            model: "models/text-embedding-004",
+            contents: [{ parts: [{ text: description }] }]
+        });
+
+        // Handle various response shapes
+        const response: any = result;
+        if (response.embedding && response.embedding.values) {
             return response.embedding.values;
+        }
+
+        if (response.embeddings && response.embeddings.length > 0 && response.embeddings[0].values) {
+            return response.embeddings[0].values;
         }
 
         return undefined;
@@ -188,5 +194,57 @@ export async function generateImageEmbedding(
     } catch (err: any) {
         console.warn("[VISUAL SEARCH AI] Embedding Generation Failed:", err.message);
         return undefined;
+    }
+}
+
+/**
+ * Generates a concise product description from an image.
+ * Supports both URL (fetches first) and Buffer.
+ */
+export async function generateImageDescription(input: {
+    imageUrl?: string;
+    imageBuffer?: Buffer;
+    mimeType?: string;
+}): Promise<string | null> {
+    try {
+        let buffer = input.imageBuffer;
+        let mime = input.mimeType || "image/jpeg";
+
+        // Fetch from URL if buffer not provided
+        if (!buffer && input.imageUrl) {
+            try {
+                const response = await axios.get(input.imageUrl, {
+                    responseType: "arraybuffer",
+                    timeout: 10000,
+                });
+                buffer = Buffer.from(response.data);
+                mime = response.headers["content-type"] || mime;
+            } catch (err) {
+                console.warn(`[GENERATE_DESCRIPTION] Failed to fetch image from URL: ${input.imageUrl}`);
+                return null;
+            }
+        }
+
+        if (!buffer) return null;
+
+        const imagePart = bufferToGenerativePart(buffer, mime);
+        const prompt = `Describe this fashion product in plain English for a search index. 
+    Focus on: Product Type, Material (if visible), Key Style/Pattern, and Gender (if obvious).
+    Keep it concise (1-2 sentences). Do not use markdown or specialized formatting.`;
+
+        const result = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [{ role: "user", parts: [imagePart, { text: prompt }] }],
+            config: {
+                maxOutputTokens: 100,
+                temperature: 0.2,
+            },
+        });
+
+        return result.text || null;
+
+    } catch (error: any) {
+        console.warn("[GENERATE_DESCRIPTION] AI Generation Failed:", error.message);
+        return null; // Fail-safe
     }
 }

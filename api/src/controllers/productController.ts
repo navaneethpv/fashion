@@ -59,20 +59,33 @@ async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeT
   let mimeType = source.mimeType || 'image/jpeg';
   let imageEmbedding: number[] | undefined; // ✅ Store embedding
 
+  console.log(`[DEBUG] processSingleImage processing: ${source.url ? 'URL' : 'BUFFER'}`);
+
+
   try {
     // --- Step 1: Get the Image Buffer and Upload to Cloudinary ---
     if (source.url) {
       try {
-        // ✅ DIRECT URL HANDLING: Just use the URL, don't download/re-upload.
+        // ✅ DIRECT URL HANDLING: Use the URL for display, but download for AI analysis
         if (!/^https?:\/\//.test(source.url)) {
           throw new Error("Invalid URL format. Must start with http:// or https://");
         }
         finalUrl = source.url;
-        // Buffer remains undefined, so AI analysis will be skipped for direct URLs.
+
+        // Download image to buffer for AI processing (embeddings, tags, colors)
+        // We do this inside the try block so if it fails, we catch it.
+        // Note: If download fails, we might still want to proceed with just the URL if strictly necessary,
+        // but for now we treat it as a "networkError" which is caught below.
+        console.log(`[PROCESS_IMAGE] Downloading image for AI analysis: ${source.url}`);
+        const response = await axios.get(source.url, { responseType: 'arraybuffer', timeout: 10000 });
+        buffer = Buffer.from(response.data);
+        if (response.headers['content-type']) {
+          mimeType = response.headers['content-type'];
+        }
 
       } catch (networkError: any) {
-        console.warn(`[WARN] Invalid URL provided: ${source.url}. Reason: ${networkError.message}`);
-        throw new Error(`Invalid URL: ${source.url}`);
+        console.warn(`[WARN] Failed to download/validate URL: ${source.url}. Reason: ${networkError.message}`);
+        throw new Error(`Invalid URL or Download Failed: ${source.url}`);
       }
     } else if (buffer) {
       // If a file buffer was provided directly (from an upload), save it locally.

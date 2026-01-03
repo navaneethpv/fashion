@@ -3,8 +3,6 @@
 import { Request, Response } from 'express';
 import { Order } from '../models/Order';
 import { Cart } from '../models/Cart';
-import { sendAdminEmail } from "../utils/sendAdminEmail";
-import { sendEmail } from "../utils/sendEmail";
 
 import { Product } from '../models/Product';
 import {
@@ -115,66 +113,6 @@ export const createOrder = async (req: Request, res: Response) => {
       { userId: validatedRequest.userId },
       { $set: { items: [] } }
     );
-
-    // Send Admin Notification (Non-blocking)
-    try {
-      // Fetch user email for notification
-      // (Assuming `req.auth.userId` is clerkId, but `validatedRequest.userId` might be the same? 
-      // Actually `validateCreateOrderRequest` uses `req.body.userId` but typically we trust token.
-      // Wait, `createOrder` doesn't fetch `User` object, only `cart` and `validatedRequest`.
-      // The prompt suggests: `<p><strong>Customer:</strong> ${user.email}</p>`.
-      // I don't have `user` object here.
-      // I should fetch user or just use userId if email not available, OR rely on `validatedRequest.shippingAddress.email`.
-      // Prompt sample: `<p><strong>Customer:</strong> ${user.email}</p>`
-      // The prompt assumes `user` is available.
-      // I must fetch user to match the prompt or use shipping email.
-      // Shipping email is safer if user lookup fails or adds latency. 
-      // Let's check `validatedRequest` structure. It has `shippingAddress`.
-      // The prompt's context might have had `user` available. I'll use `shippingAddress.email` which is robust here.
-
-      const customerEmail = validatedRequest.shippingAddress?.email || "Unknown";
-      const dashboardUrl = process.env.ADMIN_DASHBOARD_URL || "http://localhost:3000";
-
-      await sendAdminEmail(
-        "🛒 New Order Placed",
-        `
-          <h2>New Order Received</h2>
-          <p><strong>Order ID:</strong> ${savedOrder._id}</p>
-          <p><strong>Total Amount:</strong> ₹${(savedOrder.total_cents / 100).toFixed(2)}</p>
-          <p><strong>Items:</strong> ${savedOrder.items.length}</p>
-          <p><strong>Customer:</strong> ${customerEmail}</p>
-          <br/>
-          <a href="${dashboardUrl}/admin/orders">
-            View in Admin Panel
-          </a>
-        `
-      );
-    } catch (e) {
-      console.error("Order email notification failed");
-    }
-
-    // Send Customer Confirmation Email (Non-blocking)
-    try {
-      const customerEmail = validatedRequest.shippingAddress?.email;
-      if (customerEmail) {
-        await sendEmail(
-          customerEmail,
-          `Order Confirmed: #${savedOrder._id}`,
-          `
-            <h1>Order Confirmed!</h1>
-            <p>Thank you for your order.</p>
-            <p><strong>Order ID:</strong> ${savedOrder._id}</p>
-            <p><strong>Total Amount:</strong> ₹${(savedOrder.total_cents / 100).toFixed(2)}</p>
-            <p>We will notify you when your order is shipped.</p>
-          `
-        );
-      }
-    } catch (e) {
-      console.error("Customer order confirmation email failed", e);
-    }
-
-
-
 
     // Return saved order (Mongoose document with proper conversion)
     res.status(201).json(savedOrder);

@@ -111,21 +111,24 @@ export async function analyzeImageForVisualSearch(
             }
         };
     } catch (err: any) {
-        console.error("[VISUAL SEARCH AI] Analysis Error:", err);
-        console.error("[VISUAL SEARCH AI] Error Name:", err.name);
-        console.error("[VISUAL SEARCH AI] Error Message:", err.message);
-
-        // Provide helpful error message
-        let errorMessage = "Failed to analyze image for visual search.";
-        if (err.message?.toLowerCase().includes('api key')) {
-            errorMessage = "Invalid or missing Gemini API key. Please check your .env file.";
-        } else if (err.message?.toLowerCase().includes('quota')) {
-            errorMessage = "Gemini API quota exceeded. Please try again later.";
-        } else if (err.message) {
-            errorMessage = `Analysis failed: ${err.message}`;
+        // If quota exceeded or rate limit, just warn and return NULL (fallback to standard search)
+        if (err.message && (
+            err.message.includes('quota') ||
+            err.message.includes('rate limit') ||
+            err.message.includes('RESOURCE_EXHAUSTED') ||
+            err.message.includes('429')
+        )) {
+            console.warn("[VISUAL SEARCH AI] Gemini Quota Exceeded. Skipping AI analysis.");
+            // Return a safe "empty" result so the app doesn't crash
+            return {
+                category: 'Unknown',
+                aiTags: [],
+                dominantColor: { name: 'Gray', hex: '#808080', rgb: [128, 128, 128] }
+            };
         }
 
-        throw new Error(errorMessage);
+        console.error("[VISUAL SEARCH AI] Analysis Error:", err.message);
+        throw new Error("Failed to analyze image for visual search.");
     }
 }
 
@@ -192,6 +195,15 @@ export async function generateImageEmbedding(
         return undefined;
 
     } catch (err: any) {
+        if (err.message && (
+            err.message.includes('quota') ||
+            err.message.includes('rate limit') ||
+            err.message.includes('RESOURCE_EXHAUSTED') ||
+            err.message.includes('429')
+        )) {
+            console.warn("[VISUAL SEARCH AI] Gemini Quota Exceeded during image embedding. Skipping.");
+            return undefined;
+        }
         console.warn("[VISUAL SEARCH AI] Embedding Generation Failed:", err.message);
         return undefined;
     }
@@ -272,6 +284,15 @@ export async function generateTextEmbedding(text: string): Promise<number[] | un
 
         return undefined;
     } catch (err: any) {
+        if (err.message && (
+            err.message.includes('quota') ||
+            err.message.includes('rate limit') ||
+            err.message.includes('RESOURCE_EXHAUSTED') ||
+            err.message.includes('429')
+        )) {
+            console.warn("[VISUAL SEARCH AI] Gemini Quota Exceeded during text embedding. Skipping.");
+            return undefined;
+        }
         console.warn("[VISUAL SEARCH AI] Text Embedding Failed:", err.message);
         return undefined;
     }

@@ -1,15 +1,5 @@
-import nodemailer from "nodemailer";
 import { User } from "../models/User";
-
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: false,
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-});
+import { sendEmail } from "./sendEmail";
 
 export const sendAdminEmail = async (subject: string, html: string) => {
     try {
@@ -30,14 +20,10 @@ export const sendAdminEmail = async (subject: string, html: string) => {
         const emails = admins.map(a => a.email);
         console.log("📨 Sending email to:", emails);
 
-        await transporter.sendMail({
-            from: `"Eyoris Orders" <${process.env.SMTP_USER}>`,
-            to: emails,
-            subject,
-            html,
-        });
+        // Send email using Resend utility
+        await sendEmail(emails, subject, html);
 
-        console.log("✅ Email sent successfully");
+        console.log("✅ Admin email sent successfully via Resend");
     } catch (error) {
         console.error("❌ Admin email error:", error);
     }

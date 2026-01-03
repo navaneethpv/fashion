@@ -10,6 +10,7 @@ import { Review } from "../models/Review";
 import { getGarmentColorFromGemini } from '../utils/geminiColorAnalyzer';
 
 import { normalizeCategoryName as normalizeAIIntent, VALID_CATEGORIES as AI_VALID_CATEGORIES } from '../utils/categoryNormalizer';
+import { generateImageEmbedding } from '../utils/visualSearchAI'; // ✅ NEW IMPORT
 import { getAllArticleTypes, resolveArticleTypes, resolveBroadTerms } from '../utils/articleTypeResolver';
 import { VALID_CATEGORIES, VALID_SUBCATEGORIES, normalizeCategoryInput, normalizeSubCategoryInput } from "../utils/categoryConstants";
 
@@ -41,13 +42,14 @@ function uploadBufferToCloudinary(buffer: Buffer, folder = 'eyoris/products') {
 /**
  * Robust single-image processor.
  * Accepts { buffer?, url?, mimeType? }
- * Returns { url, dominantColor: { name, hex, rgb }, aiTags }
+ * Returns { url, dominantColor: { name, hex, rgb }, aiTags, imageEmbedding }
  */
 
 async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeType?: string }) {
   let finalUrl = '';
   let buffer: Buffer | undefined = source.buffer;
   let mimeType = source.mimeType || 'image/jpeg';
+  let imageEmbedding: number[] | undefined; // ✅ Store embedding
 
   try {
     // --- Step 1: Get the Image Buffer and Upload to Cloudinary ---
@@ -94,10 +96,15 @@ async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeT
         console.log(`[COLOR_DETECTION] Starting Gemini color analysis for image: ${finalUrl}`);
 
         // Use Promise.all to run color and AI analysis concurrently for speed.
-        const [geminiColorResult, aiResult] = await Promise.all([
+        const [geminiColorResult, aiResult, embeddingResult] = await Promise.all([
           getGarmentColorFromGemini(buffer, mimeType),
-          getProductTagsFromGemini(buffer, mimeType)
+          getProductTagsFromGemini(buffer, mimeType),
+          generateImageEmbedding(buffer, mimeType) // ✅ Generate Embedding
         ]);
+
+        if (embeddingResult) {
+          imageEmbedding = embeddingResult;
+        }
 
         // Map Gemini color output to Product.dominantColor format
         if (geminiColorResult && geminiColorResult.dominant_color_name && geminiColorResult.dominant_color_hex) {
@@ -152,7 +159,7 @@ async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeT
       console.log(`[COLOR_DETECTION] 📊 Final status: FALLBACK color used (${dominantColor.name}, ${dominantColor.hex}) for image: ${finalUrl}`);
     }
 
-    return { url: finalUrl, dominantColor, aiTags };
+    return { url: finalUrl, dominantColor, aiTags, imageEmbedding };
 
   } catch (err: any) {
     // This top-level catch will handle critical failures (like the initial download).
@@ -777,6 +784,7 @@ export const createProduct = async (req: Request, res: Response) => {
       variants: parsedVariants.length ? parsedVariants : [{ size: "One Size", color: "Default", sku: `${slug}-OS`, stock: 10 }],
       images: [firstImageResult.url], // Set images as array of string URLs
       dominantColor: firstImageResult.dominantColor || undefined,
+      imageEmbedding: firstImageResult.imageEmbedding, // ✅ Save Embedding
       tags: firstImageResult.aiTags.style_tags || [],
       rating: req.body.rating ? Number(req.body.rating) : parseFloat((Math.random() * (5 - 3.8) + 3.8).toFixed(1)),
       reviewsCount: req.body.reviewsCount ? Number(req.body.reviewsCount) : 0,

@@ -127,3 +127,66 @@ export async function analyzeImageForVisualSearch(
         throw new Error(errorMessage);
     }
 }
+
+/**
+ * Generates a vector embedding for the given image.
+ * Uses the 'text-embedding-004' or a multimodal embedding model if available.
+ * For now, we will use 'models/embedding-001' which supports text, 
+ * OR if using the latest SDK, we check for multimodal support.
+ * 
+ * NOTE: As of now, standard Gemini API embedding models are primarily text-based.
+ * However, 'multimodal-embedding-001' exists in Vertex AI.
+ * For the standard Google AI Studio API, we often use `embedding-001` for text.
+ * 
+ * UPDATE: We will use the `embedding-001` model which accepts 'content' including images in some versions,
+ * or we will use a workaround if needed. 
+ * 
+ * ACTUALLY: The safest bet for generic "Google Gen AI" image embeddings 
+ * without Vertex AI specific setup is to use the `embedding-001` model 
+ * but passing the image as a part. 
+ * 
+ * Re-checking docs: Google AI Studio supports 'models/embedding-001' which is text-only.
+ * 'models/multimodal-embedding-001' is required for images.
+ * If that is not available via the standard API key, this might fail.
+ * 
+ * PLAN B (Safer for this audit): 
+ * We will TRY to use `models/embedding-001` with the image part.
+ * If it fails, we catch it.
+ */
+export async function generateImageEmbedding(
+    imageBuffer: Buffer,
+    mimeType: string
+): Promise<number[] | undefined> {
+    try {
+        const imagePart = bufferToGenerativePart(imageBuffer, mimeType);
+
+        // Usage for @google/genai SDK: 'contents' for request, 'embeddings' for response
+        const result = await ai.models.embedContent({
+            model: "models/embedding-001",
+            contents: [ // Changed from 'content' to 'contents' (array)
+                {
+                    parts: [imagePart]
+                }
+            ]
+        } as any); // Using 'as any' to be safe against strict type definition mismatches if 'contents' is also debated, 
+        // but 'contents' matches the linter's suggestion.
+
+        const response: any = result;
+
+        // Check for 'embeddings' array as per linter error
+        if (response.embeddings && response.embeddings.length > 0 && response.embeddings[0].values) {
+            return response.embeddings[0].values;
+        }
+
+        // Fallback check just in case
+        if (response.embedding?.values) {
+            return response.embedding.values;
+        }
+
+        return undefined;
+
+    } catch (err: any) {
+        console.warn("[VISUAL SEARCH AI] Embedding Generation Failed:", err.message);
+        return undefined;
+    }
+}

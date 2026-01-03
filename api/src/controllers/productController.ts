@@ -703,14 +703,18 @@ export const createProduct = async (req: Request, res: Response) => {
     console.log('[createProduct] image processing successes:', successes.length, 'failures:', failures.length);
     if (failures.length) console.warn('[createProduct] image processing failure reasons (sample):', failures.slice(0, 5));
 
+    // Fail-safe: If all images failed, we proceed but with a warning.
     if (successes.length === 0) {
-      return res.status(500).json({
-        message: 'Failed to process any images. Check image URLs or uploaded files.',
-        details: process.env.NODE_ENV !== 'production' ? { failures } : undefined,
-      });
+      console.warn('[createProduct] ⚠️ No images processed successfully. Creating product with fallback defaults.');
+      // Do NOT return error. Proceed with defaults.
     }
 
-    const firstImageResult = successes[0];
+    const firstImageResult = successes.length > 0 ? successes[0] : {
+      url: "",
+      dominantColor: undefined,
+      imageEmbedding: undefined,
+      aiTags: { style_tags: [] }
+    };
 
     // parse price safely: accept cents or decimal rupees
     const priceNumber = (() => {
@@ -782,7 +786,7 @@ export const createProduct = async (req: Request, res: Response) => {
       price_cents: priceNumber,
       price_before_cents: req.body.price_before_cents ? Number(req.body.price_before_cents) : Math.round(priceNumber * 1.3),
       variants: parsedVariants.length ? parsedVariants : [{ size: "One Size", color: "Default", sku: `${slug}-OS`, stock: 10 }],
-      images: [firstImageResult.url], // Set images as array of string URLs
+      images: firstImageResult.url ? [firstImageResult.url] : [], // ✅ Save empty array if no image
       dominantColor: firstImageResult.dominantColor || undefined,
       imageEmbedding: firstImageResult.imageEmbedding, // ✅ Save Embedding
       tags: firstImageResult.aiTags.style_tags || [],

@@ -11,8 +11,10 @@ import { getProductTagsFromGemini } from '../utils/geminiTagging';
 import { Review } from "../models/Review";
 import { getGarmentColorFromGemini } from '../utils/geminiColorAnalyzer';
 
+
 import { normalizeCategoryName as normalizeAIIntent, VALID_CATEGORIES as AI_VALID_CATEGORIES } from '../utils/categoryNormalizer';
-import { generateImageEmbedding, generateTextEmbedding } from '../utils/visualSearchAI'; // ✅ NEW IMPORT
+// import { generateImageEmbedding, generateTextEmbedding } from '../utils/visualSearchAI'; 
+import { generateClipEmbedding, generateClipTextEmbedding } from '../services/clipEmbeddingService';
 import { searchProductsSmart } from '../services/searchOrchestrator';
 import { getAllArticleTypes, resolveArticleTypes, resolveBroadTerms } from '../utils/articleTypeResolver';
 import { VALID_CATEGORIES, VALID_SUBCATEGORIES, normalizeCategoryInput, normalizeSubCategoryInput } from "../utils/categoryConstants";
@@ -120,7 +122,7 @@ async function processSingleImage(source: { buffer?: Buffer, url?: string, mimeT
         const [geminiColorResult, aiResult, embeddingResult] = await Promise.all([
           getGarmentColorFromGemini(buffer, mimeType),
           getProductTagsFromGemini(buffer, mimeType),
-          generateImageEmbedding(buffer, mimeType) // ✅ Generate Embedding
+          generateClipEmbedding(buffer) // ✅ Use CLIP for embedding
         ]);
 
         if (embeddingResult) {
@@ -236,7 +238,7 @@ export const getProducts = async (req: Request, res: Response) => {
       // Try vector search first for the original query
       try {
         console.log(`[SMART SEARCH] Processing query: "${originalQuery}"`);
-        const embedding = await generateTextEmbedding(originalQuery as string);
+        const embedding = await generateClipTextEmbedding(originalQuery as string);
 
         const smartResult = await searchProductsSmart(embedding, {
           category: (category as string) || intent.category, // Use explicit filter OR inferred intent

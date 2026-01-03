@@ -36,6 +36,11 @@ app.use(morgan("dev"));
 
 import { updateLastSeen } from "./middleware/updateLastSeen";
 
+// Health Check Endpoint (Keep-Alive)
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
+
 // Clerk middleware - MUST be before routes
 app.use(clerkMiddleware());
 app.use(updateLastSeen);

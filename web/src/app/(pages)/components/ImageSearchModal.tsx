@@ -42,9 +42,11 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const base =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:4000";
+    typeof window !== "undefined" && window.location.hostname === "localhost"
+      ? "http://localhost:4000"
+      : process.env.NEXT_PUBLIC_API_BASE ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:4000";
   const baseUrl = base.replace(/\/$/, "");
 
   if (!isOpen) return null;

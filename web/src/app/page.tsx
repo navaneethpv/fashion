@@ -17,9 +17,11 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   const base =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:4000";
+    typeof window !== "undefined" && window.location.hostname === "localhost"
+      ? "http://localhost:4000"
+      : process.env.NEXT_PUBLIC_API_BASE ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:4000";
   const baseUrl = base.replace(/\/$/, "");
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 overflow-x-hidden selection:bg-gray-100 selection:text-black">
+    <div className="bg-white font-sans text-gray-900 selection:bg-gray-100 selection:text-black">
       <Navbar />
 
       {/* HERO SECTION */}

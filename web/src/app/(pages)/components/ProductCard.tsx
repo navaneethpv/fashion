@@ -36,9 +36,11 @@ export default function ProductCard({ product, isPremium = false }: ProductCardP
   const { user } = useUser();
 
   const base =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:4000";
+    typeof window !== "undefined" && window.location.hostname === "localhost"
+      ? "http://localhost:4000"
+      : process.env.NEXT_PUBLIC_API_BASE ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:4000";
   const baseUrl = base.replace(/\/$/, "");
 
   const toggleWishlist = async (e: React.MouseEvent) => {

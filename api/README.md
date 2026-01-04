@@ -7,7 +7,7 @@ The backend is a robust **Express** server using **TypeScript** and **MongoDB**.
 - **Database**: MongoDB (Mongoose) 🍃
 - **Language**: TypeScript 📘
 - **AI**: Google Gemini (GenAI) 🧠
-- **Storage**: Cloudinary ☁️
+
 - **Auth**: Clerk (Express SDK) 🔒
 - **Email**: Resend / Nodemailer 📧
 
@@ -24,7 +24,7 @@ Add the following keys:
 
 ```env
 # Server Configuration
-PORT=5000
+PORT=4000
 NODE_ENV=development
 
 # Database
@@ -37,11 +37,6 @@ CLERK_SECRET_KEY=sk_test_...
 # AI Services (Google Gemini)
 GEMINI_API_KEY=AIza...
 
-# Image Storage (Cloudinary)
-CLOUDINARY_CLOUD_NAME=...
-CLOUDINARY_API_KEY=...
-CLOUDINARY_API_SECRET=...
-
 # Email Service (Resend)
 RESEND_API_KEY=re_...
 ```
@@ -50,11 +45,10 @@ RESEND_API_KEY=re_...
 ```bash
 pnpm dev
 ```
-The server will start on [http://localhost:5000](http://localhost:5000).
+The server will start on [http://localhost:4000](http://localhost:4000).
 
 ## 📜 Scripts
 - **`pnpm dev`**: Start server with `nodemon`.
 - **`pnpm build`**: Compile TypeScript to JavaScript.
 - **`pnpm start`**: Run the compiled production build.
 - **`pnpm seed:kaggle`**: 🌱 Seed database with Kaggle dataset.
-- **`pnpm seed:gemini:tags`**: 🏷️ Backfill AI tags for products.

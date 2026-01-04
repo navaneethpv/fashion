@@ -139,10 +139,12 @@ function NavbarContent() {
       </nav>
 
 
-      <ImageSearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-      />
+      {isSearchOpen && (
+        <ImageSearchModal
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+        />
+      )}
 
       {/* MOBILE SEARCH OVERLAY */}
       {isMobileSearchOpen && (

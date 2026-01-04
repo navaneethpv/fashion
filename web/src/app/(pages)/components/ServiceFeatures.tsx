@@ -25,7 +25,7 @@ export default function ServiceFeatures() {
     return (
         <section className="py-16 md:py-24 border-b border-gray-100">
             <div className="max-w-[1400px] mx-auto px-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-400">
                     {features.map((feature, index) => (
                         <motion.div
                             key={index}

@@ -13,9 +13,6 @@ import { getGarmentColorFromGemini } from '../utils/geminiColorAnalyzer';
 
 
 import { normalizeCategoryName as normalizeAIIntent, VALID_CATEGORIES as AI_VALID_CATEGORIES } from '../utils/categoryNormalizer';
-// import { generateImageEmbedding, generateTextEmbedding } from '../utils/visualSearchAI'; 
-import { generateClipEmbedding, generateClipTextEmbedding } from '../services/clipEmbeddingService';
-import { searchProductsSmart } from '../services/searchOrchestrator';
 import { getAllArticleTypes, resolveArticleTypes, resolveBroadTerms } from '../utils/articleTypeResolver';
 import { VALID_CATEGORIES, VALID_SUBCATEGORIES, normalizeCategoryInput, normalizeSubCategoryInput } from "../utils/categoryConstants";
 
@@ -52,7 +49,7 @@ function uploadToImageKit(buffer: Buffer, filename: string): Promise<string> {
 /**
  * Robust single-image processor.
  * Accepts { buffer?, url?, mimeType? }
- * Returns { url, dominantColor: { name, hex, rgb }, aiTags, imageEmbedding }
+ * Returns { url, dominantColor: { name, hex, rgb }, aiTags }
  */
 
 async function processSingleImage(
@@ -62,7 +59,7 @@ async function processSingleImage(
   let finalUrl = '';
   let buffer: Buffer | undefined = source.buffer;
   let mimeType = source.mimeType || 'image/jpeg';
-  let imageEmbedding: number[] | undefined; // ✅ Store embedding
+  // Removed imageEmbedding logic
 
   console.log(`[DEBUG] processSingleImage processing: ${source.url ? 'URL' : 'BUFFER'}`);
 
@@ -138,15 +135,11 @@ async function processSingleImage(
         console.log(`[COLOR_DETECTION] Starting Gemini color analysis for image: ${finalUrl}`);
 
         // Use Promise.all to run color and AI analysis concurrently for speed.
-        const [geminiColorResult, aiResult, embeddingResult] = await Promise.all([
+        const [geminiColorResult, aiResult] = await Promise.all([
           getGarmentColorFromGemini(buffer, mimeType),
-          getProductTagsFromGemini(buffer, mimeType, context.name, context.category),
-          generateClipEmbedding(buffer) // ✅ Use CLIP for embedding
+          getProductTagsFromGemini(buffer, mimeType, context.name, context.category)
         ]);
 
-        if (embeddingResult) {
-          imageEmbedding = embeddingResult;
-        }
 
         // Map Gemini color output to Product.dominantColor format
         if (geminiColorResult && geminiColorResult.dominant_color_name && geminiColorResult.dominant_color_hex) {
@@ -201,7 +194,7 @@ async function processSingleImage(
       console.log(`[COLOR_DETECTION] 📊 Final status: FALLBACK color used (${dominantColor.name}, ${dominantColor.hex}) for image: ${finalUrl}`);
     }
 
-    return { url: finalUrl, dominantColor, aiTags, imageEmbedding };
+    return { url: finalUrl, dominantColor, aiTags };
 
   } catch (err: any) {
     // This top-level catch will handle critical failures (like the initial download).
@@ -256,37 +249,6 @@ export const getProducts = async (req: Request, res: Response) => {
     if (q && typeof q === 'string') {
       const { parseSearchIntent } = require('../utils/searchIntentParser');
       const intent = parseSearchIntent(q);
-
-      // --- PHASE 6: SMART SEARCH INTEGRATION ---
-      // Try vector search first for the original query
-      let vectorFound = false;
-      try {
-        console.log(`[SMART SEARCH] Processing query: "${originalQuery}"`);
-        const embedding = await generateClipTextEmbedding(originalQuery as string);
-
-        const smartResult = await searchProductsSmart(embedding, {
-          category: (category as string) || intent.category, // Use explicit filter OR inferred intent
-          gender: (req.query.gender as string) || intent.gender,
-          limit: limit
-        });
-
-        if (smartResult.type === 'VECTOR' && smartResult.data.length > 0) {
-          console.log(`[SMART SEARCH] Success. Found ${smartResult.data.length} matches.`);
-          // Return vector results immediately
-          return res.json({
-            data: smartResult.data,
-            meta: {
-              total: smartResult.data.length,
-              page,
-              pages: 1 // Vector search usually returns single page of best matches
-            }
-          });
-        }
-      } catch (smartSearchError) {
-        console.error("[SMART SEARCH] Failed, falling back to keyword search.", smartSearchError);
-        // Continue to standard logic
-      }
-      // -----------------------------------------
 
       if (intent.gender) inferredGender = intent.gender;
       if (intent.category) inferredCategory = intent.category;

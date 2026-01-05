@@ -1,17 +1,11 @@
 import { Request, Response } from 'express';
 import { Product } from '../models/Product';
 import { analyzeImageForVisualSearch } from '../utils/visualSearchAI';
-import { calculateColorDistance, distanceToSimilarity } from '../utils/colorMath';
-import { normalizeCategoryName } from '../utils/categoryNormalizer';
-import { getAllArticleTypes, resolveArticleTypes, resolveBroadTerms } from '../utils/articleTypeResolver';
 import axios from 'axios';
 
 /**
  * STEP 2: Visual Analysis (AI – One Time)
  * Extracts category, semantic tags, and dominant color from an uploaded image.
- * 
- * Explainability: AI is used only for metadata extraction to ensure 
- * predictable and explainable search results.
  */
 export const analyzeImage = async (req: Request, res: Response) => {
     try {
@@ -30,30 +24,24 @@ export const analyzeImage = async (req: Request, res: Response) => {
 
 /**
  * STEP 2 (URL Variant): Visual Analysis from Image URL
- * Extracts category, semantic tags, and dominant color from an image URL.
- * 
- * This reuses the existing analyzeImageForVisualSearch utility after downloading the image.
  */
 export const analyzeImageFromUrl = async (req: Request, res: Response) => {
     try {
         const { imageUrl } = req.body;
 
-        // Validate imageUrl
         if (!imageUrl) {
             return res.status(400).json({ message: 'Image URL is required' });
         }
 
-        // Validate URL format (must be http or https)
         if (!/^https?:\/\//i.test(imageUrl)) {
             return res.status(400).json({ message: 'Invalid image URL. Must start with http:// or https://' });
         }
 
-        // Download the image
         let response;
         try {
             response = await axios.get(imageUrl, {
                 responseType: 'arraybuffer',
-                timeout: 15000, // 15 second timeout
+                timeout: 15000,
             });
         } catch (downloadError: any) {
             console.error('Image download error:', downloadError.message);
@@ -66,12 +54,10 @@ export const analyzeImageFromUrl = async (req: Request, res: Response) => {
         const buffer = Buffer.from(response.data);
         const mimeType = response.headers['content-type'] || 'image/jpeg';
 
-        // Validate it's an image
         if (!mimeType.startsWith('image/')) {
             return res.status(400).json({ message: 'URL does not point to an image' });
         }
 
-        // Reuse existing visual search analysis
         const result = await analyzeImageForVisualSearch(buffer, mimeType);
 
         res.json(result);
@@ -82,135 +68,143 @@ export const analyzeImageFromUrl = async (req: Request, res: Response) => {
 };
 
 /**
- * STEP 3 & 4: Similar Product Retrieval & Refinement
+ * STEP 3: Gemini-Based Image Search (Metadata Matching)
  * 
  * Logic:
- * 1. Fetch products matching the same category and overlapping semantic tags.
- * 2. STRUCTURAL SIMILARITY FIRST: Color is NOT used for initial filtering to show 
- *    diverse options that are structurally similar.
- * 3. SECONDARY REFINEMENT: Optional color filtering and Euclidean distance sorting.
- * 
- * Explainability: This decoupled approach allows users to understand WHY a product 
- * was suggested (category + style) while giving them control over visual filters.
+ * 1. Filter by Category (Strict).
+ * 2. Match products using `$or` logic on:
+ *    - dominantColor.name
+ *    - aiTags.style_tags
+ *    - aiTags.material_tags
+ *    - aiTags.pattern
+ * 3. FALLBACK: If 0 results, return latest published products.
  */
 export const getSimilarProducts = async (req: Request, res: Response) => {
     try {
-        const { category, aiTags, filters, sortBy } = req.body;
+        const { category, aiTags, dominantColor, filters, sortBy } = req.body;
 
         if (!category) {
             return res.status(400).json({ message: 'Category is required' });
         }
 
-        // ========================================
-        // STRICT CATEGORY FILTERING (EXACT MATCH ONLY)
-        // ========================================
-        // The AI-detected category must match exactly - no fuzzy matching.
-        // This ensures Tshirts returns ONLY Tshirts, not Shirts or Tops.
-        console.log(`[VISUAL SEARCH] Using STRICT filter for category: "${category}"`);
+        console.log(`[GEMINI SEARCH] Query Category: "${category}"`);
+        console.log(`[GEMINI SEARCH] Query Tags:`, aiTags);
+        console.log(`[GEMINI SEARCH] Query Color:`, dominantColor?.name);
 
-        // Build query with STRICT category match (no fuzzy resolution)
+        // 1. Base Query: Strict Category
         const query: any = {
-            isPublished: { $ne: false },
-            category: category  // EXACT match only
+            isPublished: true,
+            category: category // Exact match
         };
 
-        // Color and other filters are optional user refinements
-        if (filters?.colors && filters.colors.length > 0) {
-            query['dominantColor.name'] = { $in: filters.colors };
+        // 2. Build Metadata Match Scored Logic
+        // We will use an aggregation pipeline to score matches manually since we want specific weighting
+        // OR we can use a simpler Find with $or and client-side sorting if dataset is small.
+        // Given existing architecture, let's use a Find with $or for simplicity and speed as per instructions.
+
+        const orConditions: any[] = [];
+
+        // Match by Color Name
+        if (dominantColor?.name) {
+            orConditions.push({ 'dominantColor.name': dominantColor.name });
         }
 
-        // Additional optional filters
+        // Match by Tags
+        if (aiTags && Array.isArray(aiTags) && aiTags.length > 0) {
+            orConditions.push({ 'aiTags.style_tags': { $in: aiTags } });
+            orConditions.push({ 'aiTags.material_tags': { $in: aiTags } });
+            orConditions.push({ 'aiTags.pattern': { $in: aiTags } });
+        }
+
+        // If we have conditions, add them to the query
+        if (orConditions.length > 0) {
+            // We want products that match the Category AND (Color OR Tags)
+            // However, MongoDB $or inside $and can be tricky.
+            // Let's use a simpler approach: Just add $or to the top level query
+            query.$or = orConditions;
+        }
+
+        // Apply Extra Filters (Price, Brand)
         if (filters?.minPrice || filters?.maxPrice) {
-            query.price = {};
-            if (filters.minPrice) query.price.$gte = filters.minPrice;
-            if (filters.maxPrice) query.price.$lte = filters.maxPrice;
+            query.price_cents = {};
+            if (filters.minPrice) query.price_cents.$gte = Number(filters.minPrice) * 100;
+            if (filters.maxPrice) query.price_cents.$lte = Number(filters.maxPrice) * 100;
         }
 
         if (filters?.brand) {
             query.brand = filters.brand;
         }
 
-        const candidates = await Product.find(query).limit(200).lean();
+        console.log(`[GEMINI SEARCH] MongoDB Query:`, JSON.stringify(query));
 
-        console.log(`[VISUAL SEARCH] Strict Query:`, JSON.stringify(query));
-        console.log(`[VISUAL SEARCH] Found ${candidates.length} strict category matches`);
+        // Execute Search
+        let results = await Product.find(query)
+            .limit(40)
+            .lean();
 
-        // ========================================
-        // EMPTY RESULT HANDLING
-        // ========================================
-        if (candidates.length === 0) {
-            console.warn(`[VISUAL SEARCH] No products found for strict category: "${category}"`);
-            return res.json({
-                results: [],
-                total: 0,
-                message: `No ${category} found matching this image`
-            });
+        console.log(`[GEMINI SEARCH] Found ${results.length} matches.`);
+
+        // 3. FALLBACK LOGIC
+        if (results.length === 0) {
+            console.warn(`[GEMINI SEARCH] 0 results found. triggering FALLBACK to latest products.`);
+
+            // Fallback: Just get latest products from the same category first, then generic
+            // Let's just do latest published products as requested "Latest published products"
+
+            // First try latest in same category
+            results = await Product.find({
+                isPublished: true,
+                category: category
+            })
+                .sort({ createdAt: -1 })
+                .limit(40)
+                .lean();
+
+            if (results.length === 0) {
+                // Total fallback (any category)
+                results = await Product.find({ isPublished: true })
+                    .sort({ createdAt: -1 })
+                    .limit(40)
+                    .lean();
+            }
         }
 
-        if (candidates.length > 0) {
-            console.log(`[VISUAL SEARCH] Sample strict match:`, {
-                name: candidates[0].name,
-                category: candidates[0].category
-            });
+        // 4. Scoring / Sorting (Client-side refinement)
+        // If we have results from the specific query, let's sort them by relevance
+        // (For now, simple sort or just return as is if implementation needs to be minimal)
+        // Let's calculate a simple overlap score to sort best matches to top
+        if (results.length > 0 && query.$or) {
+            results = results.map((p: any) => {
+                let score = 0;
+                // Color Match
+                if (dominantColor?.name && p.dominantColor?.name === dominantColor.name) {
+                    score += 10;
+                }
+                // Tag Overlap
+                const pTags = [
+                    ...(p.aiTags?.style_tags || []),
+                    ...(p.aiTags?.material_tags || []),
+                    ...(p.aiTags?.pattern || [])
+                ];
+                const overlap = aiTags.filter((t: string) => pTags.includes(t)).length;
+                score += overlap * 2;
+
+                return { ...p, debugScore: score };
+            }).sort((a: any, b: any) => b.debugScore - a.debugScore);
         }
 
-        // Calculate similarity based on tags and optionally color
-        let results = candidates.map((product: any) => {
-            // Base similarity from category match (already queried)
-            let similarityScore = 0.5; // Start with 50% for category match
-
-            // Boost similarity for tag overlaps
-            const productTags = [...(product.aiTags?.style_tags || []), ...(product.aiTags?.material_tags || [])];
-            const overlap = aiTags?.filter((tag: string) => productTags.includes(tag)) || [];
-            if (aiTags && aiTags.length > 0) {
-                similarityScore += (overlap.length / aiTags.length) * 0.3; // Up to 30% boost for tags
-            }
-
-            // 🧮 Color Similarity Logic (Activated if sorting by color or for display)
-            let colorSimilarity = 0;
-            if (product.dominantColor?.rgb && req.body.dominantColor?.rgb) {
-                const queryRgb = {
-                    r: req.body.dominantColor.rgb[0],
-                    g: req.body.dominantColor.rgb[1],
-                    b: req.body.dominantColor.rgb[2]
-                };
-                const productRgb = {
-                    r: product.dominantColor.rgb[0],
-                    g: product.dominantColor.rgb[1],
-                    b: product.dominantColor.rgb[2]
-                };
-
-                const distance = calculateColorDistance(queryRgb, productRgb);
-                colorSimilarity = distanceToSimilarity(distance);
-            }
-
-            // If user specifically asked for color-based similarity search (optional refinement)
-            // we can integrate it into the final score
-            const finalSimilarity = (similarityScore + colorSimilarity * 0.2) * 100;
-
-            return {
-                ...product,
-                similarity: Math.round(finalSimilarity),
-                colorSimilarity: Math.round(colorSimilarity * 100)
-            };
-        });
-
-        // SORTING
-        if (sortBy === 'color') {
-            results.sort((a, b) => b.colorSimilarity - a.colorSimilarity);
-        } else if (sortBy === 'price_asc') {
-            results.sort((a, b) => a.price - b.price);
+        // Optional Sorts
+        if (sortBy === 'price_asc') {
+            results.sort((a: any, b: any) => (a.price_cents || 0) - (b.price_cents || 0));
         } else if (sortBy === 'price_desc') {
-            results.sort((a, b) => b.price - a.price);
-        } else {
-            // Default: Overall similarity
-            results.sort((a, b) => b.similarity - a.similarity);
+            results.sort((a: any, b: any) => (b.price_cents || 0) - (a.price_cents || 0));
         }
 
         res.json({
             total: results.length,
-            results: results.slice(0, 50) // Limit results for performance
+            results: results
         });
+
     } catch (error: any) {
         console.error('Results Error:', error);
         res.status(500).json({ message: error.message || 'Error fetching similar products' });

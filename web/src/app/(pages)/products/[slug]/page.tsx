@@ -297,21 +297,23 @@ export default async function ProductDetailPage({
                 <div className="mt-4">
                   {/* Big primary swatch + meta */}
                   <div className="flex items-center justify gap-4">
-                    {product.variants?.[0]?.color ? (
+                    {(product.dominantColor?.hex || (product.variants?.[0]?.color && product.variants[0].color !== 'Default')) ? (
                       <div className="mt-2 text-xs text-gray-500 flex items-center gap-2">
                         Color:{" "}
                         <span
-                          className="inline-block px-3 py-3 rounded bg-gray-100 text-gray-700 text-xs"
-                          style={
-                            product.variants[0]?.color
-                              ? { backgroundColor: product.variants[0].color }
-                              : undefined
-                          }
-                        ></span>
+                          className="inline-block w-5 h-5 rounded-full border border-gray-200 shadow-sm"
+                          style={{
+                            backgroundColor: product.dominantColor?.hex || (product.variants?.[0]?.color !== 'Default' ? product.variants[0]?.color : '#eee')
+                          }}
+                          title={product.dominantColor?.name || product.variants?.[0]?.color}
+                        />
+                        <span className="text-gray-900 font-medium ml-1">
+                          {product.dominantColor?.name || (product.variants?.[0]?.color !== 'Default' ? product.variants[0].color : '')}
+                        </span>
                       </div>
                     ) : (
-                      <div className="text-xs text-gray-500">
-                        No color information available
+                      <div className="text-xs text-gray-400 italic mt-2">
+                        {/* No color info available */}
                       </div>
                     )}
                   </div>

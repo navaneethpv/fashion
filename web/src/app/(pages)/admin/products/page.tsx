@@ -27,6 +27,7 @@ export default function ProductsListPage() {
     variants?: any;
     price_cents?: number;
     category?: string;
+    dominantColor?: { name: string; hex: string };
   };
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -133,6 +134,7 @@ export default function ProductsListPage() {
             <tr>
               <th className="px-6 py-4 rounded-tl-lg">Product</th>
               <th className="px-6 py-4">Category</th>
+              <th className="px-6 py-4">Color</th>
               <th className="px-6 py-4">Price</th>
               <th className="px-6 py-4">Total Stock</th>
               <th className="px-6 py-4 text-right rounded-tr-lg">Actions</th>

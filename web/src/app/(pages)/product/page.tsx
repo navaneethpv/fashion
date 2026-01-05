@@ -226,6 +226,7 @@ type ApiMeta = {
   page: number;
   pages: number;
   total: number;
+  isSearchEmpty?: boolean;
 };
 
 type SortKey = "price_asc" | "price_desc" | "new" | "rating" | undefined;
@@ -293,7 +294,17 @@ function ProductPageContent() {
       const minLoadTime = new Promise(resolve => setTimeout(resolve, 800));
       const request = getProducts(resolvedSearchParams);
 
-      const [_, { data, meta }] = await Promise.all([minLoadTime, request]);
+      const [_, response] = await Promise.all([minLoadTime, request]);
+      const { data, meta } = response;
+
+      if (meta?.isSearchEmpty) {
+        if (!isCancelled) {
+          setProducts([]);
+          setMeta(meta as ApiMeta);
+          setLoading(false);
+        }
+        return;
+      }
 
       if (!isCancelled) {
         setProducts((data as ProductForContext[]) || []);
@@ -428,6 +439,7 @@ function ProductPageContent() {
       "q",
       "sort",
     ].forEach((key) => params.delete(key));
+    params.delete("q"); // Explicitly ensure 'q' is removed
     router.push(
       params.toString() ? `${pathname}?${params.toString()}` : pathname,
       { scroll: false }

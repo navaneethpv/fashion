@@ -478,36 +478,52 @@ export const getProducts = async (req: Request, res: Response) => {
 
     // --- 5. FALLBACK LOGIC ---
     // If no results found, search was attempted, and we need a fallback
-    if (total === 0 && isSearch) {
-      console.log(`[SEARCH] No exact matches for "${q}". Attempting fallback...`);
+    // if (total === 0 && isSearch) {
+    //   console.log(`[SEARCH] No exact matches for "${q}". Attempting fallback...`);
 
-      // A. Try Category Fallback
-      const fallbackCategory = resolveSearchCategory(q as string);
-      if (fallbackCategory) {
-        console.log(`[SEARCH] Fallback: Found category "${fallbackCategory}"`);
-        const fallbackResult = await Product.find({
-          category: fallbackCategory,
-          isPublished: true
-        })
-          .sort({ createdAt: -1 })
-          .limit(limit)
-          .select('name slug category price_cents images brand'); // Lean select for fallback
+    //   // A. Try Category Fallback
+    //   const fallbackCategory = resolveSearchCategory(q as string);
+    //   if (fallbackCategory) {
+    //     console.log(`[SEARCH] Fallback: Found category "${fallbackCategory}"`);
+    //     const fallbackResult = await Product.find({
+    //       category: fallbackCategory,
+    //       isPublished: true
+    //     })
+    //       .sort({ createdAt: -1 })
+    //       .limit(limit)
+    //       .select('name slug category price_cents images brand'); // Lean select for fallback
 
-        if (fallbackResult.length > 0) {
-          data = fallbackResult;
-          total = data.length; // Approximate
+    //     if (fallbackResult.length > 0) {
+    //       data = fallbackResult;
+    //       total = data.length; // Approximate
+    //     }
+    //   }
+
+    //   // B. If still empty, return "Latest Products" (Generic Fallback)
+    //   if (data.length === 0) {
+    //     console.log(`[SEARCH] Fallback: Fetching latest products.`);
+    //     data = await Product.find({ isPublished: true })
+    //       .sort({ createdAt: -1 })
+    //       .limit(40) // Limit to 40 for fallback
+    //       .select('name slug category price_cents images brand');
+    //     total = data.length;
+    //   }
+    // }
+
+    // --- 5. STRICT SEARCH EMPTY STATE ---
+    const hasQParam = Object.prototype.hasOwnProperty.call(req.query, "q");
+    const isSearchMode = hasQParam;
+
+    if (isSearchMode && total === 0) {
+      return res.json({
+        data: [],
+        meta: {
+          total: 0,
+          page,
+          pages: 0,
+          isSearchEmpty: true
         }
-      }
-
-      // B. If still empty, return "Latest Products" (Generic Fallback)
-      if (data.length === 0) {
-        console.log(`[SEARCH] Fallback: Fetching latest products.`);
-        data = await Product.find({ isPublished: true })
-          .sort({ createdAt: -1 })
-          .limit(40) // Limit to 40 for fallback
-          .select('name slug category price_cents images brand');
-        total = data.length;
-      }
+      });
     }
 
     res.json({

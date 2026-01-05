@@ -141,19 +141,19 @@ function SearchPageContent() {
     };
 
     return (
-        <div className="min-h-screen bg-white text-gray-900 pb-20">
-            {/* Sticky Header */}
-            <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
-                <Link href="/" className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
-                    <ArrowLeft className="w-6 h-6" />
+        <div className="min-h-screen bg-white text-gray-900 pb-20 font-sans">
+            {/* Header */}
+            <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100/50 px-4 py-4 flex items-center gap-4 transition-all duration-300">
+                <Link href="/" className="p-2 -ml-2 text-gray-900 hover:bg-gray-50 rounded-full transition-colors">
+                    <ArrowLeft className="w-5 h-5" />
                 </Link>
 
-                <div className="flex-1 relative">
+                <div className="flex-1 relative group">
                     <button
                         onClick={() => handleSearch()}
-                        className="absolute inset-y-0 left-0 pl-3 flex items-center cursor-pointer hover:text-primary transition-colors group"
+                        className="absolute inset-y-0 left-0 pl-3 flex items-center cursor-pointer transition-colors"
                     >
-                        <Search className="h-4 w-4 text-gray-400 group-hover:text-primary" />
+                        <Search className="h-4 w-4 text-gray-400 group-focus-within:text-gray-900 transition-colors" />
                     </button>
                     <input
                         ref={inputRef}
@@ -162,12 +162,12 @@ function SearchPageContent() {
                         onChange={(e) => setQuery(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                         placeholder="Search for clothes..."
-                        className="block w-full pl-10 pr-10 py-2.5 bg-gray-50 border-none rounded-xl text-sm text-gray-900 shadow-inner focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all"
+                        className="block w-full pl-10 pr-10 py-3 bg-gray-50/50 border border-gray-100 rounded-full text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-200 focus:bg-white focus:shadow-sm transition-all duration-300"
                     />
                     {query && (
                         <button
                             onClick={handleClear}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-900 transition-colors"
                         >
                             <X className="h-4 w-4" />
                         </button>
@@ -176,9 +176,9 @@ function SearchPageContent() {
 
                 <button
                     onClick={() => setIsCameraOpen(true)}
-                    className="p-2 text-gray-600 hover:text-primary hover:bg-violet-50 rounded-full transition-colors"
+                    className="p-2.5 text-gray-500 bg-gray-50 hover:bg-black hover:text-white rounded-full transition-all duration-300 shadow-sm"
                 >
-                    <Camera className="w-6 h-6" />
+                    <Camera className="w-5 h-5" />
                 </button>
             </header>
 
@@ -190,55 +190,55 @@ function SearchPageContent() {
                             <div
                                 key={index}
                                 onClick={() => handleSuggestionClick(item)}
-                                className={`px-4 py-3 border-b border-gray-50 flex items-center gap-4 active:bg-gray-50 cursor-pointer ${item.isAi ? 'bg-violet-50/20' : ''}`}
+                                className={`px-5 py-4 border-b border-gray-50/50 flex items-center gap-4 active:bg-gray-50 cursor-pointer group transition-colors duration-200 ${item.isAi ? 'bg-gray-50/30' : ''}`}
                             >
-                                <div className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg ${item.isAi ? 'bg-white' : 'bg-gray-100'}`}>
-                                    {renderIcon(item)}
+                                <div className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${item.isAi ? 'bg-white shadow-sm ring-1 ring-gray-100' : 'bg-gray-50 group-hover:bg-gray-100'}`}>
+                                    {item.isAi ? <Sparkles className="w-4 h-4 text-gray-900" /> : renderIcon(item)}
                                 </div>
-                                <div className="flex flex-col flex-1">
-                                    <span className="text-sm text-gray-900 leading-snug flex items-center gap-2">
-                                        {highlightMatch(item.text, query)}
-                                        {item.isAi && <span className="text-[10px] font-bold text-violet-600 px-1.5 py-0.5 bg-violet-100 rounded-full">New</span>}
+                                <div className="flex flex-col flex-1 gap-0.5">
+                                    <span className="text-base text-gray-900 font-medium leading-snug flex items-center gap-2">
+                                        <span className="font-serif tracking-tight">{highlightMatch(item.text, query)}</span>
+                                        {item.isAi && <span className="text-[9px] font-bold text-white bg-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">AI</span>}
                                     </span>
-                                    <span className={`text-xs font-medium whitespace-nowrap overflow-hidden text-ellipsis ${item.isAi ? 'text-violet-500' : 'text-blue-600'}`}>
+                                    <span className={`text-xs font-medium whitespace-nowrap overflow-hidden text-ellipsis ${item.isAi ? 'text-gray-500' : 'text-gray-400'}`}>
                                         {item.subText}
                                     </span>
                                 </div>
-                                <div className="p-2 -mr-2">
+                                <div className="p-2 -mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <div className="-rotate-45">
-                                        <ArrowLeft className="w-4 h-4 text-gray-300" />
+                                        <ArrowLeft className="w-4 h-4 text-gray-900" />
                                     </div>
                                 </div>
                             </div>
                         ))}
                         <div
                             onClick={() => handleSearch()}
-                            className="px-4 py-4 text-center text-sm font-bold text-primary active:bg-violet-50 cursor-pointer border-b border-gray-50"
+                            className="px-5 py-5 text-center text-sm font-bold text-gray-900 cursor-pointer border-b border-gray-50 hover:bg-gray-50 transition-colors uppercase tracking-widest"
                         >
                             See all results for "{query}"
                         </div>
                     </div>
                 ) : !query && recentSearches.length > 0 ? (
                     <div className="bg-white">
-                        <div className="px-4 py-3 bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-widest flex justify-between items-center">
+                        <div className="px-5 py-4 bg-white border-b border-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] flex justify-between items-center sticky top-[73px] z-10 backdrop-blur-sm bg-white/90">
                             <span>Recent Searches</span>
-                            <button onClick={clearRecentSearches} className="text-red-500 hover:underline">Clear</button>
+                            <button onClick={clearRecentSearches} className="text-gray-400 hover:text-red-500 transition-colors">Clear</button>
                         </div>
                         {recentSearches.map((term) => (
                             <div
                                 key={term}
                                 onClick={() => handleSearch(term)}
-                                className="px-4 py-3 border-b border-gray-50 flex items-center justify-between active:bg-gray-50 cursor-pointer group"
+                                className="px-5 py-4 border-b border-gray-50 flex items-center justify-between active:bg-gray-50 cursor-pointer group transition-colors"
                             >
                                 <div className="flex items-center gap-4">
-                                    <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg text-gray-400">
-                                        <Clock className="w-5 h-5" />
+                                    <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gray-50 rounded-xl text-gray-400 group-hover:bg-gray-100 group-hover:text-gray-900 transition-all">
+                                        <Clock className="w-5 h-5" strokeWidth={1.5} />
                                     </div>
-                                    <span className="text-sm text-gray-700 font-medium">{term}</span>
+                                    <span className="text-base text-gray-900 font-medium font-serif tracking-tight">{term}</span>
                                 </div>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); removeSearch(term); }}
-                                    className="p-2 text-gray-400 hover:text-red-500"
+                                    className="p-2 text-gray-300 hover:text-gray-900 transition-colors"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
@@ -246,16 +246,16 @@ function SearchPageContent() {
                         ))}
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center mt-20 text-center opacity-50 px-4">
+                    <div className="flex flex-col items-center justify-center mt-32 text-center px-4 animate-in fade-in duration-700">
                         {isFetching ? (
-                            <div className="animate-pulse flex flex-col items-center">
-                                <Search className="w-16 h-16 text-gray-200 mb-4 animate-bounce" />
-                                <p className="text-gray-500 font-medium">Searching suggestions...</p>
+                            <div className="flex flex-col items-center">
+                                <Search className="w-12 h-12 text-gray-200 mb-6 animate-pulse" />
+                                <p className="text-gray-400 text-sm font-medium tracking-wide uppercase">Searching...</p>
                             </div>
                         ) : (
                             <>
-                                <Search className="w-16 h-16 text-gray-200 mb-4" />
-                                <p className="text-gray-500 font-medium">Type to search for products...</p>
+                                <Search className="w-12 h-12 text-gray-100 mb-6" strokeWidth={1} />
+                                <p className="text-gray-400 text-sm font-light">Start typing to search...</p>
                             </>
                         )}
                     </div>

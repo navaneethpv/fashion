@@ -348,7 +348,7 @@ export default function ProductFilters({
                 <button
                   key={size}
                   type="button"
-                  className={`min-w-[44px] h-[44px] flex items-center justify-center text-xs font-bold rounded-xl border transition-all duration-300
+                  className={`w-11 h-11 flex items-center justify-center text-xs font-bold rounded-full border transition-all duration-300
                     ${isActive
                       ? 'bg-black text-white border-black shadow-lg transform scale-105'
                       : 'bg-white text-gray-500 border-gray-200 hover:border-black hover:text-black hover:bg-gray-50'
@@ -377,10 +377,10 @@ export default function ProductFilters({
                 <button
                   key={brand}
                   onClick={() => updateFilter('brand', brand)}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border
+                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all border duration-300
                          ${isActive
-                      ? 'bg-gray-100 text-black border-black/10 shadow-inner'
-                      : 'bg-transparent text-gray-500 border-transparent hover:bg-gray-50 hover:text-black'
+                      ? 'bg-black text-white border-black shadow-md'
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-black hover:text-black'
                     }
                     `}
                 >

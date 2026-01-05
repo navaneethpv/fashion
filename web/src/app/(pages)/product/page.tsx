@@ -599,7 +599,7 @@ function ProductPageContent() {
                   <button
                     type="button"
                     onClick={clearAllFilters}
-                    className="inline-flex items-center justify-center bg-black text-white px-8 py-3 text-sm font-medium uppercase tracking-wider hover:bg-gray-800 transition-colors"
+                    className="inline-flex items-center justify-center bg-gray-900 text-white px-8 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-200 hover:scale-105"
                   >
                     Clear All Filters
                   </button>

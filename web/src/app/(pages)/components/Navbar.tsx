@@ -45,13 +45,18 @@ function NavbarContent() {
         <div className="max-w-7xl mx-auto px-6 h-[76px] flex items-center justify-between">
 
           {/* LEFT – BRAND */}
-          <Link href="/" className="inline-flex items-center gap-2 md:gap-3 group">
-            <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition">
-              <span className="text-white font-extrabold text-lg md:text-xl">E</span>
+          <Link href="/" className="inline-flex items-center gap-3 group">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-black rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-300">
+              <span className="text-white font-serif font-medium text-2xl lg:text-3xl italic">E</span>
             </div>
-            <span className="text-lg md:text-2xl font-extrabold tracking-wide text-black">
-              Eyoris <span className="font-semibold text-gray-500">Fashion</span>
-            </span>
+            <div className="flex flex-col justify-center">
+              <span className="text-xl lg:text-2xl font-serif font-medium tracking-tight text-gray-900 leading-none group-hover:opacity-80 transition-opacity">
+                Eyoris
+              </span>
+              <span className="text-[10px] lg:text-xs uppercase tracking-[0.2em] text-gray-400 font-medium h-[14px] flex items-center">
+                Fashion
+              </span>
+            </div>
           </Link>
 
           {/* RIGHT – SEARCH + ICONS */}
@@ -112,9 +117,9 @@ function NavbarContent() {
         </div>
 
         {/* ================= CATEGORY HUB (Pill Style) ================= */}
-        <div className="border-t border-gray-100 bg-gray-100 shadow-sm h-[52px]">
+        <div className="border-t border-gray-50 bg-white/50 backdrop-blur-sm h-[52px]">
           <div className="max-w-7xl mx-auto py-2 px-4 h-full">
-            <div className="flex items-center justify-start lg:justify-center gap-3 overflow-x-auto scrollbar-hide px-1 h-full">
+            <div className="flex items-center justify-start lg:justify-center gap-4 overflow-x-auto scrollbar-hide px-1 h-full">
               {NAV_ITEMS.map((item) => {
                 const active = isActive(item);
                 return (
@@ -122,10 +127,10 @@ function NavbarContent() {
                     key={item.name}
                     href={item.href}
                     className={`
-                      relative px-5 py-2.5 rounded-full text-sm font-semibold tracking-wider transition-all duration-300 whitespace-nowrap
+                      relative px-5 py-2 rounded-full text-[11px] font-bold tracking-[0.1em] transition-all duration-300 whitespace-nowrap uppercase border
                       ${active
-                        ? "bg-black text-white shadow-md scale-[1.02]"
-                        : "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-black hover:scale-[1.02]"
+                        ? "bg-black text-white border-black shadow-md scale-105"
+                        : "bg-transparent text-gray-500 border-transparent hover:border-gray-200 hover:text-black hover:bg-gray-50"
                       }
                     `}
                   >

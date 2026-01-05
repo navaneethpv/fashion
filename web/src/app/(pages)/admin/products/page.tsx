@@ -141,7 +141,6 @@ export default function ProductsListPage() {
           <tbody className="divide-y divide-zinc-100">
             <AnimatePresence>
               {filteredProducts.map((p, index) => {
-                console.log(p);
                 // Calculate total stock from variants (supports both array of variants or single object)
                 const stock = Array.isArray(p.variants)
                   ? p.variants.reduce((sum: number, v: any) => sum + (v?.stock ?? 0), 0)

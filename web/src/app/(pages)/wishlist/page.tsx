@@ -142,29 +142,29 @@ export default function WishlistPage() {
                   className="group relative flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700"
                 >
                   {/* Image Card */}
-                  <div className="relative aspect-[3/4] bg-gray-50 rounded-xl overflow-hidden mb-5 shadow-sm group-hover:shadow-md transition-all duration-500">
+                  <div className="relative aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden mb-6 shadow-sm group-hover:shadow-md transition-all duration-700">
                     <Link href={`/products/${product.slug}`} className="block h-full w-full">
                       <img
                         src={product.images?.[0] || "https://via.placeholder.com/400"}
                         alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 will-change-transform"
+                        className="w-full h-full object-cover opacity-100 group-hover:scale-105 transition-transform duration-1000 ease-out will-change-transform"
                       />
                     </Link>
 
-                    {/* Remove Action - Top Right */}
+                    {/* Remove Action - Top Right (Subtle) */}
                     <button
                       onClick={(e) => {
                         e.preventDefault();
                         removeFromWishlist(product._id);
                       }}
-                      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-white shadow-sm transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0"
+                      className="absolute top-3 right-3 p-2 rounded-full bg-white/0 text-transparent group-hover:bg-white/90 group-hover:text-gray-400 group-hover:shadow-sm hover:!text-red-500 transition-all duration-300 backdrop-blur-sm"
                       title="Remove from wishlist"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
 
                     {/* Move to Bag - Bottom Overlay (Desktop Hover) */}
-                    <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300 hidden md:block">
+                    <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500 delay-75 hidden md:block">
                       <AddToCartButton
                         productId={product._id}
                         price={product.price_cents}
@@ -176,32 +176,36 @@ export default function WishlistPage() {
 
                   {/* Info */}
                   <div className="flex flex-col flex-1 px-1">
-                    <div className="flex justify-between items-start gap-4 mb-2">
-                      <div className="flex-1">
-                        <p className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mb-1.5">
-                          {product.brand || 'Eyoris Basics'}
-                        </p>
+                    <div className="flex justify-between items-start gap-4 mb-3">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex justify-between items-start">
+                          <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-gray-400">
+                            {product.brand || 'Eyoris Basics'}
+                          </p>
+                          {/* Rating placeholder to maintain spacing if needed */}
+                        </div>
+
                         <Link href={`/products/${product.slug}`}>
-                          <h3 className="font-serif text-base text-gray-900 hover:text-gray-600 transition-colors line-clamp-2 leading-tight">
+                          <h3 className="font-serif text-lg text-gray-900 font-medium leading-snug group-hover:text-gray-600 transition-colors line-clamp-2">
                             {product.name}
                           </h3>
                         </Link>
                       </div>
                     </div>
 
-                    <div className="flex items-baseline gap-2 mt-1">
-                      <span className="font-medium text-gray-900">
+                    <div className="flex items-baseline gap-3 mt-1">
+                      <span className="text-lg font-medium text-gray-900 tracking-tight">
                         ₹{(product.price_cents / 100).toFixed(0)}
                       </span>
                       {product.price_before_cents && (
-                        <span className="text-xs text-gray-400 line-through font-light">
+                        <span className="text-sm text-gray-400 line-through font-light decoration-gray-300">
                           ₹{(product.price_before_cents / 100).toFixed(0)}
                         </span>
                       )}
                     </div>
 
                     {/* Mobile Only: Add to Bag (since hover doesn't work well) */}
-                    <div className="mt-4 md:hidden">
+                    <div className="mt-6 md:hidden">
                       <AddToCartButton
                         productId={product._id}
                         price={product.price_cents}
@@ -209,6 +213,17 @@ export default function WishlistPage() {
                         compact={true}
                       />
                     </div>
+
+                    {/* Desktop: Subtle Remove Text Button below info (Alternative to icon) */}
+                    <button
+                      onClick={() => removeFromWishlist(product._id)}
+                      className="hidden md:flex mt-4 items-center gap-2 text-xs font-medium text-gray-300 hover:text-red-500 transition-colors self-start group-hover/card:text-gray-400"
+                    >
+                      <span className="sr-only">Remove</span>
+                      {/* You can allow a text button here if preferred over the icon overlay, 
+                          but the prompt asked for the icon button to be subtle. 
+                          Keeping the icon overlay as the primary interaction for consistency with image cards. */}
+                    </button>
                   </div>
                 </div>
               );

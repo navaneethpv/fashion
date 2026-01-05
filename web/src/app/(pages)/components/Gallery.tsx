@@ -67,10 +67,10 @@ export default function Gallery({ images, name }: GalleryProps) {
               onClick={() => setSelectedIndex(i)}
               aria-label={`View image ${i + 1}`}
               className={`
-                relative w-14 h-14 lg:w-[70px] lg:h-[70px] shrink-0 rounded-lg overflow-hidden transition-all duration-300 ease-out
+                relative w-14 h-14 lg:w-[70px] lg:h-[70px] shrink-0 rounded-lg overflow-hidden transition-all duration-200
                 ${i === selectedIndex
-                  ? "ring-2 ring-gray-900 opacity-100 scale-105 shadow-md"
-                  : "opacity-60 hover:opacity-100 hover:scale-105 border border-transparent"
+                  ? "border-2 border-black opacity-100"
+                  : "border border-gray-200 hover:border-gray-400 hover:scale-[1.02] opacity-100"
                 }
               `}
             >

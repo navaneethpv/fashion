@@ -449,7 +449,9 @@ function ProductPageContent() {
     <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-gray-100">
       <Navbar />
 
-      {/* No more full-screen loader, we use skeletons for a smoother experience */}
+      <AnimatePresence mode="wait">
+        {loading && <ProductPageLoader key="loader" />}
+      </AnimatePresence>
 
       <div className="pt-2">
         {/* Filter Drawer (Mobile) */}

@@ -196,7 +196,7 @@ export default function DashboardPage() {
                   <tr key={order._id} className="hover:bg-zinc-50 transition">
                     <td className="px-6 py-4 font-mono text-xs text-zinc-500">#{order._id.slice(-6).toUpperCase()}</td>
                     <td className="px-6 py-4 font-medium text-zinc-900">
-                      {order.shippingAddress?.firstName || "Guest"}
+                      {order.shippingAddress?.name || "Guest"}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${order.status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'

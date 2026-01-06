@@ -224,7 +224,7 @@ export default function OrdersPage() {
                           </motion.span>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="font-bold text-gray-900">{order.shippingAddress?.firstName} {order.shippingAddress?.lastName}</p>
+                          <p className="font-bold text-gray-900">{order.shippingAddress?.name || "Guest"}</p>
                           <p className="text-xs text-gray-500 flex items-center">
                             <MapPin className="w-3 h-3 mr-1" />
                             {order.shippingAddress?.city}
@@ -415,7 +415,7 @@ export default function OrdersPage() {
                                       <div className="space-y-3">
                                         <div>
                                           <p className="font-semibold text-gray-900">
-                                            {order.shippingAddress?.firstName} {order.shippingAddress?.lastName}
+                                            {order.shippingAddress?.name || "Guest"}
                                           </p>
                                           <p className="text-sm text-gray-600">{order.shippingAddress?.email}</p>
                                           <p className="text-sm text-gray-600">{order.shippingAddress?.phone}</p>
@@ -582,7 +582,7 @@ export default function OrdersPage() {
                   <h3>Order Details</h3>
                   <p><strong>Order ID:</strong> #{order._id}</p>
                   <p><strong>Order Date:</strong> {new Date(order.createdAt).toLocaleDateString()}</p>
-                  <p><strong>Customer:</strong> {order.shippingAddress?.firstName} {order.shippingAddress?.lastName}</p>
+                  <p><strong>Customer:</strong> {order.shippingAddress?.name || "Guest"}</p>
                 </div>
 
                 <table className="items-table">
@@ -615,7 +615,7 @@ export default function OrdersPage() {
                 <div className="address-section">
                   <h3>Shipping Address</h3>
                   <p>
-                    {order.shippingAddress?.firstName} {order.shippingAddress?.lastName}<br />
+                    {order.shippingAddress?.name || "Guest"}<br />
                     {order.shippingAddress?.street}<br />
                     {order.shippingAddress?.city}, {order.shippingAddress?.state} {order.shippingAddress?.zip}<br />
                     {order.shippingAddress?.country}

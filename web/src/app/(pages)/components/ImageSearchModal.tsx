@@ -178,7 +178,7 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <div>
             <h2 className="text-xl font-bold flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-gradient-to-tr from-primary to-accent" />
+              <span className="w-6 h-6 rounded-full bg-neutral-900" />
               Visual Search
             </h2>
             <p className="text-xs text-gray-400 mt-1">Similarity First & Color as Optional Filter</p>
@@ -202,14 +202,21 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
               ) : (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full max-w-md h-64 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-violet-50 transition-colors group"
+                  className="w-full max-w-md h-64 border-2 border-dashed border-neutral-300 bg-neutral-100 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-neutral-400 hover:bg-neutral-200 transition-all group"
                 >
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-white group-hover:scale-110 transition-transform">
-                    <Upload className="w-8 h-8 text-gray-400 group-hover:text-primary" />
+                  <div className="w-16 h-16 bg-white/50 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Upload className="w-7 h-7 text-neutral-700" />
                   </div>
-                  <p className="font-medium text-gray-600">Click to upload photo</p>
-                  <p className="text-xs text-gray-400 mt-2">Supports JPG, PNG (Max 5MB)</p>
+                  <p className="font-semibold text-neutral-800 tracking-tight">Click to upload photo</p>
+                  <p className="text-xs text-neutral-500 mt-2 font-medium">Supports JPG, PNG (Max 5MB)</p>
                 </div>
+              )}
+
+              {/* Trust Micro-copy */}
+              {!preview && (
+                <p className="text-[10px] text-neutral-400 flex items-center gap-1.5 pt-1">
+                  <span>🔒</span> Images are used only to find visually similar products
+                </p>
               )}
 
               <input
@@ -223,19 +230,19 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
               {/* OR Divider + URL Input */}
               {!preview && (
                 <>
-                  <div className="flex items-center gap-4 w-full max-w-md">
-                    <div className="h-px bg-gray-300 flex-1" />
-                    <span className="text-xs font-bold text-gray-400">OR</span>
-                    <div className="h-px bg-gray-300 flex-1" />
+                  <div className="flex items-center gap-4 w-full max-w-md py-4">
+                    <div className="h-[1px] bg-neutral-200 flex-1" />
+                    <span className="text-[10px] font-bold text-neutral-500 tracking-widest px-2">OR</span>
+                    <div className="h-[1px] bg-neutral-200 flex-1" />
                   </div>
 
-                  <div className="w-full max-w-md">
+                  <div className="w-full max-w-md px-1">
                     <input
                       type="text"
                       value={imageUrl}
                       onChange={handleUrlChange}
-                      placeholder="Paste image URL here (https://...)"
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary transition-colors"
+                      placeholder="Paste image URL here"
+                      className="w-full px-6 py-4 bg-white border border-neutral-200 rounded-2xl text-sm placeholder:text-neutral-400 focus:outline-none focus:ring-4 focus:ring-neutral-100 focus:border-neutral-300 transition-all text-center"
                     />
                     {imageUrl.trim() && (
                       <button
@@ -250,13 +257,13 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
               )}
 
               {preview && (
-                <div className="flex gap-4">
-                  <button onClick={resetArr} className="px-6 py-2.5 rounded-full font-bold text-sm border border-gray-300 hover:bg-gray-50">
+                <div className="flex gap-4 pt-4">
+                  <button onClick={resetArr} className="px-8 py-3 rounded-full font-bold text-xs uppercase tracking-widest border border-neutral-200 text-neutral-500 hover:bg-neutral-50 transition-colors">
                     Replace
                   </button>
                   <button
                     onClick={handleAnalyze}
-                    className="px-8 py-2.5 rounded-full font-bold text-sm bg-violet-200 text-gray-700 hover:bg-violet-700 hover:text-white hover:cursor-pointer shadow-lg shadow-violet-200"
+                    className="px-10 py-3 rounded-full font-bold text-xs uppercase tracking-widest bg-neutral-900 text-white hover:bg-black shadow-lg shadow-neutral-200 transition-all hover:scale-105"
                   >
                     Analyze Image
                   </button>

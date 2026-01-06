@@ -160,7 +160,7 @@ export default function CheckoutPage() {
   if (!isLoaded || loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-zinc-900 w-8 h-8" /></div>;
 
   if (orderSuccess) {
-    const displayFirstName = orderData?.shippingAddress?.firstName || user?.firstName;
+    const displayFirstName = orderData?.shippingAddress?.name?.split(' ')[0] || user?.firstName;
     const displayEmail = orderData?.shippingAddress?.email || user?.primaryEmailAddress?.emailAddress;
     const displayOrderId = orderData?._id ? `#EYORIS-${orderData._id.slice(-6).toUpperCase()}` : `#ORDER-${Math.floor(Math.random() * 100000)}`;
 

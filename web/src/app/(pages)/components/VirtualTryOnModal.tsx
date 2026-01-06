@@ -77,7 +77,7 @@ export default function VirtualTryOnModal({
 
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                throw new Error(data.message || 'Failed to generate preview');
+                throw new Error(data.error || data.message || 'Failed to generate preview');
             }
 
             const data = await res.json();

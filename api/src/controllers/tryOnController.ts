@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
+import { generateVirtualTryOn } from '../utils/tryOnAI';
 
 /**
  * Handles the virtual try-on preview generation logic.
- * This is a prototype implementation.
+ * This is an AI-driven implementation.
  */
 export const generateTryOnPreview = async (req: Request, res: Response) => {
     try {
@@ -22,30 +23,26 @@ export const generateTryOnPreview = async (req: Request, res: Response) => {
             });
         }
 
-        // 2. Prototype Generation Logic (Mock)
-        // In a real scenario, this would call an AI service.
-        // For now, we simulate a delay and return a mock "generated" image URL.
-        // We utilize the productImage as the "result" for this prototype stage.
+        // 2. AI Generation Logic (Multimodal)
+        console.log(`Generating ${productType} try-on for product: ${productImage}`);
 
-        console.log(`Processing ${productType} try-on for product: ${productImage}`);
-
-        // Simulate processing time
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        // Prototype result URL (using the product image as a placeholder for the "generated" result)
-        // In an actual AI flow, this would be a URL to a freshly generated/composed image.
-        const generatedImageUrl = productImage;
+        const generatedImageUrl = await generateVirtualTryOn(
+            userImage,
+            productImage,
+            productType
+        );
 
         return res.status(200).json({
             success: true,
             generatedImageUrl,
-            message: 'Preview generated successfully (Prototype)'
+            message: 'Preview generated successfully'
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Try-On Preview Error:', error);
         return res.status(500).json({
-            message: 'Failed to generate try-on preview. Please try again later.'
+            message: 'Failed to generate try-on preview.',
+            error: error.message || 'Unknown error'
         });
     }
 };

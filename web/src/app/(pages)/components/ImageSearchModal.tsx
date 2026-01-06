@@ -23,11 +23,9 @@ interface ImageSearchModalProps {
 }
 
 interface AnalysisData {
-  q: string;
-  filters: {
-    category: string | null;
-    color: string | null;
-  };
+  gender: string | null;
+  category: string | null;
+  color: string | null;
 }
 
 export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalProps) {
@@ -128,12 +126,12 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
 
       setAnalysis(data);
 
-      // REDIRECT TO PRODUCT PAGE (Phase 3: Strict)
+      // REDIRECT TO PRODUCT PAGE (Phase 3: Structured Filters)
       const params = new URLSearchParams();
 
-      if (data.q) params.set("q", data.q);
-      if (data.filters?.category) params.set("category", data.filters.category);
-      if (data.filters?.color) params.set("color", data.filters.color);
+      if (data.gender) params.set("gender", data.gender);
+      if (data.category) params.set("category", data.category);
+      if (data.color) params.set("color", data.color);
 
       onClose(); // Close modal
       router.push(`/product?${params.toString()}`);

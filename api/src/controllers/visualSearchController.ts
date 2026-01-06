@@ -14,14 +14,11 @@ export const analyzeImage = async (req: Request, res: Response) => {
 
         const result = await analyzeImageForVisualSearch(req.file.buffer, req.file.mimetype);
 
-        // Build search parameters for Phase 3
-        const q = result.aiTags.slice(0, 3).join(' ');
+        // Build structured filters for Phase 3
         const responseData = {
-            q,
-            filters: {
-                category: result.category !== 'Unknown' ? result.category : null,
-                color: result.dominantColor?.name !== 'Gray' ? result.dominantColor.name : null
-            }
+            gender: result.gender !== 'Unisex' ? result.gender : null,
+            category: result.category !== 'Unknown' ? result.category : null,
+            color: result.dominantColor?.name !== 'Gray' ? result.dominantColor.name : null
         };
 
         res.json(responseData);
@@ -69,14 +66,11 @@ export const analyzeImageFromUrl = async (req: Request, res: Response) => {
 
         const result = await analyzeImageForVisualSearch(buffer, mimeType);
 
-        // Build search parameters for Phase 3
-        const q = result.aiTags.slice(0, 3).join(' ');
+        // Build structured filters for Phase 3
         const responseData = {
-            q,
-            filters: {
-                category: result.category !== 'Unknown' ? result.category : null,
-                color: result.dominantColor?.name !== 'Gray' ? result.dominantColor.name : null
-            }
+            gender: result.gender !== 'Unisex' ? result.gender : null,
+            category: result.category !== 'Unknown' ? result.category : null,
+            color: result.dominantColor?.name !== 'Gray' ? result.dominantColor.name : null
         };
 
         res.json(responseData);

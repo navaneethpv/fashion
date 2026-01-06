@@ -20,6 +20,7 @@ function bufferToGenerativePart(buffer: Buffer, mimeType: string) {
 
 export interface VisualAnalysisResult {
     category: string;
+    gender: string;
     aiTags: string[];
     dominantColor: {
         name: string;
@@ -52,6 +53,10 @@ const ANALYSIS_SCHEMA = {
             type: "string",
             description: `Must be exactly one from: ${ALL_CATEGORIES.join(", ")}`
         },
+        gender: {
+            type: "string",
+            description: "Must be exactly one from: Men, Women, Unisex"
+        },
         aiTags: {
             type: "array",
             items: { type: "string" },
@@ -66,7 +71,7 @@ const ANALYSIS_SCHEMA = {
             required: ["name", "hex"]
         }
     },
-    required: ["category", "aiTags", "dominantColor"]
+    required: ["category", "gender", "aiTags", "dominantColor"]
 };
 
 const hexToRgb = (hex: string): [number, number, number] => {
@@ -87,7 +92,7 @@ export async function analyzeImageForVisualSearch(
 
         const prompt = `Analyze this fashion image and extract metadata for visual search. 
     Focus on the main garment. 
-    Identify the broad category (ONLY from the allowed list), key semantic attributes (style, pattern, material), and the dominant color of the item itself.`;
+    Identify the broad category (ONLY from the allowed list), target gender (Men, Women, or Unisex), key semantic attributes (style, pattern, material), and the dominant color of the item itself.`;
 
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
@@ -103,6 +108,7 @@ export async function analyzeImageForVisualSearch(
 
         return {
             category: parsed.category,
+            gender: parsed.gender,
             aiTags: parsed.aiTags,
             dominantColor: {
                 name: parsed.dominantColor.name,
@@ -122,6 +128,7 @@ export async function analyzeImageForVisualSearch(
             // Return a safe "empty" result so the app doesn't crash
             return {
                 category: 'Unknown',
+                gender: 'Unisex',
                 aiTags: [],
                 dominantColor: { name: 'Gray', hex: '#808080', rgb: [128, 128, 128] }
             };

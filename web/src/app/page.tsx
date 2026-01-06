@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Navbar from "./(pages)/components/Navbar";
+import AIFeatures from "./(pages)/components/AIFeatures";
 import TrendingSlider from "./(pages)/components/TrendingSlider";
 import AutoBanner from "./(pages)/components/AutoBanner";
 import MostViewedSlider from "./(pages)/components/MostViewedSlider";
@@ -54,6 +55,9 @@ export default function Home() {
 
       {/* SERVICE FEATURES (Clean Bar) */}
       <ServiceFeatures />
+
+      {/* AI FEATURES CARDS */}
+      <AIFeatures />
 
       {/* TRENDING LOOKBOOK */}
       <motion.section

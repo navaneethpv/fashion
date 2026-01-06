@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Upload, Loader2, ArrowRight } from 'lucide-react';
+import { X, Upload, Loader2, ArrowRight, Camera } from 'lucide-react';
 import Image from 'next/image';
 
 const COLOR_MAP = [
@@ -177,8 +177,8 @@ export default function ImageSearchModal({ isOpen, onClose }: ImageSearchModalPr
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-neutral-900" />
+            <h2 className="text-xl font-bold flex items-center gap-3">
+              <Camera className="w-5 h-5 text-neutral-900" />
               Visual Search
             </h2>
             <p className="text-xs text-gray-400 mt-1">Similarity First & Color as Optional Filter</p>

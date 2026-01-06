@@ -1,5 +1,5 @@
 "use client";
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import Link from "next/link";
 import { ShoppingBag, Search, Heart, X } from "lucide-react";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
@@ -31,6 +31,13 @@ function NavbarContent() {
   const cartCount = useCartCount();
   const searchParams = useSearchParams();
   const wishlistCount = useWishlistCount();
+
+  // Auto-open Visual Search trigger from Home Page Cards
+  useEffect(() => {
+    if (searchParams.get("visual-search") === "open") {
+      setIsSearchOpen(true);
+    }
+  }, [searchParams]);
 
   const isActive = (item: typeof NAV_ITEMS[0]) => {
     if (item.type === "gender") return searchParams.get("gender") === item.value;

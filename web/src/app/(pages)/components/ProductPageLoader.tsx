@@ -8,71 +8,44 @@ export default function ProductPageLoader() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-white/80 backdrop-blur-sm"
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-white"
         >
-            <div className="relative flex items-center justify-center w-full h-full overflow-hidden">
+            {/* Brand Group */}
+            <motion.div
+                animate={{ opacity: [0.85, 1, 0.85] }}
+                transition={{
+                    duration: 3.2,
+                    ease: "easeInOut",
+                    repeat: Infinity,
+                }}
+                className="flex flex-col items-center"
+            >
+                {/* Logo Mark */}
+                <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-xl bg-black flex items-center justify-center mb-4 lg:mb-6 transition-all duration-500">
+                    <span className="text-white font-serif text-2xl lg:text-3xl leading-none">E</span>
+                </div>
 
-                {/* Abstract Floating Bubbles */}
-                <motion.div
-                    animate={{
-                        y: [-20, 20, -20],
-                        x: [-10, 10, -10],
-                        scale: [1, 1.1, 1],
-                        opacity: [0.5, 0.8, 0.5]
-                    }}
-                    transition={{
-                        duration: 5,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                    }}
-                    className="absolute w-72 h-72 bg-purple-200/30 rounded-full blur-3xl -top-10 -left-10"
-                />
+                {/* Brand Name */}
+                <span className="font-serif text-lg lg:text-xl text-black leading-none mb-1 lg:mb-2 transition-all duration-500">
+                    Eyoris
+                </span>
 
-                <motion.div
-                    animate={{
-                        y: [30, -30, 30],
-                        x: [20, -20, 20],
-                        scale: [1.2, 1, 1.2],
-                        opacity: [0.4, 0.7, 0.4]
-                    }}
-                    transition={{
-                        duration: 7,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: 1
-                    }}
-                    className="absolute w-96 h-96 bg-violet-200/20 rounded-full blur-3xl bottom-10 right-10"
-                />
+                {/* Sub Brand */}
+                <span className="text-[10px] lg:text-xs tracking-[0.25em] text-gray-500 transition-all duration-500">
+                    FASHION
+                </span>
 
-                <motion.div
-                    animate={{
-                        scale: [1, 1.5, 1],
-                        opacity: [0.3, 0.6, 0.3]
-                    }}
-                    transition={{
-                        duration: 6,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: 0.5
-                    }}
-                    className="absolute w-64 h-64 bg-pink-100/40 rounded-full blur-3xl"
-                />
-
-                {/* Central Brand Element (Subtle pulsing text) */}
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="relative z-10 flex flex-col items-center gap-4"
+                {/* Loading Status */}
+                <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8, duration: 1 }}
+                    className="text-[9px] lg:text-[10px] tracking-[0.2em] text-gray-400 uppercase mt-8 lg:mt-10 font-medium"
                 >
-                    <div className="w-16 h-16 bg-gradient-to-br from-violet-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl animate-pulse">
-                        <span className="text-white font-extrabold text-3xl">E</span>
-                    </div>
-                    <p className="text-sm font-medium tracking-[0.3em] text-gray-400 uppercase">Loading Collection</p>
-                </motion.div>
-
-            </div>
+                    Product Loading
+                </motion.span>
+            </motion.div>
         </motion.div>
     );
 }

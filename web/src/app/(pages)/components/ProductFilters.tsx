@@ -283,21 +283,56 @@ export default function ProductFilters({
           </h3>
           <div className="flex flex-wrap gap-3">
             {Array.from(new Set(colors.map(c => c.trim().toLowerCase()))).map((normalizedColor) => {
-              const displayColor = normalizedColor.charAt(0).toUpperCase() + normalizedColor.slice(1);
+              // Better Title Casing for multi-word colors
+              const displayColor = normalizedColor
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+
               const colorValue = displayColor;
 
               const activeRef = getActiveList('color');
               const isActive = activeRef.some(acc => acc.toLowerCase() === normalizedColor);
 
               const colorMap: Record<string, string> = {
-                'red': '#ef4444', 'blue': '#3b82f6', 'green': '#22c55e',
-                'yellow': '#eab308', 'black': '#000000', 'white': '#ffffff',
-                'pink': '#ec4899', 'purple': '#a855f7', 'grey': '#6b7280', 'gray': '#6b7280', 'orange': '#f97316',
-                'navy': '#1e3a8a', 'beige': '#f5f5dc', 'maroon': '#800000', 'cream': '#fffdd0',
-                'brown': '#8B4513', 'silver': '#C0C0C0', 'gold': '#FFD700', 'olive': '#808000'
+                // Essentials
+                'black': '#000000',
+                'white': '#ffffff',
+                'grey': '#808080',
+                'gray': '#808080',
+                'silver': '#C0C0C0',
+
+                // Blues
+                'blue': '#0000FF',
+                'navy': '#000080',
+                'navy blue': '#000080',
+                'royal blue': '#4169E1',
+
+                // Reds/Pinks
+                'red': '#FF0000',
+                'maroon': '#800000',
+                'burgundy': '#800020',
+                'pink': '#FFC0CB',
+                'magenta': '#FF00FF',
+
+                // Greens
+                'green': '#008000',
+                'olive': '#808000',
+                'teal': '#008080',
+
+                // Warm
+                'yellow': '#FFFF00',
+                'gold': '#FFD700',
+                'orange': '#FFA500',
+                'brown': '#A52A2A',
+                'beige': '#F5F5DC',
+                'cream': '#FFFDD0',
+                'tan': '#D2B48C',
+                'copper': '#B87333',
+                'purple': '#800080'
               };
               const bg = colorMap[normalizedColor] || '#e5e7eb';
-              const isWhite = bg === '#ffffff' || bg === '#fffdd0' || bg === '#f5f5dc';
+              const isWhite = bg.toLowerCase() === '#ffffff' || bg.toLowerCase() === '#fffdd0' || bg.toLowerCase() === '#f5f5dc';
 
               return (
                 <div key={normalizedColor} className="flex flex-col items-center gap-2 mb-2">

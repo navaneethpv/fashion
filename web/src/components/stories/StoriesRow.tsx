@@ -18,6 +18,7 @@ interface Story {
         firstName?: string;
         lastName?: string;
     };
+    hasLiked?: boolean;
 }
 
 interface StoriesRowProps {

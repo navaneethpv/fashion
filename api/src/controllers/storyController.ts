@@ -159,9 +159,98 @@ export const getStories = async (req: Request, res: Response) => {
             console.log("[GetStories] First story product sample:", JSON.stringify(stories[0].productId, null, 2));
         }
 
-        res.json(stories);
+        // Add hasLiked flag for current user
+        const currentUserId = (req as any).auth?.userId;
+        const storiesWithLikeStatus = stories.map((story: any) => {
+            const storyObj = story.toObject();
+            storyObj.hasLiked = currentUserId ? story.likes?.some((like: any) => like.userId === currentUserId) : false;
+            // Don't send full likes array to public to keep it private
+            delete storyObj.likes;
+            return storyObj;
+        });
+
+        res.json(storiesWithLikeStatus);
     } catch (error: any) {
         console.error("[GetStories] Error:", error);
         res.status(500).json({ message: "Server error fetching stories.", error: error.message });
+    }
+};
+
+export const toggleLike = async (req: Request, res: Response) => {
+    try {
+        const { userId } = (req as any).auth;
+        const { id } = req.params;
+
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const story = await Story.findById(id);
+        if (!story) return res.status(404).json({ message: "Story not found" });
+
+        const existingLikeIndex = story.likes.findIndex((like: any) => like.userId === userId);
+
+        if (existingLikeIndex > -1) {
+            // Unlike
+            story.likes.splice(existingLikeIndex, 1);
+        } else {
+            // Like
+            story.likes.push({ userId, createdAt: new Date() });
+        }
+
+        await story.save();
+        res.json({ success: true, liked: existingLikeIndex === -1 });
+    } catch (error: any) {
+        console.error("[ToggleLike] Error:", error);
+        res.status(500).json({ message: "Server error toggling like." });
+    }
+};
+
+export const getStoryLikes = async (req: Request, res: Response) => {
+    try {
+        const { userId } = (req as any).auth;
+        const { id } = req.params;
+
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const story = await Story.findById(id);
+        if (!story) return res.status(404).json({ message: "Story not found" });
+
+        // Privacy check: Only owner can see likes
+        if (story.userId !== userId) {
+            return res.status(403).json({ message: "Only the story owner can view likes." });
+        }
+
+        // Get user details for the likes
+        // We have Clerk IDs in story.likes.userId
+        // We need to fetch from our local User sync or assuming we populate logic.
+        // Since we are using virtuals for 'user', we can't easily populate an array of non-ref strings.
+        // We have to optimize this. For now let's find Users where clerkId is in the list.
+
+        // Import User model if not already imported? It wasn't in the original file I viewed.
+        // Wait, I need to check imports. I'll assume I can dynamic import or add import at top if possible.
+        // Actually, replace_file_content at bottom won't add import at top. I should start with adding import if missing.
+        // But let's check imports in original file. User was NOT imported. 
+        // I will just use mongoose.model('User') to avoid import issues if I can't edit top.
+        // OR better, I'll update the whole file logic or add import in a separate step if strict.
+        // I'll try to use lazy load for User model to be safe: mongoose.model('User')
+
+        const User = mongoose.model('User');
+        const userIds = story.likes.map((l: any) => l.userId);
+        const users = await User.find({ clerkId: { $in: userIds } }).select('firstName lastName clerkId');
+
+        // Map back to timestamps
+        const likesWithDetails = story.likes.map((like: any) => {
+            const user = users.find((u: any) => u.clerkId === like.userId);
+            return {
+                userId: like.userId,
+                createdAt: like.createdAt,
+                user: user ? { firstName: user.firstName, lastName: user.lastName } : { firstName: 'Unknown' }
+            };
+        });
+
+        res.json(likesWithDetails);
+
+    } catch (error: any) {
+        console.error("[GetLikes] Error:", error);
+        res.status(500).json({ message: "Server error fetching likes." });
     }
 };

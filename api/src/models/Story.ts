@@ -11,14 +11,13 @@ const StorySchema = new mongoose.Schema({
     status: {
         type: String,
         enum: ['pending', 'approved', 'rejected'],
-        default: 'pending' // Default to pending if we want manual review, but typically AI verified -> approved?
-        // Requirement says: "status: approved | pending | rejected"
-        // "Accept if response === YES". So if AI says YES, we can Auto-Approve?
-        // "Admin can moderate stories".
-        // Let's set to 'approved' if AI says YES, 'rejected' if NO. 
-        // Maybe 'pending' is for explicit manual review?
-        // I'll stick to 'approved' if AI verifies it.
+        default: 'pending'
     },
+
+    likes: [{
+        userId: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now }
+    }],
 
     expiresAt: {
         type: Date,

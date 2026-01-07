@@ -1,11 +1,10 @@
-"use client";
-
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CheckCircle, ChevronRight, ChevronLeft, ShoppingBag } from "lucide-react";
+import { X, CheckCircle, ChevronRight, ChevronLeft, ShoppingBag, Heart, Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import clsx from "clsx";
+import { useUser } from "@clerk/nextjs";
 
 interface Story {
     _id: string;
@@ -18,6 +17,7 @@ interface Story {
         firstName?: string;
         lastName?: string;
     };
+    hasLiked?: boolean;
 }
 
 interface ProductSpotlightProps {
@@ -30,6 +30,7 @@ interface ProductSpotlightProps {
 }
 
 export default function ProductSpotlight({ story, onClose, onNext, onPrev, hasNext, hasPrev }: ProductSpotlightProps) {
+    const { user } = useUser();
     // Construct the "Playlist" of views: [Styled Image, Main Product Image, ...Other Images]
     const productImages = story.productId.images || [];
 
@@ -48,6 +49,61 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev, hasNe
     const [activeViewIndex, setActiveViewIndex] = useState(0);
     const activeView = views[activeViewIndex];
     const [isPaused, setIsPaused] = useState(false);
+    const [liked, setLiked] = useState(story.hasLiked || false);
+    const [showLikesModal, setShowLikesModal] = useState(false);
+    const [likedUsers, setLikedUsers] = useState<any[]>([]);
+    const [loadingLikes, setLoadingLikes] = useState(false);
+
+    // Sync liked state when story changes
+    useEffect(() => {
+        setLiked(story.hasLiked || false);
+    }, [story._id, story.hasLiked]);
+
+    const handleToggleLike = async () => {
+        if (!user) return; // Must be logged in
+
+        // Optimistic update
+        const newLiked = !liked;
+        setLiked(newLiked);
+
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/stories/${story._id}/like`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Authorization header is usually handled by Clerk middleware automatically if using useAuth or just valid session cookies?
+                    // Actually, if backend requires auth, we need to pass token or ensure cookie is sent.
+                    // Assuming cookie based auth or header injection. 
+                    // To be safe, let's assume standard fetch picks up cookies if same domain or credentials include.
+                    // But here it's localhost:4000 vs 3000. We need credentials: 'include' maybe?
+                    // Or we just rely on the fact that Clerk handles it.
+                    // Let's rely on global fetch configuration if existing, or just try.
+                }
+            });
+            // If failed, revert
+            if (!res.ok) setLiked(!newLiked);
+        } catch (e) {
+            setLiked(!newLiked);
+        }
+    };
+
+    const handleViewLikes = async () => {
+        setShowLikesModal(true);
+        setIsPaused(true);
+        setLoadingLikes(true);
+        try {
+            // Fetch likes
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/stories/${story._id}/likes`);
+            if (res.ok) {
+                const data = await res.json();
+                setLikedUsers(data);
+            }
+        } catch (e) {
+            console.error("Failed to fetch likes", e);
+        } finally {
+            setLoadingLikes(false);
+        }
+    };
 
     // Timeline Logic
     // Using simple CSS animation via keyframes isn't easy to reset from JS without removing valid DOM.
@@ -71,7 +127,7 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev, hasNe
         let animationFrameId: number;
 
         const animate = (time: number) => {
-            if (!isPaused) {
+            if (!isPaused && !showLikesModal) {
                 if (lastTimeRef.current === null) {
                     lastTimeRef.current = time;
                 }
@@ -88,7 +144,7 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev, hasNe
         // Let's go with a simpler interval approach for 15s, it's fine for this UI.
         // 15 seconds / 100 steps = 150ms per step.
         // Or 60fps.
-    }, [isPaused]); // This is getting complicated.
+    }, [isPaused, showLikesModal]); // This is getting complicated.
 
     // SIMPLIFIED TIMELINE:
     // Using CSS animation for the visual bar is robust. 
@@ -97,6 +153,7 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev, hasNe
     // Keyboard Navigation
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            if (showLikesModal) return; // Disable nav when modal open
             if (e.key === "Escape") onClose();
             if (e.key === "ArrowRight" && hasNext) onNext?.();
             if (e.key === "ArrowLeft" && hasPrev) onPrev?.();
@@ -105,7 +162,7 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev, hasNe
         };
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [onClose, onNext, onPrev, views.length, hasNext, hasPrev]);
+    }, [onClose, onNext, onPrev, views.length, hasNext, hasPrev, showLikesModal]);
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
@@ -124,7 +181,7 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev, hasNe
                         style={{
                             width: '100%',
                             animation: `progress ${DURATION}ms linear forwards`,
-                            animationPlayState: isPaused ? 'paused' : 'running'
+                            animationPlayState: (isPaused || showLikesModal) ? 'paused' : 'running'
                         }}
                         onAnimationEnd={onClose}
                     />
@@ -230,6 +287,41 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev, hasNe
                                     </p>
                                 </div>
                             )}
+
+                            {/* Like & Private Stats (Bottom Right of Image) */}
+                            <div className="absolute bottom-4 right-4 flex flex-col gap-3 z-20 pointer-events-auto">
+                                {/* Like User Action */}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleLike();
+                                    }}
+                                    className="p-3 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/10 transition-all active:scale-95 group/heart"
+                                    aria-label="Like this look"
+                                >
+                                    <Heart
+                                        className={clsx(
+                                            "w-5 h-5 transition-colors",
+                                            liked ? "fill-red-500 text-red-500" : "text-white group-hover/heart:text-red-400"
+                                        )}
+                                    />
+                                </button>
+
+                                {/* Private Owner View */}
+                                {user && user.id === story.userId && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleViewLikes();
+                                        }}
+                                        className="p-3 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/10 transition-all text-white"
+                                        aria-label="See who liked your look"
+                                    >
+                                        <Eye className="w-5 h-5" />
+                                    </button>
+                                )}
+                            </div>
+
                         </motion.div>
                     </AnimatePresence>
                 </div>
@@ -299,6 +391,58 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev, hasNe
                     </Link>
                 </div>
             </div>
+
+            {/* LIKES MODAL (Private) */}
+            <AnimatePresence>
+                {showLikesModal && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        onClick={() => {
+                            setShowLikesModal(false);
+                            setIsPaused(false);
+                        }}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
+                        >
+                            <div className="flex items-center justify-between p-4 border-b">
+                                <h3 className="font-serif text-lg font-medium text-gray-900">People who liked your look</h3>
+                                <button onClick={() => setShowLikesModal(false)} className="p-1 rounded-full hover:bg-gray-100">
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                            <div className="max-h-[300px] overflow-y-auto p-0">
+                                {loadingLikes ? (
+                                    <div className="p-8 text-center text-gray-400 text-sm">Loading...</div>
+                                ) : likedUsers.length === 0 ? (
+                                    <div className="p-8 text-center text-gray-400 text-sm">No likes yet. Share to get started!</div>
+                                ) : (
+                                    <ul className="divide-y divide-gray-100">
+                                        {likedUsers.map((like, i) => (
+                                            <li key={i} className="flex items-center gap-3 p-4 hover:bg-gray-50">
+                                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 text-emerald-600">
+                                                    <CheckCircle className="w-4 h-4" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-900">
+                                                        {like.user.firstName} {like.user.lastName ? `${like.user.lastName[0]}.` : ""}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        Verified Buyer • {new Date(like.createdAt).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
         </div>
     );

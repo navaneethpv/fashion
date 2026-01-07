@@ -35,11 +35,11 @@ export default function AIFeatures() {
     ];
 
     return (
-        <section className="max-w-7xl mx-auto px-6 py-10 md:py-12">
+        <section className="max-w-7xl mx-auto px-6 py-10 md:py-16">
             {/* Editorial Label */}
-            <div className="text-center mb-8">
+            <div className="text-center mb-10">
                 <span className="text-[10px] font-bold tracking-[0.3em] text-neutral-400 uppercase">
-                    AI Features
+                    Personal Style, Powered by AI
                 </span>
             </div>
 
@@ -73,23 +73,31 @@ export default function AIFeatures() {
                 )}
             </AnimatePresence>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {features.map((feature, idx) => (
                     <motion.div
                         key={idx}
                         onClick={feature.action}
                         whileHover={{ y: -2 }}
-                        className={`group cursor-pointer bg-white border border-neutral-100 hover:border-neutral-200 rounded-2xl p-6 md:p-8 flex items-center gap-6 text-left transition-all duration-300 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] ${showGuide ? 'ring-1 ring-neutral-200' : ''}`}
+                        className={`group cursor-pointer bg-white border border-neutral-100 hover:border-neutral-200 rounded-2xl p-6 md:p-10 flex items-start gap-6 text-left transition-all duration-300 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] ${showGuide ? 'ring-1 ring-neutral-200' : ''}`}
                     >
-                        <div className="w-12 h-12 bg-neutral-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-500">
+                        <div className="w-12 h-12 bg-neutral-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-500 mt-1">
                             {feature.icon}
                         </div>
-                        <div>
-                            <h3 className="text-base font-serif font-medium text-neutral-900 mb-1 group-hover:text-black">
-                                {feature.title}
-                            </h3>
-                            <p className="text-sm text-neutral-500 leading-relaxed font-light">
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                                <h3 className="text-base font-serif font-medium text-neutral-900 group-hover:text-black">
+                                    {feature.title}
+                                </h3>
+                                <span className="px-1.5 py-0.5 bg-neutral-100 rounded text-[9px] font-bold text-neutral-500 uppercase tracking-wide">
+                                    AI-powered
+                                </span>
+                            </div>
+                            <p className="text-sm text-neutral-500 leading-relaxed font-light mb-1">
                                 {feature.description}
+                            </p>
+                            <p className="text-xs text-neutral-400 font-light">
+                                {idx === 0 ? "Understands colors, patterns, and silhouettes" : "Creates balanced outfits using fashion rules"}
                             </p>
                         </div>
                     </motion.div>

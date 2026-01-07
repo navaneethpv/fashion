@@ -9,7 +9,7 @@ import Link from "next/link";
 import OfferCarousel from "./(pages)/components/OfferCarousel";
 import ServiceFeatures from "./(pages)/components/ServiceFeatures";
 import { motion, AnimatePresence } from "framer-motion";
-import SocialFeaturesNotice from "./(pages)/components/SocialFeaturesNotice";
+
 import StoriesRow from "@/components/stories/StoriesRow";
 
 export default function Home() {
@@ -55,18 +55,15 @@ export default function Home() {
       {/* HERO SECTION */}
       <AutoBanner />
 
-      {/* SOCIAL FEATURES NOTICE */}
-      <SocialFeaturesNotice />
+      {/* AI FEATURES SECTION */}
+      <AIFeatures />
 
       {/* STORY ROW */}
-      <StoriesRow className="border-b border-gray-50" />
+      <StoriesRow className="border-b border-gray-50 from-gray-50/50 to-white" title="Styled by Customers" />
 
 
       {/* SERVICE FEATURES (Clean Bar) */}
       <ServiceFeatures />
-
-      {/* AI FEATURES CARDS */}
-      <AIFeatures />
 
       {/* TRENDING LOOKBOOK */}
       <motion.section

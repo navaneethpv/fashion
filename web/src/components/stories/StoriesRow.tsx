@@ -125,11 +125,11 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
 
                     {/* Editorial Header */}
                     <div className="mb-10 pl-1">
-                        <h3 className="font-serif text-3xl md:text-4xl text-gray-900 mb-2 tracking-tight">
+                        <h3 className="font-serif text-3xl md:text-3xl text-gray-900 mb-2 tracking-tight">
                             {title}
                         </h3>
-                        <p className="text-gray-500 text-sm md:text-base tracking-wide font-light">
-                            Real looks from verified Eyoris buyers
+                        <p className="text-gray-500 text-sm tracking-wide font-light">
+                            Real outfits worn after delivery
                         </p>
                     </div>
 
@@ -149,6 +149,15 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
                                 >
                                     {/* Portrait Card */}
                                     <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-gray-100 mb-4 shadow-sm transition-shadow duration-300 group-hover:shadow-md">
+
+                                        {/* Visual Progress Ring Hint (Static for feed) */}
+                                        <div className="absolute top-3 right-3 w-5 h-5 rounded-full border border-white/30 p-0.5 opacity-80">
+                                            <svg className="w-full h-full rotate-[-90deg]" viewBox="0 0 24 24">
+                                                <circle className="text-transparent" strokeWidth="2" stroke="currentColor" fill="transparent" r="10" cx="12" cy="12" />
+                                                <circle className="text-white" strokeWidth="2" strokeDasharray={60} strokeDashoffset={15} strokeLinecap="round" stroke="currentColor" fill="transparent" r="10" cx="12" cy="12" />
+                                            </svg>
+                                        </div>
+
                                         <Image
                                             src={story.imageUrl}
                                             alt={`Styled by ${displayName}`}
@@ -157,7 +166,11 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
                                         />
 
                                         {/* Subtle Overlay on Hover */}
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                                            <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-medium tracking-wide translate-y-2 group-hover:translate-y-0 transition-all duration-300 px-4 text-center">
+                                                Used to improve Style Confidence
+                                            </span>
+                                        </div>
                                     </div>
 
                                     {/* Editorial Label */}
@@ -165,8 +178,8 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
                                         <h4 className="text-sm font-medium text-gray-900">
                                             {displayName}
                                         </h4>
-                                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide opacity-80">
-                                            Wearing Eyoris
+                                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest flex items-center gap-1">
+                                            Verified Buyer
                                         </p>
                                     </div>
                                 </button>
@@ -179,20 +192,12 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
                             className="group relative flex flex-col flex-shrink-0 w-[200px] md:w-[240px] text-left focus:outline-none snap-start"
                         >
                             <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-gray-50 border border-dashed border-gray-300 flex flex-col items-center justify-center p-6 text-center transition-all duration-300 group-hover:bg-gray-100 group-hover:border-gray-400">
-                                <h4 className="font-serif text-xl text-gray-900 mb-2">
-                                    Share your style
+                                <h4 className="font-serif text-lg text-gray-900 mb-2">
+                                    Your look could inspire others
                                 </h4>
-                                <p className="text-sm text-gray-500 font-light leading-relaxed mb-6">
-                                    Verified buyers can add their look after delivery
-                                </p>
-                                <span className="text-sm border-b border-gray-900 pb-0.5 group-hover:opacity-70 transition-opacity">
+                                <span className="text-sm border-b border-gray-900 pb-0.5 group-hover:opacity-70 transition-opacity mt-4 inline-block">
                                     Upload your story &rarr;
                                 </span>
-                            </div>
-                            {/* Spacer for label alignment */}
-                            <div className="pl-1 space-y-0.5 opacity-0">
-                                <h4 className="text-sm font-medium">Placeholder</h4>
-                                <p className="text-xs">Wearing Eyoris</p>
                             </div>
                         </Link>
                     </div>

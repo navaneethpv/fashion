@@ -33,6 +33,7 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
     const [selectedStoryIndex, setSelectedStoryIndex] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [viewedStories, setViewedStories] = useState<Set<string>>(new Set());
+    const [showGuide, setShowGuide] = useState(false);
 
     useEffect(() => {
         // Load viewed stories from local storage
@@ -44,7 +45,18 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
                 console.error("Failed to parse viewed stories", e);
             }
         }
+
+        // Check if social guide has been seen
+        const guideSeen = localStorage.getItem("socialGuideSeen");
+        if (!guideSeen) {
+            setShowGuide(true);
+        }
     }, []);
+
+    const dismissGuide = () => {
+        setShowGuide(false);
+        localStorage.setItem("socialGuideSeen", "true");
+    };
 
     useEffect(() => {
         const fetchStories = async () => {
@@ -122,6 +134,48 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
         <>
             <section className={`py-12 md:py-16 ${className} animate-in fade-in duration-700`}>
                 <div className="container mx-auto px-4 md:px-8">
+
+                    {/* Social Features Guide (First-time only) */}
+                    <AnimatePresence>
+                        {showGuide && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                animate={{ opacity: 1, height: "auto", marginBottom: 32 }}
+                                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                className="overflow-hidden"
+                            >
+                                <div className="bg-neutral-50/80 border border-neutral-200/60 rounded-xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative">
+                                    <div className="space-y-3 max-w-2xl">
+                                        <div className="flex items-center gap-2">
+                                            <span className="px-1.5 py-0.5 bg-white border border-neutral-200 rounded text-[9px] font-bold text-neutral-500 uppercase tracking-wide shadow-sm">
+                                                New
+                                            </span>
+                                            <h4 className="font-serif text-lg text-neutral-900">
+                                                Join the Style Community
+                                            </h4>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-neutral-500 leading-relaxed font-light">
+                                            <div>
+                                                <strong className="text-neutral-900 font-medium block mb-0.5">How to share your look</strong>
+                                                Verified buyers can upload a photo from <span className="text-neutral-800 underline decoration-dotted underline-offset-2">Order History</span> after delivery.
+                                            </div>
+                                            <div>
+                                                <strong className="text-neutral-900 font-medium block mb-0.5">Why it matters</strong>
+                                                Your stories help calculate the <span className="text-neutral-800">Style Confidence Score</span>, helping others verify fit & quality.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={dismissGuide}
+                                        className="absolute top-4 right-4 md:static md:flex-shrink-0 px-4 py-2 text-xs font-bold uppercase tracking-widest text-neutral-900 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-100 transition-colors shadow-sm"
+                                        aria-label="Dismiss guide"
+                                    >
+                                        Got it
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {/* Editorial Header */}
                     <div className="mb-10 pl-1">

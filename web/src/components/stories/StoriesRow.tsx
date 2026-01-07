@@ -4,9 +4,7 @@ import { useEffect, useState } from "react";
 import ProductSpotlight from "./ProductSpotlight";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
-import clsx from "clsx";
 
 interface Story {
     _id: string;
@@ -33,7 +31,6 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
     const [selectedStoryIndex, setSelectedStoryIndex] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [viewedStories, setViewedStories] = useState<Set<string>>(new Set());
-    const [showGuide, setShowGuide] = useState(false);
 
     useEffect(() => {
         // Load viewed stories from local storage
@@ -45,18 +42,7 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
                 console.error("Failed to parse viewed stories", e);
             }
         }
-
-        // Check if social guide has been seen
-        const guideSeen = localStorage.getItem("socialGuideSeen");
-        if (!guideSeen) {
-            setShowGuide(true);
-        }
     }, []);
-
-    const dismissGuide = () => {
-        setShowGuide(false);
-        localStorage.setItem("socialGuideSeen", "true");
-    };
 
     useEffect(() => {
         const fetchStories = async () => {
@@ -135,47 +121,54 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
             <section className={`py-12 md:py-16 ${className} animate-in fade-in duration-700`}>
                 <div className="container mx-auto px-4 md:px-8">
 
-                    {/* Social Features Guide (First-time only) */}
-                    <AnimatePresence>
-                        {showGuide && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                                animate={{ opacity: 1, height: "auto", marginBottom: 32 }}
-                                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                                className="overflow-hidden"
-                            >
-                                <div className="bg-neutral-50/80 border border-neutral-200/60 rounded-xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative">
-                                    <div className="space-y-3 max-w-2xl">
-                                        <div className="flex items-center gap-2">
-                                            <span className="px-1.5 py-0.5 bg-white border border-neutral-200 rounded text-[9px] font-bold text-neutral-500 uppercase tracking-wide shadow-sm">
-                                                New
-                                            </span>
-                                            <h4 className="font-serif text-lg text-neutral-900">
-                                                Join the Style Community
-                                            </h4>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-neutral-500 leading-relaxed font-light">
-                                            <div>
-                                                <strong className="text-neutral-900 font-medium block mb-0.5">How to share your look</strong>
-                                                Verified buyers can upload a photo from <span className="text-neutral-800 underline decoration-dotted underline-offset-2">Order History</span> after delivery.
-                                            </div>
-                                            <div>
-                                                <strong className="text-neutral-900 font-medium block mb-0.5">Why it matters</strong>
-                                                Your stories help calculate the <span className="text-neutral-800">Style Confidence Score</span>, helping others verify fit & quality.
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={dismissGuide}
-                                        className="absolute top-4 right-4 md:static md:flex-shrink-0 px-4 py-2 text-xs font-bold uppercase tracking-widest text-neutral-900 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-100 transition-colors shadow-sm"
-                                        aria-label="Dismiss guide"
-                                    >
-                                        Got it
-                                    </button>
+                    {/* Permanent Social Features Guide */}
+                    <div className="mb-10 bg-white border border-neutral-100 rounded-2xl p-6 md:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)] transition-shadow duration-500">
+                        <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
+                            {/* Icon / Brand Element */}
+                            <div className="flex-shrink-0 w-12 h-12 bg-neutral-50 rounded-xl flex items-center justify-center">
+                                <span className="text-xl">✨</span>
+                            </div>
+
+                            <div className="flex-1 text-center md:text-left space-y-4 md:space-y-2">
+                                <div>
+                                    <h4 className="font-serif text-xl text-neutral-900 mb-1">
+                                        Join the Style Community
+                                    </h4>
+                                    <p className="text-sm text-neutral-500 font-light">
+                                        Share your unique look and help others shop with confidence.
+                                    </p>
                                 </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+
+                                <div className="flex flex-col md:flex-row gap-4 md:gap-8 pt-2">
+                                    <div className="flex items-start gap-2 text-left">
+                                        <div className="w-5 h-5 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-neutral-600 mt-0.5">1</div>
+                                        <p className="text-xs text-neutral-500 leading-relaxed">
+                                            Shop your favorites & wait for delivery
+                                        </p>
+                                    </div>
+                                    <div className="flex items-start gap-2 text-left">
+                                        <div className="w-5 h-5 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-neutral-600 mt-0.5">2</div>
+                                        <p className="text-xs text-neutral-500 leading-relaxed">
+                                            Upload photo from <span className="font-medium text-neutral-900">Order History</span>
+                                        </p>
+                                    </div>
+                                    <div className="flex items-start gap-2 text-left">
+                                        <div className="w-5 h-5 rounded-full bg-neutral-100 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-neutral-600 mt-0.5">3</div>
+                                        <p className="text-xs text-neutral-500 leading-relaxed">
+                                            Get your <span className="font-medium text-neutral-900">Style Confidence Score</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* CTA (Visual only, directs to profile) */}
+                            <div className="hidden md:block">
+                                <Link href="/profile" className="px-5 py-2.5 bg-neutral-900 text-white text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-black transition-colors">
+                                    Start Sharing
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Editorial Header */}
                     <div className="mb-10 pl-1">

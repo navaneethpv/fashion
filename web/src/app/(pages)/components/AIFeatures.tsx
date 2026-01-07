@@ -23,33 +23,33 @@ export default function AIFeatures() {
     ];
 
     return (
-        <section className="max-w-7xl mx-auto px-6 py-16 md:py-24">
-            {/* Editorial Header */}
-            <div className="flex items-center gap-4 mb-12">
-                <div className="h-[1px] flex-1 bg-neutral-100" />
-                <h2 className="text-[10px] font-bold tracking-[0.4em] text-neutral-500 uppercase">
+        <section className="max-w-7xl mx-auto px-6 py-10 md:py-12">
+            {/* Editorial Label */}
+            <div className="text-center mb-8">
+                <span className="text-[10px] font-bold tracking-[0.3em] text-neutral-400 uppercase">
                     AI Features
-                </h2>
-                <div className="h-[1px] flex-1 bg-neutral-100" />
+                </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {features.map((feature, idx) => (
                     <motion.div
                         key={idx}
                         onClick={feature.action}
-                        whileHover={{ y: -1 }}
-                        className="group cursor-pointer bg-neutral-100/40 border border-neutral-200/50 hover:bg-neutral-100/80 rounded-3xl p-8 md:p-10 flex flex-col items-center justify-center text-center transition-all duration-300 ease-out shadow-sm shadow-neutral-100/20"
+                        whileHover={{ y: -2 }}
+                        className="group cursor-pointer bg-white border border-neutral-100 hover:border-neutral-200 rounded-2xl p-6 md:p-8 flex items-center gap-6 text-left transition-all duration-300 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.04)]"
                     >
-                        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-105 transition-transform duration-500">
+                        <div className="w-12 h-12 bg-neutral-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-500">
                             {feature.icon}
                         </div>
-                        <h3 className="text-lg font-serif font-medium text-neutral-900 mb-1">
-                            {feature.title}
-                        </h3>
-                        <p className="text-sm text-neutral-500 font-medium leading-relaxed">
-                            {feature.description}
-                        </p>
+                        <div>
+                            <h3 className="text-base font-serif font-medium text-neutral-900 mb-1 group-hover:text-black">
+                                {feature.title}
+                            </h3>
+                            <p className="text-sm text-neutral-500 leading-relaxed font-light">
+                                {feature.description}
+                            </p>
+                        </div>
                     </motion.div>
                 ))}
             </div>

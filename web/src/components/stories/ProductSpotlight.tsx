@@ -16,6 +16,7 @@ interface Story {
     createdAt: string;
     user?: {
         firstName?: string;
+        lastName?: string;
     };
 }
 
@@ -141,20 +142,25 @@ export default function ProductSpotlight({ story, onClose, onNext, onPrev, hasNe
       `}</style>
 
             {/* 1. Header: Context & Close */}
-            <div className="absolute top-6 left-0 right-0 z-20 flex items-center justify-between px-6">
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/10">
-                        <CheckCircle className="w-3.5 h-3.5 text-green-400" />
-                        <span className="text-xs font-semibold text-white tracking-wide uppercase">Verified Purchase</span>
+            <div className="absolute top-6 left-0 right-0 z-20 flex items-start justify-between px-6 pointer-events-none">
+                <div className="flex flex-col gap-1 pointer-events-auto">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/10 w-fit">
+                        <CheckCircle className="w-3 h-3 text-emerald-400" />
+                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">Verified Buyer</span>
                     </div>
-                    <span className="text-xs text-white/50 font-medium">
-                        Order #{(story as any).orderId?.slice(-6).toUpperCase() || "8392A1"}
-                    </span>
+                    <div className="px-1 filter drop-shadow-md">
+                        <span className="text-sm font-medium text-white">
+                            {story.user?.firstName || "Shopper"} {story.user?.lastName ? `${story.user.lastName[0]}.` : ""}
+                            <span className="opacity-60 mx-1.5">•</span>
+                            <span className="opacity-80 text-xs">Order Delivered</span>
+                        </span>
+                    </div>
                 </div>
 
                 <button
                     onClick={onClose}
-                    className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors border border-white/5"
+                    aria-label="Close"
+                    className="pointer-events-auto p-2 rounded-full bg-black/20 hover:bg-black/40 text-white transition-colors border border-white/10 backdrop-blur-md"
                 >
                     <X className="w-5 h-5" />
                 </button>

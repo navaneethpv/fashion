@@ -25,7 +25,19 @@ const StorySchema = new mongoose.Schema({
         required: true,
         default: () => new Date(+new Date() + 24 * 60 * 60 * 1000) // 24 hours from now
     }
-}, { timestamps: true });
+}, {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+// Virtual populate for User info
+StorySchema.virtual('user', {
+    ref: 'User',
+    localField: 'userId', // Story.userId (clerkId)
+    foreignField: 'clerkId', // User.clerkId
+    justOne: true
+});
 
 // Index for getting active stories for a product
 StorySchema.index({ productId: 1, status: 1, expiresAt: 1 });

@@ -185,7 +185,7 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
                                 <p className="text-sm text-gray-500 font-light leading-relaxed mb-6">
                                     Verified buyers can add their look after delivery
                                 </p>
-                                <span className="text-xs font-bold uppercase tracking-widest text-gray-900 border-b border-gray-900 pb-0.5 group-hover:opacity-70 transition-opacity">
+                                <span className="text-sm border-b border-gray-900 pb-0.5 group-hover:opacity-70 transition-opacity">
                                     Upload your story &rarr;
                                 </span>
                             </div>

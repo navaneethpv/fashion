@@ -9,6 +9,7 @@ import Link from "next/link";
 import OfferCarousel from "./(pages)/components/OfferCarousel";
 import ServiceFeatures from "./(pages)/components/ServiceFeatures";
 import { motion, AnimatePresence } from "framer-motion";
+import StoriesRow from "@/components/stories/StoriesRow";
 
 export default function Home() {
   const [homeData, setHomeData] = useState<{ trending: any[], offers: any[] }>({
@@ -52,6 +53,9 @@ export default function Home() {
 
       {/* HERO SECTION */}
       <AutoBanner />
+
+      {/* STORY ROW */}
+      <StoriesRow className="border-b border-gray-50" />
 
       {/* SERVICE FEATURES (Clean Bar) */}
       <ServiceFeatures />

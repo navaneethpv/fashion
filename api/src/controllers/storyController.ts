@@ -143,7 +143,10 @@ export const getStories = async (req: Request, res: Response) => {
         }
 
         // Sorting by newest
-        const stories = await Story.find(query).sort({ createdAt: -1 }).limit(50);
+        const stories = await Story.find(query)
+            .sort({ createdAt: -1 })
+            .limit(50)
+            .populate('productId', 'name price slug images');
 
         // If needed, populate User info (assuming we have a User model or just store basic info).
         // Since User is in Clerk, we might not maintain a full User collection or it might be synced.

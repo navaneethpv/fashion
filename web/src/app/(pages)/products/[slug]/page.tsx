@@ -11,6 +11,7 @@ import ProductReviews from "../../components/productReview";
 import AddToCartButton from "../../components/AddToCartButton";
 import { Star, Truck, ShieldCheck } from "lucide-react";
 import ProductSlider from "../../components/ProductSlider";
+import StoriesRow from "@/components/stories/StoriesRow";
 
 
 // Force dynamic rendering for this route
@@ -267,6 +268,10 @@ export default async function ProductDetailPage({
 
         {/* BOTTOM SECTIONS */}
         <div className="max-w-4xl mx-auto pt-8">
+
+          {/* CUSTOMER STORIES */}
+          <StoriesRow productId={product._id} title="Customer Stories" className="mb-12 border-b border-gray-100 pb-8" />
+
           {/* 1. PRODUCT DETAILS */}
           {CollapsibleSection && (
             <CollapsibleSection title="Product Details" defaultOpen={true}>

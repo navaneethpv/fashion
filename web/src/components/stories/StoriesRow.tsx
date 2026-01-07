@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import StoryViewer from "./StoryViewer";
+import ProductSpotlight from "./ProductSpotlight";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
@@ -165,10 +165,19 @@ export default function StoriesRow({ productId, title = "Styled by Customers", c
             </section>
 
             {selectedStoryIndex !== null && (
-                <StoryViewer
-                    stories={stories}
-                    initialIndex={selectedStoryIndex}
+                <ProductSpotlight
+                    story={stories[selectedStoryIndex]}
                     onClose={() => setSelectedStoryIndex(null)}
+                    onNext={() => {
+                        if (selectedStoryIndex < stories.length - 1) {
+                            setSelectedStoryIndex(selectedStoryIndex + 1);
+                        }
+                    }}
+                    onPrev={() => {
+                        if (selectedStoryIndex > 0) {
+                            setSelectedStoryIndex(selectedStoryIndex - 1);
+                        }
+                    }}
                 />
             )}
         </>

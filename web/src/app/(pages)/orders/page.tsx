@@ -8,6 +8,8 @@ import { Package, Truck, CheckCircle, Clock, XCircle, RefreshCw, Camera } from "
 import Link from "next/link";
 import Image from "next/image";
 import StoryUploadModal from "../../../components/StoryUploadModal"; // Import Modal
+import ReviewModal from "../../../components/ReviewModal";
+import { Star } from "lucide-react";
 
 // Polling interval in ms
 const POLLING_INTERVAL = 5000;
@@ -19,6 +21,13 @@ export default function OrdersPage() {
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [selectedProduct, setSelectedProduct] = useState<{
+        orderId: string;
+        productId: string;
+        productName: string;
+        productImage: string;
+    } | null>(null);
+
+    const [reviewProduct, setReviewProduct] = useState<{
         orderId: string;
         productId: string;
         productName: string;
@@ -164,21 +173,47 @@ export default function OrdersPage() {
                                                         ₹{(item.price_cents / 100).toFixed(2)}
                                                     </span>
 
-                                                    {/* Add Story Button */}
-                                                    {(order.orderStatus === 'delivered' || (order as any).status === 'delivered') && (
-                                                        <button
-                                                            onClick={() => setSelectedProduct({
-                                                                orderId: order._id,
-                                                                productId: typeof item.productId === 'string' ? item.productId : (item.productId as any)._id,
-                                                                productName: item.name,
-                                                                productImage: item.image || ""
-                                                            })}
-                                                            className="text-xs font-semibold bg-black text-white px-3 py-1.5 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-1"
-                                                        >
-                                                            <Camera className="w-3 h-3" />
-                                                            Add Story
-                                                        </button>
-                                                    )}
+                                                    {/* Actions: Add Story & Write Review */}
+                                                    <div className="flex flex-col gap-2">
+                                                        {(order.orderStatus === 'delivered' || (order as any).status === 'delivered') && (
+                                                            <>
+                                                                {/* Review Logic */}
+                                                                {(item as any).isReviewed ? (
+                                                                    <span className="text-xs font-bold text-green-600 flex items-center gap-1 bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">
+                                                                        <CheckCircle className="w-3 h-3" />
+                                                                        Reviewed ✓
+                                                                    </span>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={() => setReviewProduct({
+                                                                            orderId: order._id,
+                                                                            productId: typeof item.productId === 'string' ? item.productId : (item.productId as any)._id,
+                                                                            productName: item.name,
+                                                                            productImage: item.image || ""
+                                                                        })}
+                                                                        className="text-xs font-semibold bg-violet-600 text-white px-3 py-1.5 rounded-lg hover:bg-violet-700 transition-colors flex items-center gap-1"
+                                                                    >
+                                                                        <Star className="w-3 h-3 fill-white" />
+                                                                        Write Review
+                                                                    </button>
+                                                                )}
+
+                                                                {/* Add Story Button */}
+                                                                <button
+                                                                    onClick={() => setSelectedProduct({
+                                                                        orderId: order._id,
+                                                                        productId: typeof item.productId === 'string' ? item.productId : (item.productId as any)._id,
+                                                                        productName: item.name,
+                                                                        productImage: item.image || ""
+                                                                    })}
+                                                                    className="text-xs font-semibold bg-black text-white px-3 py-1.5 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-1"
+                                                                >
+                                                                    <Camera className="w-3 h-3" />
+                                                                    Add Story
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
@@ -205,6 +240,18 @@ export default function OrdersPage() {
                     productId={selectedProduct.productId}
                     productName={selectedProduct.productName}
                     productImage={selectedProduct.productImage}
+                />
+            )}
+
+            {reviewProduct && (
+                <ReviewModal
+                    isOpen={!!reviewProduct}
+                    onClose={() => setReviewProduct(null)}
+                    onSuccess={() => fetchOrders()}
+                    orderId={reviewProduct.orderId}
+                    productId={reviewProduct.productId}
+                    productName={reviewProduct.productName}
+                    productImage={reviewProduct.productImage}
                 />
             )}
         </div>

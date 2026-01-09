@@ -9,6 +9,7 @@ import path from 'path';
 import { Product } from "../models/Product";
 import { getProductTagsFromGemini } from '../utils/geminiTagging';
 import { Review } from "../models/Review";
+import { Order } from "../models/Order";
 import { getGarmentColorFromGemini } from '../utils/geminiColorAnalyzer';
 
 
@@ -1045,12 +1046,44 @@ export const updateProduct = async (req: Request, res: Response) => {
 
 export const createReview = async (req: Request, res: Response) => {
   try {
-    const { userId, productId, rating, comment, userName, userAvatar } = req.body;
-    if (!userId || !productId || !rating || !comment || !userName) {
+    const { userId, productId, orderId, rating, comment, userName, userAvatar } = req.body;
+
+    if (!userId || !productId || !orderId || !rating || !comment || !userName) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
-    const newReview = new Review({ userId, productId, rating, comment, userName, userAvatar });
+
+    // 1. Verify user owns the order AND order status is DELIVERED
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (order.userId !== userId) {
+      return res.status(403).json({ message: 'Unauthorized: You do not own this order' });
+    }
+
+    if (order.orderStatus !== 'delivered') {
+      return res.status(400).json({ message: 'Unauthorized: Products can only be reviewed after delivery' });
+    }
+
+    // 2. Verify product exists in order items
+    const hasProduct = order.items.some(item =>
+      item.productId && item.productId.toString() === productId
+    );
+
+    if (!hasProduct) {
+      return res.status(400).json({ message: 'Unauthorized: Product not found in this order' });
+    }
+
+    // 3. Prevent duplicate reviews per user per product per order
+    const existingReview = await Review.findOne({ userId, productId, orderId });
+    if (existingReview) {
+      return res.status(400).json({ message: 'You have already reviewed this product for this order' });
+    }
+
+    const newReview = new Review({ userId, productId, orderId, rating, comment, userName, userAvatar });
     await newReview.save();
+
     const stats = await Review.aggregate([
       { $match: { productId: new mongoose.Types.ObjectId(productId) } },
       {
@@ -1061,12 +1094,14 @@ export const createReview = async (req: Request, res: Response) => {
         }
       }
     ]);
+
     if (stats.length > 0) {
       await Product.findByIdAndUpdate(productId, {
         rating: parseFloat(stats[0].averageRating.toFixed(1)),
         reviewsCount: stats[0].count
       });
     }
+
     res.status(201).json(newReview);
   } catch (error) {
     console.error("createReview error:", error);

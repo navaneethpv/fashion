@@ -5,6 +5,7 @@ import { Order } from '../models/Order';
 import { Cart } from '../models/Cart';
 
 import { Product } from '../models/Product';
+import { Review } from '../models/Review';
 import {
   validateCreateOrderRequest,
   handleCartError,
@@ -139,8 +140,21 @@ export const getUserOrders = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const orders = await Order.find({ userId }).sort({ createdAt: -1 });
-    res.status(200).json(orders);
+    const orders = await Order.find({ userId }).sort({ createdAt: -1 }).lean();
+
+    // Fetch all reviews by this user to mark items as reviewed
+    const userReviews = await Review.find({ userId }).select('productId orderId').lean();
+    const reviewedMap = new Set(userReviews.map(r => `${r.orderId}_${r.productId}`));
+
+    const ordersWithReviewStatus = orders.map(order => ({
+      ...order,
+      items: order.items.map((item: any) => ({
+        ...item,
+        isReviewed: reviewedMap.has(`${order._id}_${item.productId}`)
+      }))
+    }));
+
+    res.status(200).json(ordersWithReviewStatus);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Failed to retrieve orders' });

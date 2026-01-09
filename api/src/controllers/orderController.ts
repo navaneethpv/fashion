@@ -140,7 +140,10 @@ export const getUserOrders = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const orders = await Order.find({ userId }).sort({ createdAt: -1 }).lean();
+    const orders = await Order.find({ userId })
+      .populate('items.productId', 'slug')
+      .sort({ createdAt: -1 })
+      .lean();
 
     // Fetch all reviews by this user to mark items as reviewed
     const userReviews = await Review.find({ userId }).select('productId orderId').lean();

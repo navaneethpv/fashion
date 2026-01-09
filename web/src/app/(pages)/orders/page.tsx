@@ -173,9 +173,10 @@ export default function OrdersPage() {
                                                         ₹{(item.price_cents / 100).toFixed(2)}
                                                     </span>
 
+                                                    <span className="text-[10px] text-red-600">STATE: {order.orderStatus} | {String((item as any).isReviewed)}</span>
                                                     {/* Actions: Add Story & Write Review */}
                                                     <div className="flex flex-col gap-2">
-                                                        {(order.orderStatus === 'delivered' || (order as any).status === 'delivered') && (
+                                                        {(String(order.orderStatus).toLowerCase() === 'delivered' || String((order as any).status).toLowerCase() === 'delivered') && (
                                                             <>
                                                                 {/* Review Logic */}
                                                                 {(item as any).isReviewed ? (

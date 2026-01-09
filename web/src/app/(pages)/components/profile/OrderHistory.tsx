@@ -5,7 +5,8 @@ import { Loader2, Package, Calendar, MapPin, ChevronRight, ShoppingBag, ArrowRig
 import OrderDetailsDrawer from "./OrderDetailsDrawer";
 import Link from "next/link";
 import StoryUploadModal from "@/components/StoryUploadModal";
-import { Camera } from "lucide-react";
+import { Camera, Star, CheckCircle } from "lucide-react";
+import ReviewModal from "@/components/ReviewModal";
 
 interface OrderHistoryProps {
   clerkUser: any;
@@ -17,6 +18,7 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [selectedProductForStory, setSelectedProductForStory] = useState<any | null>(null);
+  const [selectedProductForReview, setSelectedProductForReview] = useState<any | null>(null);
 
   const base =
     process.env.NEXT_PUBLIC_API_BASE ||
@@ -41,7 +43,32 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
         const data = await res.json();
         // Sort by date desc just in case
         const sorted = Array.isArray(data) ? data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : [];
-        setOrders(sorted);
+
+        // Fetch reviews to mark isReviewed
+        let reviewedMap = new Set();
+        try {
+          const reviewsRes = await fetch(`${baseUrl}/api/reviews/user/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (reviewsRes.ok) {
+            const reviews = await reviewsRes.json();
+            if (Array.isArray(reviews)) {
+              reviewedMap = new Set(reviews.map((r: any) => `${r.orderId}_${r.productId}`));
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching reviews:", e);
+        }
+
+        const augmentedOrders = sorted.map((order: any) => ({
+          ...order,
+          items: order.items.map((item: any) => ({
+            ...item,
+            isReviewed: reviewedMap.has(`${order._id}_${item.productId}`)
+          }))
+        }));
+
+        setOrders(augmentedOrders);
       } catch (error) {
         console.error("Failed to fetch orders:", error);
       } finally {
@@ -89,8 +116,12 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
       className="group relative bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden"
     >
       <div className="p-5 sm:p-6 flex flex-col sm:flex-row gap-5 sm:gap-6">
-        {/* Image Section */}
-        <div className="relative w-full sm:w-28 aspect-[4/5] sm:aspect-square flex-shrink-0 bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
+        {/* Image Section - Wrapped in Link */}
+        <Link
+          href={`/products/${(order.items[0]?.productId as any)?.slug || (order.items[0]?.productId)}`}
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full sm:w-28 aspect-[4/5] sm:aspect-square flex-shrink-0 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 hover:ring-2 hover:ring-blue-500 transition-all"
+        >
           {order.items[0]?.image ? (
             <img
               src={order.items[0].image}
@@ -109,40 +140,46 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
               </span>
             </div>
           )}
-        </div>
+        </Link>
 
         {/* Content Section */}
         <div className="flex-1 flex flex-col justify-between min-w-0">
-          <div>
-            <div className="flex justify-between items-start gap-3">
-              <h3 className="font-bold text-gray-900 text-base sm:text-lg line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">
-                {order.items[0]?.name || "Product Name"}
-              </h3>
-              <span className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border ring-1 ring-inset ${getStatusColor(order.status)}`}>
-                {getStatusLabel(order.status)}
-              </span>
-            </div>
-
-            {/* Meta Row */}
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5" />
-                <span>{new Date(order.createdAt).toLocaleDateString("en-IN", { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-              </div>
-              <div className="hidden sm:block w-1 h-1 rounded-full bg-gray-300" />
-              <div className="flex items-center gap-1.5 max-w-[150px] truncate">
-                <MapPin className="w-3.5 h-3.5" />
-                <span className="truncate">{order.shippingAddress?.city || "India"}</span>
-              </div>
-              <div className="sm:hidden w-full h-px bg-gray-100 my-1" />
-              <div className="flex items-center gap-1.5 font-medium text-gray-900">
-                <span>Total:</span>
-                <span className="text-base">
-                  ₹{(order.total_cents / 100).toLocaleString('en-IN')}
+          <Link
+            href={`/products/${(order.items[0]?.productId as any)?.slug || (order.items[0]?.productId)}`}
+            onClick={(e) => e.stopPropagation()}
+            className="block group/title"
+          >
+            <div>
+              <div className="flex justify-between items-start gap-3">
+                <h3 className="font-bold text-gray-900 text-base sm:text-lg line-clamp-2 leading-snug group-hover/title:text-blue-600 transition-colors">
+                  {order.items[0]?.name || "Product Name"}
+                </h3>
+                <span className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border ring-1 ring-inset ${getStatusColor(order.status)}`}>
+                  {getStatusLabel(order.status)}
                 </span>
               </div>
+
+              {/* Meta Row */}
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>{new Date(order.createdAt).toLocaleDateString("en-IN", { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+                <div className="hidden sm:block w-1 h-1 rounded-full bg-gray-300" />
+                <div className="flex items-center gap-1.5 max-w-[150px] truncate">
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span className="truncate">{order.shippingAddress?.city || "India"}</span>
+                </div>
+                <div className="sm:hidden w-full h-px bg-gray-100 my-1" />
+                <div className="flex items-center gap-1.5 font-medium text-gray-900">
+                  <span>Total:</span>
+                  <span className="text-base">
+                    ₹{(order.total_cents / 100).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
+          </Link>
 
           {/* Action Footer */}
           <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
@@ -169,6 +206,35 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
                   <Camera className="w-3 h-3" />
                   <span>Add Story</span>
                 </button>
+              )}
+
+              {/* Write Review Button */}
+              {(((order.status || "").toLowerCase() === 'delivered' || (order.orderStatus || "").toLowerCase() === 'delivered')) && (
+                <div className="flex items-center">
+                  {(order.items[0]?.isReviewed) ? (
+                    <span className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs font-bold uppercase tracking-wide border border-green-100 whitespace-nowrap">
+                      <CheckCircle className="w-3 h-3" />
+                      Reviewed
+                    </span>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const item = order.items[0];
+                        setSelectedProductForReview({
+                          orderId: order._id,
+                          productId: typeof item.productId === 'string' ? item.productId : (item.productId as any)._id,
+                          productName: item.name,
+                          productImage: item.image || ""
+                        });
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-violet-700 transition-colors z-10 whitespace-nowrap shadow-sm"
+                    >
+                      <Star className="w-3 h-3 fill-white" />
+                      <span>Review</span>
+                    </button>
+                  )}
+                </div>
               )}
 
               <div className="flex items-center gap-1 text-sm font-semibold text-blue-600 group-hover:translate-x-1 transition-transform">
@@ -244,6 +310,14 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
         onOrderUpdate={handleOrderUpdate}
+        onReviewProduct={(item) => {
+          setSelectedProductForReview({
+            orderId: selectedOrder._id,
+            productId: typeof item.productId === 'string' ? item.productId : (item.productId as any)._id,
+            productName: item.name,
+            productImage: item.image || ""
+          });
+        }}
       />
 
       {selectedProductForStory && (
@@ -254,6 +328,28 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
           productId={selectedProductForStory.productId}
           productName={selectedProductForStory.productName}
           productImage={selectedProductForStory.productImage}
+        />
+      )}
+
+      {selectedProductForReview && (
+        <ReviewModal
+          isOpen={!!selectedProductForReview}
+          onClose={() => setSelectedProductForReview(null)}
+          onSuccess={() => {
+            // Trigger a refresh of orders
+            getToken().then(token => {
+              fetch(`${baseUrl}/api/orders?userId=${userId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+              }).then(res => res.json()).then(data => {
+                // Simplified refresh logic - in a real app would use a more robust state management
+                window.location.reload();
+              });
+            });
+          }}
+          orderId={selectedProductForReview.orderId}
+          productId={selectedProductForReview.productId}
+          productName={selectedProductForReview.productName}
+          productImage={selectedProductForReview.productImage}
         />
       )}
     </>

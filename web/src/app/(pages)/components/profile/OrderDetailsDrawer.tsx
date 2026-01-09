@@ -1,8 +1,9 @@
 // web/src/app/(pages)/components/profile/OrderDetailsDrawer.tsx
 "use client";
-import { X, Package, CheckCircle2, Truck, Home, Clock, RotateCcw } from "lucide-react";
+import { X, Package, CheckCircle2, Truck, Home, Clock, RotateCcw, Star, CheckCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
+import Link from "next/link";
 // REMOVED: OrderActionModal (not needed without cancel/return)
 
 interface OrderDetailsDrawerProps {
@@ -10,6 +11,7 @@ interface OrderDetailsDrawerProps {
     isOpen: boolean;
     onClose: () => void;
     onOrderUpdate?: (updatedOrder: any) => void;
+    onReviewProduct?: (item: any) => void;
 }
 
 export default function OrderDetailsDrawer({
@@ -17,6 +19,7 @@ export default function OrderDetailsDrawer({
     isOpen,
     onClose,
     onOrderUpdate,
+    onReviewProduct,
 }: OrderDetailsDrawerProps) {
     const { getToken } = useAuth();
 
@@ -339,10 +342,17 @@ export default function OrderDetailsDrawer({
                                 {order.items.map((item: any, index: number) => (
                                     <div
                                         key={index}
-                                        className="flex gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-shadow"
+                                        className="flex gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-shadow relative"
                                     >
+                                        {/* Product Link wrapper - Overlay style for image and text */}
+                                        <Link
+                                            href={`/products/${(item.productId as any)?.slug || item.productId}`}
+                                            className="absolute inset-x-0 inset-y-0 z-0"
+                                            aria-label={`View ${item.name}`}
+                                        />
+
                                         {/* Product Image */}
-                                        <div className="w-16 h-16 bg-gray-50 rounded-md overflow-hidden flex-shrink-0 border border-gray-200">
+                                        <div className="w-16 h-16 bg-gray-50 rounded-md overflow-hidden flex-shrink-0 border border-gray-200 relative z-10 pointer-events-none">
                                             {item.image ? (
                                                 <img
                                                     src={item.image}
@@ -357,7 +367,7 @@ export default function OrderDetailsDrawer({
                                         </div>
 
                                         {/* Product Details */}
-                                        <div className="flex-1 min-w-0">
+                                        <div className="flex-1 min-w-0 relative z-10 pointer-events-none">
                                             <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug">
                                                 {item.name}
                                             </h4>
@@ -375,6 +385,30 @@ export default function OrderDetailsDrawer({
                                                 })}
                                             </p>
                                         </div>
+
+                                        {/* Action: Review */}
+                                        {((order.status || "").toLowerCase() === 'delivered' || (order.orderStatus || "").toLowerCase() === 'delivered') && (
+                                            <div className="flex flex-col justify-center relative z-20">
+                                                {item.isReviewed ? (
+                                                    <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md border border-green-100 whitespace-nowrap">
+                                                        <CheckCircle className="w-3 h-3" />
+                                                        Reviewed
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            onReviewProduct && onReviewProduct(item);
+                                                        }}
+                                                        className="flex items-center gap-1 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-violet-700 transition-colors shadow-sm"
+                                                    >
+                                                        <Star className="w-3 h-3 fill-white" />
+                                                        Review
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>

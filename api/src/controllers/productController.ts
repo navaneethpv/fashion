@@ -1109,6 +1109,20 @@ export const createReview = async (req: Request, res: Response) => {
   }
 };
 
+export const getUserReviews = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
+    const reviews = await Review.find({ userId }).select('productId orderId rating comment createdAt');
+    res.status(200).json(reviews);
+  } catch (error) {
+    console.error("getUserReviews error:", error);
+    res.status(500).json({ message: 'Failed to fetch reviews' });
+  }
+};
+
 
 export const getReviews = async (req: Request, res: Response) => {
   try {

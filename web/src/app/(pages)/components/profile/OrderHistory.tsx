@@ -115,7 +115,7 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
       onClick={() => setSelectedOrder(order)}
       className="group relative bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden"
     >
-      <div className="p-5 sm:p-6 flex flex-col sm:flex-row gap-5 sm:gap-6">
+      <div className="px-5 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row gap-5 sm:gap-6">
         {/* Image Section - Wrapped in Link */}
         <Link
           href={`/products/${(order.items[0]?.productId as any)?.slug || (order.items[0]?.productId)}`}
@@ -154,41 +154,38 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
                 <h3 className="font-bold text-gray-900 text-base sm:text-lg line-clamp-2 leading-snug group-hover/title:text-blue-600 transition-colors">
                   {order.items[0]?.name || "Product Name"}
                 </h3>
-                <span className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border ring-1 ring-inset ${getStatusColor(order.status)}`}>
+                <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-widest border ring-1 ring-inset ${getStatusColor(order.status)}`}>
                   {getStatusLabel(order.status)}
                 </span>
               </div>
 
               {/* Meta Row */}
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>{new Date(order.createdAt).toLocaleDateString("en-IN", { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                </div>
-                <div className="hidden sm:block w-1 h-1 rounded-full bg-gray-300" />
-                <div className="flex items-center gap-1.5 max-w-[150px] truncate">
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span className="truncate">{order.shippingAddress?.city || "India"}</span>
-                </div>
-                <div className="sm:hidden w-full h-px bg-gray-100 my-1" />
-                <div className="flex items-center gap-1.5 font-medium text-gray-900">
-                  <span>Total:</span>
-                  <span className="text-base">
-                    ₹{(order.total_cents / 100).toLocaleString('en-IN')}
-                  </span>
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[11px] sm:text-xs text-gray-500">
+                <span className="whitespace-nowrap">{new Date(order.createdAt).toLocaleDateString("en-IN", { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                <span className="text-gray-300 select-none">•</span>
+                <span className="truncate max-w-[100px] sm:max-w-[150px]">{order.shippingAddress?.city || "India"}</span>
+                <span className="text-gray-300 select-none">•</span>
+                <div className="flex items-center gap-1 font-semibold text-gray-900 whitespace-nowrap">
+                  <span className="text-[10px] opacity-70">Total:</span>
+                  <span className="text-sm">₹{(order.total_cents / 100).toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>
           </Link>
 
           {/* Action Footer */}
-          <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-400">
-              Order #{order._id.slice(-8).toUpperCase()}
-            </span>
+          <div className="mt-4 pt-4 border-t border-gray-50 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center justify-between sm:block">
+              <span className="text-[10px] font-medium text-gray-400">
+                Order #{order._id.slice(-8).toUpperCase()}
+              </span>
+              <div className="sm:hidden flex items-center gap-1 text-[11px] font-bold text-blue-600">
+                Details <ChevronRight className="w-3 h-3" />
+              </div>
+            </div>
 
-            <div className="flex items-center gap-3">
-              {/* Add Story Button (Stop Propagation to prevent opening drawer) */}
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              {/* Add Story Button */}
               {(order.status === 'delivered' || order.orderStatus === 'delivered') && (
                 <button
                   onClick={(e) => {
@@ -201,19 +198,19 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
                       productImage: item.image || ""
                     });
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-gray-700 transition-colors z-10"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 h-10 sm:h-9 bg-gray-900 text-white border border-gray-900 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider hover:bg-gray-800 transition-all duration-300 z-10 shadow-md active:scale-95 group/story"
                 >
-                  <Camera className="w-3 h-3" />
+                  <Camera className="w-3.5 h-3.5 opacity-80 group-hover/story:opacity-100 transition-opacity" />
                   <span>Add Story</span>
                 </button>
               )}
 
               {/* Write Review Button */}
               {(((order.status || "").toLowerCase() === 'delivered' || (order.orderStatus || "").toLowerCase() === 'delivered')) && (
-                <div className="flex items-center">
+                <div className="flex-1 sm:flex-none flex items-center">
                   {(order.items[0]?.isReviewed) ? (
-                    <span className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs font-bold uppercase tracking-wide border border-green-100 whitespace-nowrap">
-                      <CheckCircle className="w-3 h-3" />
+                    <span className="w-full flex items-center justify-center gap-1 px-4 h-10 sm:h-9 bg-green-50 text-green-700 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-green-100 whitespace-nowrap">
+                      <CheckCircle className="w-3.5 h-3.5" />
                       Reviewed
                     </span>
                   ) : (
@@ -228,16 +225,15 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
                           productImage: item.image || ""
                         });
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-violet-700 transition-colors z-10 whitespace-nowrap shadow-sm"
+                      className="w-full h-10 sm:h-9 flex items-center justify-center px-6 bg-violet-600 text-white rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider hover:bg-violet-700 transition-all duration-200 z-10 whitespace-nowrap shadow-md shadow-violet-200 active:scale-95 px-5"
                     >
-                      <Star className="w-3 h-3 fill-white" />
                       <span>Review</span>
                     </button>
                   )}
                 </div>
               )}
 
-              <div className="flex items-center gap-1 text-sm font-semibold text-blue-600 group-hover:translate-x-1 transition-transform">
+              <div className="hidden sm:flex items-center gap-1 text-sm font-semibold text-blue-600 group-hover:translate-x-1 transition-transform">
                 View Details <ChevronRight className="w-4 h-4" />
               </div>
             </div>
@@ -312,6 +308,14 @@ export default function OrderHistory({ clerkUser }: OrderHistoryProps) {
         onOrderUpdate={handleOrderUpdate}
         onReviewProduct={(item) => {
           setSelectedProductForReview({
+            orderId: selectedOrder._id,
+            productId: typeof item.productId === 'string' ? item.productId : (item.productId as any)._id,
+            productName: item.name,
+            productImage: item.image || ""
+          });
+        }}
+        onAddStory={(item) => {
+          setSelectedProductForStory({
             orderId: selectedOrder._id,
             productId: typeof item.productId === 'string' ? item.productId : (item.productId as any)._id,
             productName: item.name,

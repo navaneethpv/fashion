@@ -287,6 +287,11 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       updateData.deliveredAt = new Date();
     }
 
+    // Set shippedAt timestamp when order is shipped
+    if (orderStatus === 'shipped' && !order.shippedAt) {
+      updateData.shippedAt = new Date();
+    }
+
     // Update order status (shipment status)
     const updatedOrder = await Order.findByIdAndUpdate(
       id,

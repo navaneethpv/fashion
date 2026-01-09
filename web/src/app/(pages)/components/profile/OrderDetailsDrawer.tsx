@@ -1,6 +1,6 @@
 // web/src/app/(pages)/components/profile/OrderDetailsDrawer.tsx
 "use client";
-import { X, Package, CheckCircle2, Truck, Home, Clock, RotateCcw, Star, CheckCircle } from "lucide-react";
+import { X, Package, CheckCircle2, Truck, Home, Clock, RotateCcw, Star, CheckCircle, Camera } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
@@ -12,6 +12,7 @@ interface OrderDetailsDrawerProps {
     onClose: () => void;
     onOrderUpdate?: (updatedOrder: any) => void;
     onReviewProduct?: (item: any) => void;
+    onAddStory?: (item: any) => void;
 }
 
 export default function OrderDetailsDrawer({
@@ -20,6 +21,7 @@ export default function OrderDetailsDrawer({
     onClose,
     onOrderUpdate,
     onReviewProduct,
+    onAddStory,
 }: OrderDetailsDrawerProps) {
     const { getToken } = useAuth();
 
@@ -208,9 +210,9 @@ export default function OrderDetailsDrawer({
     const timelineSteps = [
         { label: "Placed", status: "placed", icon: Package, date: order.createdAt },
         { label: "Confirmed", status: "confirmed", icon: CheckCircle2, date: order.createdAt },
-        { label: "Shipped", status: "shipped", icon: Truck, date: null },
-        { label: "Delivered", status: "delivered", icon: Home, date: null },
-        { label: "Returned", status: "returned", icon: RotateCcw, date: order.returnApprovedAt },
+        { label: "Shipped", status: "shipped", icon: Truck, date: order.shippedAt },
+        { label: "Delivered", status: "delivered", icon: Home, date: order.deliveredAt || order.delivered_at },
+        { label: "Returned", status: "returned", icon: RotateCcw, date: order.returnedAt },
     ];
 
     const currentStatusIndex = timelineSteps.findIndex(
@@ -386,12 +388,12 @@ export default function OrderDetailsDrawer({
                                             </p>
                                         </div>
 
-                                        {/* Action: Review */}
+                                        {/* Action: Review & Story */}
                                         {((order.status || "").toLowerCase() === 'delivered' || (order.orderStatus || "").toLowerCase() === 'delivered') && (
-                                            <div className="flex flex-col justify-center relative z-20">
+                                            <div className="flex flex-col gap-2 justify-center relative z-20">
                                                 {item.isReviewed ? (
-                                                    <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md border border-green-100 whitespace-nowrap">
-                                                        <CheckCircle className="w-3 h-3" />
+                                                    <span className="flex items-center gap-1.5 justify-center px-4 h-9 bg-green-50 text-green-700 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-green-100 whitespace-nowrap">
+                                                        <CheckCircle className="w-3.5 h-3.5" />
                                                         Reviewed
                                                     </span>
                                                 ) : (
@@ -401,12 +403,23 @@ export default function OrderDetailsDrawer({
                                                             e.stopPropagation();
                                                             onReviewProduct && onReviewProduct(item);
                                                         }}
-                                                        className="flex items-center gap-1 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-violet-700 transition-colors shadow-sm"
+                                                        className="flex items-center justify-center px-4 h-9 bg-violet-600 text-white rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider hover:bg-violet-700 transition-all shadow-md shadow-violet-200 active:scale-95"
                                                     >
-                                                        <Star className="w-3 h-3 fill-white" />
                                                         Review
                                                     </button>
                                                 )}
+
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        onAddStory && onAddStory(item);
+                                                    }}
+                                                    className="flex items-center gap-1.5 justify-center px-4 h-9 bg-gray-900 text-white border border-gray-900 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider hover:bg-gray-800 transition-all duration-300 shadow-md active:scale-95 group/story"
+                                                >
+                                                    <Camera className="w-3.5 h-3.5 opacity-80 group-hover/story:opacity-100 transition-opacity" />
+                                                    <span>Add Story</span>
+                                                </button>
                                             </div>
                                         )}
                                     </div>
